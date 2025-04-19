@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <title>Sign Transaction</title>
 
-  <!-- ✅ Correct UMD version of TonConnect UI -->
-  <script src="https://unpkg.com/@tonconnect/ui@0.0.6/dist/tonconnect-ui.min.js"></script>
+  <!-- ✅ Use working UMD version -->
+  <script src="https://unpkg.com/@tonconnect/ui@0.0.5/dist/tonconnect-ui.min.js"></script>
 
   <style>
     body {
@@ -43,23 +43,21 @@
     const to = urlParams.get("to");
 
     if (!to || !amount) {
-      alert("❌ Missing 'to' or 'amount' parameters in the URL!");
+      alert("❌ Missing 'to' or 'amount' parameters!");
     }
 
     const tonConnectUI = new window.TonConnectUI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
-      buttonRootId: "connect-button"
+      buttonRootId: "connect-button",
     });
 
     const signButton = document.getElementById("sign-btn");
     signButton.disabled = true;
 
-    tonConnectUI.onStatusChange((wallet) => {
+    tonConnectUI.onStatusChange(wallet => {
       if (wallet) {
-        console.log("✅ Connected to wallet:", wallet);
         signButton.disabled = false;
       } else {
-        console.warn("❌ Wallet not connected.");
         signButton.disabled = true;
       }
     });
@@ -67,15 +65,19 @@
     signButton.addEventListener("click", async () => {
       const tx = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
-        messages: [{ address: to, amount: amount }]
+        messages: [
+          {
+            address: to,
+            amount: amount
+          }
+        ]
       };
 
       try {
         await tonConnectUI.sendTransaction(tx);
-        alert("✅ Transaction signed and sent successfully!");
+        alert("✅ Transaction signed!");
       } catch (err) {
-        console.error("❌ Transaction failed:", err);
-        alert("❌ Transaction failed or was rejected.");
+        alert("❌ Transaction failed or rejected.");
       }
     });
   </script>
