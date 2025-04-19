@@ -3,15 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Sign Transaction</title>
+  <link rel="icon" href="/favicon.ico" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-
-  <!-- ✅ Required for TON Connect Manifest -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <link rel="manifest" href="/site.webmanifest">
 </head>
-
 <body>
   <h2>🔐 <strong>Sign Transaction with Your Wallet</strong></h2>
   <div id="connect-wallet"></div>
@@ -24,7 +18,7 @@
     const to = urlParams.get("to");
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://gigi-wallet-signing.onrender.com/public/tonconnect-manifest.json",
+      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",  // ✅ FIXED
       buttonRootId: "connect-wallet"
     });
 
@@ -56,4 +50,3 @@
   </script>
 </body>
 </html>
-
