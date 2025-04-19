@@ -17,7 +17,7 @@
     const to = urlParams.get("to");
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://gigi-wallet-signing.onrender.com/public/tonconnect-manifest.json",
+      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",  // ✅ fixed path
       buttonRootId: "connect-wallet"
     });
 
@@ -49,3 +49,4 @@
   </script>
 </body>
 </html>
+
