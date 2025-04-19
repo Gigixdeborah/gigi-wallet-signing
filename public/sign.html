@@ -1,75 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Sign Transaction</title>
-    <!-- ✅ Correct TonConnectUI global UMD version -->
-    <script src="https://unpkg.com/@tonconnect/ui@0.0.5/dist/tonconnect-ui.min.js"></script>
-    <style>
-      body {
-        font-family: sans-serif;
-        padding: 40px;
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign Transaction</title>
+
+  <!-- ✅ Load correct TonConnect UI from unpkg (UMD version that sets window.TonConnectUI) -->
+  <script src="https://unpkg.com/@tonconnect/ui@0.0.5/dist/tonconnect-ui.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 40px;
+      background: #fff;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    #sign-btn {
+      padding: 12px 25px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #eeeeee;
+      cursor: pointer;
+    }
+
+    #sign-btn:disabled {
+      opacity: 0.5;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🔐 Sign Transaction with Your Wallet</h1>
+
+  <!-- Wallet connect button will appear here -->
+  <div id="connect-button"></div>
+  <br />
+  <button id="sign-btn" disabled>✍️ Sign Transaction</button>
+
+  <script>
+    // Get ?amount=...&to=... from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const amount = urlParams.get("amount");
+    const to = urlParams.get("to");
+
+    // Initialize TonConnectUI
+    const tonConnectUI = new window.TonConnectUI.TonConnectUI({
+      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
+      buttonRootId: "connect-button"
+    });
+
+    const signButton = document.getElementById("sign-btn");
+    signButton.disabled = true;
+
+    tonConnectUI.onStatusChange((wallet) => {
+      if (wallet) {
+        console.log("✅ Wallet connected:", wallet);
+        signButton.disabled = false;
+      } else {
+        signButton.disabled = true;
       }
-      h1 {
-        font-size: 24px;
-        margin-bottom: 20px;
+    });
+
+    signButton.addEventListener("click", async () => {
+      const tx = {
+        validUntil: Math.floor(Date.now() / 1000) + 360,
+        messages: [
+          {
+            address: to,
+            amount: amount
+          }
+        ]
+      };
+
+      try {
+        await tonConnectUI.sendTransaction(tx);
+        alert("✅ Transaction sent or signed successfully.");
+      } catch (error) {
+        console.error("❌ Transaction failed:", error);
+        alert("❌ Transaction was cancelled or failed.");
       }
-      #sign-btn {
-        padding: 10px 20px;
-        font-size: 16px;
-        border-radius: 5px;
-        border: none;
-        background: #eee;
-        cursor: pointer;
-      }
-      #sign-btn:disabled {
-        opacity: 0.5;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>🔐 Sign Transaction with Your Wallet</h1>
-    <div id="connect-button"></div>
-    <br />
-    <button id="sign-btn" disabled>✍️ Sign Transaction</button>
-
-    <script>
-      const urlParams = new URLSearchParams(window.location.search);
-      const amount = urlParams.get("amount");
-      const to = urlParams.get("to");
-
-      const tonConnectUI = new TonConnectUI.TonConnectUI({
-        manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
-        buttonRootId: "connect-button"
-      });
-
-      const signButton = document.getElementById("sign-btn");
-      signButton.disabled = true;
-
-      tonConnectUI.onStatusChange(wallet => {
-        if (wallet) {
-          signButton.disabled = false;
-          signButton.onclick = async () => {
-            const tx = {
-              validUntil: Math.floor(Date.now() / 1000) + 360,
-              messages: [{
-                address: to,
-                amount: amount
-              }]
-            };
-
-            try {
-              await tonConnectUI.sendTransaction(tx);
-              alert("✅ Transaction signed!");
-            } catch (e) {
-              console.error(e);
-              alert("❌ Transaction failed or rejected.");
-            }
-          };
-        } else {
-          signButton.disabled = true;
-        }
-      });
-    </script>
-  </body>
+    });
+  </script>
+</body>
 </html>
