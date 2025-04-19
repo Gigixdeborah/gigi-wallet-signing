@@ -16,10 +16,10 @@
     const amount = urlParams.get("amount");
     const to = urlParams.get("to");
 
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",  // ✅ fixed path
-      buttonRootId: "connect-wallet"
-    });
+const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+  manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
+  buttonRootId: "connect-wallet"
+});
 
     const signBtn = document.getElementById("sign-btn");
 
