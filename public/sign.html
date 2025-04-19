@@ -1,73 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Sign Transaction</title>
-  <script type="module">
-    import { TonConnectUI } from "https://unpkg.com/@tonconnect/ui@0.1.2/dist/tonconnect-ui.min.js";
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const amount = urlParams.get("amount");
-    const to = urlParams.get("to");
-
-    const tonConnectUI = new TonConnectUI({
-      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
-      buttonRootId: "connect-button"
-    });
-
-    const signButton = document.getElementById("sign-btn");
-    signButton.disabled = true;
-
-    tonConnectUI.onStatusChange(wallet => {
-      if (wallet) {
-        signButton.disabled = false;
-        signButton.addEventListener("click", async () => {
-          const tx = {
-            validUntil: Math.floor(Date.now() / 1000) + 360,
-            messages: [{
-              address: to,
-              amount: amount,
-            }]
-          };
-
-          try {
-            await tonConnectUI.sendTransaction(tx);
-            alert("✅ Transaction signed! You may now close this tab.");
-          } catch (e) {
-            alert("❌ Transaction rejected or failed.");
-          }
-        });
-      } else {
-        signButton.disabled = true;
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sign Transaction</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@tonconnect/ui": "https://unpkg.com/@tonconnect/ui@0.1.2/dist/tonconnect-ui.min.js"
+        }
       }
-    });
-  </script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 40px;
-    }
-    h1 {
-      font-size: 26px;
-      margin-bottom: 20px;
-    }
-    #sign-btn {
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: none;
-      background: #eee;
-      cursor: pointer;
-    }
-    #sign-btn:disabled {
-      opacity: 0.5;
-    }
-  </style>
-</head>
-<body>
-  <h1>🔐 Sign Transaction with Your Wallet</h1>
-  <div id="connect-button"></div>
-  <br /><br />
-  <button id="sign-btn" disabled>✍️ Sign Transaction</button>
-</body>
+    </script>
+    <script type="module">
+      import { TonConnectUI } from "@tonconnect/ui";
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const amount = urlParams.get("amount");
+      const to = urlParams.get("to");
+
+      const tonConnectUI = new TonConnectUI({
+        manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
+        buttonRootId: "connect-button"
+      });
+
+      const signButton = document.getElementById("sign-btn");
+      signButton.disabled = true;
+
+      tonConnectUI.onStatusChange(wallet => {
+        if (wallet) {
+          signButton.disabled = false;
+          signButton.addEventListener("click", async () => {
+            const tx = {
+              validUntil: Math.floor(Date.now() / 1000) + 360,
+              messages: [{
+                address: to,
+                amount: amount,
+              }]
+            };
+
+            try {
+              await tonConnectUI.sendTransaction(tx);
+              alert("✅ Transaction signed!");
+            } catch (e) {
+              alert("❌ Transaction failed or rejected.");
+            }
+          });
+        } else {
+          signButton.disabled = true;
+        }
+      });
+    </script>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 40px;
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      #sign-btn {
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        border: none;
+        background: #eee;
+        cursor: pointer;
+      }
+      #sign-btn:disabled {
+        opacity: 0.5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔐 Sign Transaction with Your Wallet</h1>
+    <div id="connect-button"></div>
+    <br />
+    <button id="sign-btn" disabled>✍️ Sign Transaction</button>
+  </body>
 </html>
