@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Sign Transaction</title>
-    <!-- ✅ CORRECT WORKING UMD VERSION -->
+    <!-- ✅ Correct TonConnectUI global UMD version -->
     <script src="https://unpkg.com/@tonconnect/ui@0.0.5/dist/tonconnect-ui.min.js"></script>
     <style>
       body {
@@ -54,7 +54,7 @@
               validUntil: Math.floor(Date.now() / 1000) + 360,
               messages: [{
                 address: to,
-                amount: amount,
+                amount: amount
               }]
             };
 
@@ -62,8 +62,8 @@
               await tonConnectUI.sendTransaction(tx);
               alert("✅ Transaction signed!");
             } catch (e) {
-              alert("❌ Transaction failed or rejected.");
               console.error(e);
+              alert("❌ Transaction failed or rejected.");
             }
           };
         } else {
