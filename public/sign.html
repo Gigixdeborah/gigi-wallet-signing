@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Sign Transaction</title>
 
-  <!-- ✅ Correct SDK version with UMD support -->
+  <!-- ✅ Correct TonConnect UI UMD version -->
   <script src="https://unpkg.com/@tonconnect/ui@0.0.9/dist/tonconnect-ui.min.js"></script>
 
   <style>
@@ -38,15 +38,16 @@
   <button id="sign-btn" disabled>✍️ Sign Transaction</button>
 
   <script>
+    // Get params from URL
     const urlParams = new URLSearchParams(window.location.search);
     const amount = urlParams.get("amount");
     const to = urlParams.get("to");
 
     if (!to || !amount) {
-      alert("❌ Missing 'to' or 'amount' in URL");
+      alert("❌ Missing 'to' or 'amount' in the URL!");
     }
 
-    // ✅ Use TonConnectUI from the global window
+    // ✅ Use TonConnectUI (global from UMD)
     const tonConnectUI = new TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
       buttonRootId: "connect-button"
@@ -55,35 +56,34 @@
     const signButton = document.getElementById("sign-btn");
     signButton.disabled = true;
 
+    // 🔄 Enable sign button when wallet connects
     tonConnectUI.onStatusChange(wallet => {
       if (wallet) {
-        console.log("✅ Connected:", wallet);
         signButton.disabled = false;
       } else {
-        console.log("🔌 Disconnected");
         signButton.disabled = true;
       }
     });
 
+    // ✍️ Handle sign click
     signButton.addEventListener("click", async () => {
       const tx = {
-        validUntil: Math.floor(Date.now() / 1000) + 360,
-        messages: [
-          {
-            address: to,
-            amount: amount
-          }
-        ]
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: to,
+          amount: amount
+        }]
       };
 
       try {
         await tonConnectUI.sendTransaction(tx);
-        alert("✅ Transaction sent successfully!");
-      } catch (e) {
-        console.error("❌ Error signing:", e);
-        alert("❌ Transaction failed or was rejected.");
+        alert("✅ Transaction sent!");
+      } catch (err) {
+        alert("❌ Transaction cancelled or failed.");
+        console.error(err);
       }
     });
   </script>
 </body>
 </html>
+
