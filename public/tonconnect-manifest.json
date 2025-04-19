@@ -6,11 +6,11 @@
   "icon_url": "https://gigi-wallet-signing.onrender.com/favicon.ico",
   "bridge_url": "https://bridge.tonapi.io/bridge",
   "platforms": [
-    "telegram",
-    "tonkeeper",
-    "tonhub",
-    "tonmobile",
-    "tonconnect",
-    "tonwallet"
+    { "name": "tonkeeper" },
+    { "name": "tonhub" },
+    { "name": "tonwallet" },
+    { "name": "tonconnect" },
+    { "name": "tonmobile" },
+    { "name": "telegram" }
   ]
 }
