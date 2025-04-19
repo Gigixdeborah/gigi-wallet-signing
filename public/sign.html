@@ -1,70 +1,74 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Sign Transaction</title>
-    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
-  </head>
-  <body>
-    <h1>Sign Transaction with Your Wallet</h1>
-    <div id="wallet-status">🔄 Connecting...</div>
-    <button id="connect-btn">🔗 Connect TON Wallet</button>
-    <button id="sign-btn" disabled>✍️ Sign Transaction</button>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign Transaction</title>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 40px;
+    }
+    h2 {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    #ton-connect-button, #sign-btn {
+      margin-top: 10px;
+      display: inline-block;
+    }
+    #sign-btn {
+      padding: 10px 18px;
+      font-size: 16px;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #sign-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h2>🔐 Sign Transaction with Your Wallet</h2>
+  <div id="ton-connect-button"></div>
+  <br><br>
+  <button id="sign-btn" disabled>✍️ Sign Transaction</button>
 
-    <script>
-      const tonConnect = new TON_CONNECT.TonConnect({
-        manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json"
-      });
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const to = urlParams.get("to");
+    const amount = urlParams.get("amount");
 
-      const connectBtn = document.getElementById("connect-btn");
-      const signBtn = document.getElementById("sign-btn");
-      const walletStatus = document.getElementById("wallet-status");
+    const tonConnectUI = new TON_CONNECT.TonConnectUI({
+      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
+      buttonRootId: "ton-connect-button"
+    });
 
-      async function init() {
-        const connectedWallet = await tonConnect.restoreConnection();
-        if (connectedWallet) {
-          walletStatus.innerText = "✅ Wallet Connected";
-          signBtn.disabled = false;
-        } else {
-          walletStatus.innerText = "❌ No wallet connected";
-        }
-      }
+    // Enable sign button once wallet is connected
+    tonConnectUI.connectionRestored.then(() => {
+      document.getElementById("sign-btn").disabled = false;
+    });
 
-      connectBtn.onclick = async () => {
-        await tonConnect.connectWallet();
-        walletStatus.innerText = "✅ Wallet Connected";
-        signBtn.disabled = false;
-      };
-
-      signBtn.onclick = async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const amount = urlParams.get("amount");
-        const to = urlParams.get("to");
-
-        if (!amount || !to) {
-          alert("Missing amount or recipient address.");
-          return;
-        }
-
-        const transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+    document.getElementById("sign-btn").onclick = async () => {
+      try {
+        await tonConnectUI.sendTransaction({
+          validUntil: Math.floor(Date.now() / 1000) + 360,
           messages: [
             {
               address: to,
               amount: amount,
-            },
-          ],
-        };
-
-        try {
-          await tonConnect.sendTransaction(transaction);
-          alert("✅ Transaction sent! Check your wallet.");
-        } catch (e) {
-          console.error(e);
-          alert("❌ Failed to send transaction.");
-        }
-      };
-
-      init();
-    </script>
-  </body>
+            }
+          ]
+        });
+      } catch (e) {
+        alert("⚠️ Transaction cancelled or failed.");
+        console.error(e);
+      }
+    };
+  </script>
+</body>
 </html>
