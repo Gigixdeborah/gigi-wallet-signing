@@ -4,13 +4,14 @@
   <meta charset="UTF-8" />
   <title>Sign Transaction</title>
 
-  <!-- Use the correct working UMD version -->
+  <!-- Use working UMD version -->
   <script src="https://unpkg.com/@tonconnect/ui@0.0.6/dist/tonconnect-ui.min.js"></script>
 
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       padding: 40px;
+      background: #fff;
     }
     h1 {
       font-size: 24px;
@@ -26,9 +27,11 @@
     }
     #sign-btn:disabled {
       opacity: 0.5;
+      cursor: not-allowed;
     }
   </style>
 </head>
+
 <body>
   <h1>🔐 Sign Transaction with Your Wallet</h1>
   <div id="connect-button"></div>
@@ -36,16 +39,16 @@
   <button id="sign-btn" disabled>✍️ Sign Transaction</button>
 
   <script>
-    // Extract parameters
+    // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const amount = urlParams.get("amount");
     const to = urlParams.get("to");
 
     if (!amount || !to) {
-      alert("❌ Missing amount or recipient address in the URL");
+      alert("❌ Missing 'amount' or 'to' in the URL.");
     }
 
-    // ✅ Access TonConnectUI from global window object
+    // Init TonConnectUI from window object
     const tonConnectUI = new window.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
       buttonRootId: "connect-button"
@@ -54,14 +57,18 @@
     const signBtn = document.getElementById("sign-btn");
     signBtn.disabled = true;
 
-    tonConnectUI.onStatusChange(wallet => {
+    // When wallet is connected, enable sign button
+    tonConnectUI.onStatusChange(async (wallet) => {
       if (wallet) {
+        console.log("✅ Wallet connected:", wallet);
         signBtn.disabled = false;
       } else {
+        console.warn("❌ Wallet not connected");
         signBtn.disabled = true;
       }
     });
 
+    // Send transaction when button clicked
     signBtn.addEventListener("click", async () => {
       const tx = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
@@ -75,10 +82,10 @@
 
       try {
         await tonConnectUI.sendTransaction(tx);
-        alert("✅ Transaction signed!");
+        alert("✅ Transaction signed successfully!");
       } catch (err) {
-        console.error("❌ Transaction failed:", err);
-        alert("❌ Signing failed or cancelled.");
+        console.error("❌ Signing failed:", err);
+        alert("❌ Transaction failed or was cancelled.");
       }
     });
   </script>
