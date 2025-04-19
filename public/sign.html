@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <title>Sign Transaction</title>
 
-  <!-- ✅ Use UMD version that defines window.TonConnectUI -->
-  <script src="https://unpkg.com/@tonconnect/ui@0.0.6/dist/tonconnect-ui.min.js"></script>
+  <!-- ✅ Correct SDK version with UMD support -->
+  <script src="https://unpkg.com/@tonconnect/ui@0.0.9/dist/tonconnect-ui.min.js"></script>
 
   <style>
     body {
@@ -38,13 +38,16 @@
   <button id="sign-btn" disabled>✍️ Sign Transaction</button>
 
   <script>
-    // Get URL parameters (amount & recipient)
     const urlParams = new URLSearchParams(window.location.search);
     const amount = urlParams.get("amount");
     const to = urlParams.get("to");
 
-    // ✅ Use the correct exposed global TonConnectUI from window
-    const tonConnectUI = new TonConnectUI.TonConnectUI({
+    if (!to || !amount) {
+      alert("❌ Missing 'to' or 'amount' in URL");
+    }
+
+    // ✅ Use TonConnectUI from the global window
+    const tonConnectUI = new TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
       buttonRootId: "connect-button"
     });
@@ -52,12 +55,12 @@
     const signButton = document.getElementById("sign-btn");
     signButton.disabled = true;
 
-    tonConnectUI.onStatusChange((wallet) => {
+    tonConnectUI.onStatusChange(wallet => {
       if (wallet) {
-        console.log("✅ Connected to wallet:", wallet);
+        console.log("✅ Connected:", wallet);
         signButton.disabled = false;
       } else {
-        console.warn("❌ Wallet not connected.");
+        console.log("🔌 Disconnected");
         signButton.disabled = true;
       }
     });
@@ -75,9 +78,9 @@
 
       try {
         await tonConnectUI.sendTransaction(tx);
-        alert("✅ Transaction signed!");
+        alert("✅ Transaction sent successfully!");
       } catch (e) {
-        console.error("❌ Sign error:", e);
+        console.error("❌ Error signing:", e);
         alert("❌ Transaction failed or was rejected.");
       }
     });
