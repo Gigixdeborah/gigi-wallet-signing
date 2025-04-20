@@ -16,9 +16,10 @@
     const urlParams = new URLSearchParams(window.location.search);
     const amount = urlParams.get("amount");
     const to = urlParams.get("to");
+    const user_id = urlParams.get("user_id") || "7093436536"; // fallback user_id (make dynamic later)
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",  // ✅ FIXED
+      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
       buttonRootId: "connect-wallet"
     });
 
@@ -43,6 +44,20 @@
       try {
         await tonConnectUI.sendTransaction(transaction);
         alert("✅ Transaction Sent!");
+
+        // Notify bot after signing
+        await fetch("http://localhost:5000/notify_bot", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            user_id,
+            token: "TON",
+            amount: parseFloat(amount / 1e9).toFixed(2) // Convert from nano
+          })
+        });
+
       } catch (error) {
         alert("❌ Signing failed: " + error.message);
       }
@@ -50,3 +65,4 @@
   </script>
 </body>
 </html>
+
