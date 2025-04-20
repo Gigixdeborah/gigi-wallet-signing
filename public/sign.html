@@ -1,4 +1,4 @@
-<!-- ✅ Updated sign.html with webhook trigger -->
+<!-- ✅ Updated sign.html with wallet modal trigger -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,8 +21,14 @@
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
-      buttonRootId: "connect-wallet"
+      buttonRootId: "connect-wallet",
+      actionsConfiguration: {
+        twaReturnUrl: "https://t.me/gigip2bot"
+      }
     });
+
+    // ✅ Force modal open to help user connect wallet
+    tonConnectUI.openModal();
 
     const signBtn = document.getElementById("sign-btn");
 
