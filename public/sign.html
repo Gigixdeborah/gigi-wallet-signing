@@ -1,3 +1,4 @@
+<!-- ✅ Updated sign.html with webhook trigger -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,7 +17,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const amount = urlParams.get("amount");
     const to = urlParams.get("to");
-    const user_id = urlParams.get("user_id") || "7093436536"; // fallback user_id (make dynamic later)
+    const userId = urlParams.get("user_id");
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
@@ -35,27 +36,18 @@
     signBtn.addEventListener("click", async () => {
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
-        messages: [{
-          address: to,
-          amount: amount
-        }]
+        messages: [{ address: to, amount: amount }]
       };
 
       try {
-        await tonConnectUI.sendTransaction(transaction);
+        const result = await tonConnectUI.sendTransaction(transaction);
         alert("✅ Transaction Sent!");
 
-        // Notify bot after signing
-        await fetch("http://localhost:5000/notify_bot", {
+        // 🔔 Notify Telegram bot via webhook
+        await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            user_id,
-            token: "TON",
-            amount: parseFloat(amount / 1e9).toFixed(2) // Convert from nano
-          })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, amount, to, tx: result })
         });
 
       } catch (error) {
