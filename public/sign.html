@@ -1,22 +1,40 @@
-<!-- ✅ Updated sign.html with fallback, fee split, webhook -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Sign Transaction</title>
   <link rel="icon" href="/favicon.ico" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #fafafa;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    #sign-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
   <h2>🔐 <strong>Sign Transaction with Your Wallet</strong></h2>
   <div id="connect-wallet"></div>
-  <br />
   <button id="sign-btn" disabled>✍️ Sign Transaction</button>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const rawAmount = parseFloat(urlParams.get("amount"));
-    const mainNano = Math.floor(rawAmount * 1e9);
+    const mainNano = Math.floor(rawAmount * 1e9); // Main amount in nanoTON
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
 
@@ -36,12 +54,9 @@
     const signBtn = document.getElementById("sign-btn");
 
     tonConnectUI.onStatusChange(wallet => {
-      console.log("Wallet status changed:", wallet);
       if (wallet) {
         signBtn.disabled = false;
         signBtn.textContent = "✍️ Sign Now";
-      } else {
-        signBtn.textContent = "❌ No Wallet Connected";
       }
     });
 
@@ -63,9 +78,9 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: userId, amount: rawAmount, to, tx: result })
         });
+
       } catch (error) {
         alert("❌ Signing failed: " + error.message);
-        console.error(error);
       }
     });
   </script>
