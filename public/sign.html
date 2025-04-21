@@ -12,24 +12,37 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
-      font-family: Arial, sans-serif;
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #f8f9fa;
+      padding: 20px;
     }
     h2 {
       margin-bottom: 20px;
     }
-    #connect-wallet {
-      margin-bottom: 15px;
-    }
-    #sign-btn {
+    #sign-btn, #tg-wallet {
+      margin-top: 15px;
       padding: 10px 20px;
       font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      background: #007bff;
+      color: white;
       cursor: pointer;
+    }
+    #sign-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #connect-wallet {
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
   <h2>🔐 <strong>Sign Transaction with Your Wallet</strong></h2>
   <div id="connect-wallet"></div>
+  <button id="tg-wallet">🚀 Connect Telegram Wallet</button>
   <button id="sign-btn" disabled>✍️ Sign Transaction</button>
 
   <script>
@@ -53,6 +66,7 @@
     tonConnectUI.openModal();
 
     const signBtn = document.getElementById("sign-btn");
+    const tgBtn = document.getElementById("tg-wallet");
 
     tonConnectUI.onStatusChange(wallet => {
       if (wallet) {
@@ -84,7 +98,12 @@
         alert("❌ Signing failed: " + error.message);
       }
     });
+
+    tgBtn.addEventListener("click", () => {
+      const manifest = "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json";
+      const telegramLink = `https://t.me/wallet/start?startapp=tonconnect-v2&manifestUrl=${encodeURIComponent(manifest)}`;
+      window.open(telegramLink, "_blank");
+    });
   </script>
 </body>
 </html>
-
