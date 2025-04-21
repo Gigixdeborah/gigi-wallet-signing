@@ -3,37 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <title>Sign Transaction</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <link rel="icon" href="/favicon.ico" />
+
+  <!-- Particle.js -->
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100%;
       font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(to right top, #0f2027, #203a43, #2c5364);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      background: #0f2027;
       overflow: hidden;
     }
 
+    #particles-js {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
     .container {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 50px 35px;
-      backdrop-filter: blur(14px);
-      box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
-      text-align: center;
+      z-index: 2;
+      position: relative;
       max-width: 420px;
-      width: 90%;
+      margin: auto;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+      color: #fff;
     }
 
     h2 {
-      font-size: 26px;
       margin-bottom: 30px;
+      font-size: 26px;
       color: #ffffffdd;
     }
 
@@ -42,22 +54,21 @@
     }
 
     #sign-btn {
-      background: #00c3ff;
-      background: linear-gradient(to right, #00c3ff, #0070ff);
+      background: linear-gradient(135deg, #00c3ff, #0070ff);
       color: white;
       padding: 18px 32px;
       font-size: 18px;
       border: none;
       border-radius: 50px;
       cursor: pointer;
-      transition: 0.3s ease;
-      box-shadow: 0 0 24px rgba(0, 195, 255, 0.4);
-      min-width: 220px;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 20px rgba(0, 195, 255, 0.5);
+      width: 100%;
     }
 
     #sign-btn:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 0 36px rgba(0, 195, 255, 0.6);
+      box-shadow: 0 0 30px rgba(0, 195, 255, 0.7);
     }
 
     #sign-btn:disabled {
@@ -68,6 +79,9 @@
   </style>
 </head>
 <body>
+
+  <div id="particles-js"></div>
+
   <div class="container">
     <h2>🔐 Sign Your TON Transaction</h2>
     <div id="connect-wallet"></div>
@@ -118,16 +132,32 @@
         await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: userId,
-            amount: mainNano,
-            to,
-            tx: result
-          })
+          body: JSON.stringify({ user_id: userId, amount: mainNano, to, tx: result })
         });
 
       } catch (error) {
-        alert("❌ Transaction failed: " + error.message);
+        alert("❌ Signing failed: " + error.message);
+      }
+    });
+
+    // Load Particles
+    tsParticles.load("particles-js", {
+      fullScreen: { enable: false },
+      particles: {
+        number: { value: 80 },
+        color: { value: "#00c3ff" },
+        shape: { type: "circle" },
+        opacity: { value: 0.3 },
+        size: { value: 3 },
+        move: { enable: true, speed: 1 }
+      },
+      interactivity: {
+        events: {
+          onhover: { enable: true, mode: "repulse" }
+        }
+      },
+      background: {
+        color: "#0f2027"
       }
     });
   </script>
