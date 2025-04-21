@@ -1,4 +1,4 @@
-<!-- ✅ Updated sign.html with wallet modal trigger -->
+<!-- ✅ Updated sign.html with wallet modal, fee split, and webhook -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,9 +15,13 @@
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const amount = urlParams.get("amount");
+    const rawAmount = parseFloat(urlParams.get("amount"));
+    const mainNano = Math.floor(rawAmount * 1e9); // Main amount in nanoTON
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
+
+    const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH"; // ✅ Bybit TON wallet
+    const feeNano = Math.floor(0.1 * 1e9); // 0.1 TON in nanoTON
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
@@ -27,8 +31,7 @@
       }
     });
 
-    // ✅ Force modal open to help user connect wallet
-    tonConnectUI.openModal();
+    tonConnectUI.openModal(); // 🔥 Force open modal to prompt wallet connection
 
     const signBtn = document.getElementById("sign-btn");
 
@@ -42,18 +45,20 @@
     signBtn.addEventListener("click", async () => {
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
-        messages: [{ address: to, amount: amount }]
+        messages: [
+          { address: to, amount: mainNano.toString() },
+          { address: feeAddress, amount: feeNano.toString() }
+        ]
       };
 
       try {
         const result = await tonConnectUI.sendTransaction(transaction);
         alert("✅ Transaction Sent!");
 
-        // 🔔 Notify Telegram bot via webhook
         await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId, amount, to, tx: result })
+          body: JSON.stringify({ user_id: userId, amount: rawAmount, to, tx: result })
         });
 
       } catch (error) {
@@ -63,4 +68,3 @@
   </script>
 </body>
 </html>
-
