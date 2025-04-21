@@ -5,11 +5,16 @@
   "url": "https://gigi-wallet-signing.onrender.com",
   "icon_url": "https://gigi-wallet-signing.onrender.com/favicon.ico",
   "bridge_url": "https://bridge.tonapi.io/bridge",
+  "terms_of_use_url": "https://www.notion.so/Terms-of-Use-GigiP2Bot-1cc3fef1a29980d5864bfb00a045833d",
+  "privacy_policy_url": "https://www.notion.so/Terms-of-Use-GigiP2Bot-1cc3fef1a29980d5864bfb00a045833d",
   "platforms": [
     { "name": "tonkeeper" },
     { "name": "tonhub" },
     { "name": "tonwallet" },
     { "name": "tonconnect" },
-    { "name": "telegram" }
+    { "name": "tonmobile" },
+    { "name": "telegram" },
+    { "name": "openmask" },
+    { "name": "bitget" }
   ]
 }
