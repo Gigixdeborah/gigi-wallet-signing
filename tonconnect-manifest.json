@@ -3,16 +3,14 @@
   "name": "GigiP2Bot",
   "description": "P2P crypto exchange bot powered by Gigi Labs",
   "url": "https://gigi-wallet-signing.onrender.com",
-  "icon_url": "https://gigi-wallet-signing.onrender.com/favicon.ico",
+  "icons": [
+    "https://gigi-wallet-signing.onrender.com/favicon.ico"
+  ],
   "bridge_url": "https://bridge.tonapi.io/bridge",
   "platforms": [
     { "name": "tonkeeper" },
     { "name": "tonhub" },
     { "name": "tonwallet" },
-    { "name": "tonconnect" },
-    { "name": "tonmobile" },
-    { "name": "telegram" },
-    { "name": "bitget" },
-    { "name": "openmask" }
+    { "name": "telegram" }
   ]
 }
