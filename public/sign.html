@@ -1,8 +1,8 @@
-<!-- ✅ Updated sign.html with wallet modal, fee split, and webhook -->
+<!-- ✅ Updated sign.html with fallback, fee split, webhook -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Sign Transaction</title>
   <link rel="icon" href="/favicon.ico" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
@@ -16,12 +16,12 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const rawAmount = parseFloat(urlParams.get("amount"));
-    const mainNano = Math.floor(rawAmount * 1e9); // Main amount in nanoTON
+    const mainNano = Math.floor(rawAmount * 1e9);
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
 
-    const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH"; // ✅ Bybit TON wallet
-    const feeNano = Math.floor(0.1 * 1e9); // 0.1 TON in nanoTON
+    const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH";
+    const feeNano = Math.floor(0.1 * 1e9);
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
@@ -31,14 +31,17 @@
       }
     });
 
-    tonConnectUI.openModal(); // 🔥 Force open modal to prompt wallet connection
+    tonConnectUI.openModal();
 
     const signBtn = document.getElementById("sign-btn");
 
     tonConnectUI.onStatusChange(wallet => {
+      console.log("Wallet status changed:", wallet);
       if (wallet) {
         signBtn.disabled = false;
         signBtn.textContent = "✍️ Sign Now";
+      } else {
+        signBtn.textContent = "❌ No Wallet Connected";
       }
     });
 
@@ -60,9 +63,9 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: userId, amount: rawAmount, to, tx: result })
         });
-
       } catch (error) {
         alert("❌ Signing failed: " + error.message);
+        console.error(error);
       }
     });
   </script>
