@@ -9,6 +9,9 @@
     { "name": "tonkeeper" },
     { "name": "tonhub" },
     { "name": "tonwallet" },
+    { "name": "tonconnect" },
+    { "name": "tonmobile" },
+    { "name": "telegram" },
     { "name": "bitget" },
     { "name": "openmask" }
   ]
