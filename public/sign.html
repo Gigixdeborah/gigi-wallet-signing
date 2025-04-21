@@ -3,69 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <title>Sign Transaction</title>
-  <link rel="icon" href="/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <link rel="icon" href="/favicon.ico" />
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: radial-gradient(circle, #1e1e2f, #12121c);
-      color: #ffffff;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to right top, #0f2027, #203a43, #2c5364);
+      color: #fff;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 50px 35px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
       text-align: center;
+      max-width: 420px;
+      width: 90%;
     }
 
     h2 {
-      font-size: 28px;
+      font-size: 26px;
+      margin-bottom: 30px;
+      color: #ffffffdd;
+    }
+
+    #connect-wallet {
       margin-bottom: 30px;
     }
 
-    #connect-wallet, #sign-btn {
-      margin: 15px 0;
-    }
-
     #sign-btn {
-      padding: 14px 30px;
+      background: #00c3ff;
+      background: linear-gradient(to right, #00c3ff, #0070ff);
+      color: white;
+      padding: 18px 32px;
       font-size: 18px;
       border: none;
-      border-radius: 12px;
-      background-color: #00bfff;
-      color: #fff;
+      border-radius: 50px;
       cursor: pointer;
-      box-shadow: 0px 0px 15px rgba(0, 191, 255, 0.4);
-      transition: background-color 0.3s ease;
+      transition: 0.3s ease;
+      box-shadow: 0 0 24px rgba(0, 195, 255, 0.4);
+      min-width: 220px;
+    }
+
+    #sign-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 0 36px rgba(0, 195, 255, 0.6);
     }
 
     #sign-btn:disabled {
-      background-color: #555;
+      background: #888;
       cursor: not-allowed;
       box-shadow: none;
-    }
-
-    #sign-btn:hover:enabled {
-      background-color: #008ecc;
     }
   </style>
 </head>
 <body>
-  <h2>🔐 <strong>Sign Transaction with Your Wallet</strong></h2>
-  <div id="connect-wallet"></div>
-  <button id="sign-btn" disabled>👍 Sign Transaction</button>
+  <div class="container">
+    <h2>🔐 Sign Your TON Transaction</h2>
+    <div id="connect-wallet"></div>
+    <button id="sign-btn" disabled>✍️ Sign Transaction</button>
+  </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const rawAmount = parseFloat(urlParams.get("amount"));
+    const mainNano = parseInt(urlParams.get("amount"));
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
 
-    const nanoAmount = Math.floor(rawAmount * 1e9);
-    const feeNano = Math.floor(0.1 * 1e9);
     const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH";
+    const feeNano = Math.floor(0.1 * 1e9);
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
@@ -75,14 +91,14 @@
       }
     });
 
+    tonConnectUI.openModal();
+
     const signBtn = document.getElementById("sign-btn");
 
     tonConnectUI.onStatusChange(wallet => {
       if (wallet) {
         signBtn.disabled = false;
-        signBtn.textContent = "👍 Sign Transaction";
-      } else {
-        signBtn.disabled = true;
+        signBtn.textContent = "✍️ Sign Now";
       }
     });
 
@@ -90,23 +106,28 @@
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
         messages: [
-          { address: to, amount: nanoAmount.toString() },
+          { address: to, amount: mainNano.toString() },
           { address: feeAddress, amount: feeNano.toString() }
         ]
       };
 
       try {
         const result = await tonConnectUI.sendTransaction(transaction);
-        alert("✅ Transaction Signed!");
+        alert("✅ Transaction Sent!");
 
         await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId, amount: rawAmount, to, tx: result })
+          body: JSON.stringify({
+            user_id: userId,
+            amount: mainNano,
+            to,
+            tx: result
+          })
         });
 
       } catch (error) {
-        alert("❌ Error signing transaction: " + error.message);
+        alert("❌ Transaction failed: " + error.message);
       }
     });
   </script>
