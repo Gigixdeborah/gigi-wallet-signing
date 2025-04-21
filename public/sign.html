@@ -1,59 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Sign Transaction</title>
   <link rel="icon" href="/favicon.ico" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
     body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: radial-gradient(circle, #1e1e2f, #12121c);
+      color: #ffffff;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      margin: 0;
-      font-family: sans-serif;
-      background-color: #f8f9fa;
-      padding: 20px;
+      text-align: center;
     }
+
     h2 {
-      margin-bottom: 20px;
+      font-size: 28px;
+      margin-bottom: 30px;
     }
-    #sign-btn, #tg-wallet {
-      margin-top: 15px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 6px;
+
+    #connect-wallet, #sign-btn {
+      margin: 15px 0;
+    }
+
+    #sign-btn {
+      padding: 14px 30px;
+      font-size: 18px;
       border: none;
-      background: #007bff;
-      color: white;
+      border-radius: 12px;
+      background-color: #00bfff;
+      color: #fff;
       cursor: pointer;
+      box-shadow: 0px 0px 15px rgba(0, 191, 255, 0.4);
+      transition: background-color 0.3s ease;
     }
+
     #sign-btn:disabled {
-      opacity: 0.5;
+      background-color: #555;
       cursor: not-allowed;
+      box-shadow: none;
     }
-    #connect-wallet {
-      margin-bottom: 10px;
+
+    #sign-btn:hover:enabled {
+      background-color: #008ecc;
     }
   </style>
 </head>
 <body>
   <h2>🔐 <strong>Sign Transaction with Your Wallet</strong></h2>
   <div id="connect-wallet"></div>
-  <button id="tg-wallet">🚀 Connect Telegram Wallet</button>
-  <button id="sign-btn" disabled>✍️ Sign Transaction</button>
+  <button id="sign-btn" disabled>👍 Sign Transaction</button>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const rawAmount = parseFloat(urlParams.get("amount"));
-    const mainNano = Math.floor(rawAmount * 1e9);
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
 
-    const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH";
+    const nanoAmount = Math.floor(rawAmount * 1e9);
     const feeNano = Math.floor(0.1 * 1e9);
+    const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH";
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
@@ -63,15 +75,14 @@
       }
     });
 
-    tonConnectUI.openModal();
-
     const signBtn = document.getElementById("sign-btn");
-    const tgBtn = document.getElementById("tg-wallet");
 
     tonConnectUI.onStatusChange(wallet => {
       if (wallet) {
         signBtn.disabled = false;
-        signBtn.textContent = "✍️ Sign Now";
+        signBtn.textContent = "👍 Sign Transaction";
+      } else {
+        signBtn.disabled = true;
       }
     });
 
@@ -79,14 +90,14 @@
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
         messages: [
-          { address: to, amount: mainNano.toString() },
+          { address: to, amount: nanoAmount.toString() },
           { address: feeAddress, amount: feeNano.toString() }
         ]
       };
 
       try {
         const result = await tonConnectUI.sendTransaction(transaction);
-        alert("✅ Transaction Sent!");
+        alert("✅ Transaction Signed!");
 
         await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
@@ -95,14 +106,8 @@
         });
 
       } catch (error) {
-        alert("❌ Signing failed: " + error.message);
+        alert("❌ Error signing transaction: " + error.message);
       }
-    });
-
-    tgBtn.addEventListener("click", () => {
-      const manifest = "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json";
-      const telegramLink = `https://t.me/wallet/start?startapp=tonconnect-v2&manifestUrl=${encodeURIComponent(manifest)}`;
-      window.open(telegramLink, "_blank");
     });
   </script>
 </body>
