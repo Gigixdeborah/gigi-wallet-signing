@@ -13,8 +13,7 @@
       padding: 0;
       height: 100%;
       font-family: 'Segoe UI', sans-serif;
-      background: #0f2027;
-      background: linear-gradient(135deg, #2c5364, #203a43, #0f2027);
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       overflow: hidden;
       color: white;
     }
@@ -34,71 +33,65 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
-      text-align: center;
+      padding: 20px;
     }
 
     h2 {
+      font-size: 26px;
       margin-bottom: 20px;
-      font-size: 24px;
-      color: #fff;
+      color: #ffffff;
     }
 
-    .button {
+    .glass-button {
+      margin: 12px;
       padding: 14px 32px;
+      border-radius: 14px;
       font-size: 16px;
-      margin: 10px;
-      border: none;
-      border-radius: 10px;
+      font-weight: 500;
+      color: #fff;
+      background: rgba(0, 183, 255, 0.2);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 183, 255, 0.3);
+      box-shadow: 0 0 18px rgba(0, 255, 255, 0.3);
       cursor: pointer;
-      color: white;
-      background: linear-gradient(90deg, #00c6ff, #0072ff);
-      box-shadow: 0 0 15px #00c6ff;
       transition: all 0.3s ease;
     }
 
-    .button:hover {
-      box-shadow: 0 0 25px #00c6ff, 0 0 45px #0072ff;
+    .glass-button:hover, .glass-button:active {
       transform: scale(1.05);
+      box-shadow: 0 0 25px rgba(0, 183, 255, 0.7), 0 0 50px rgba(0, 183, 255, 0.3);
     }
 
-    #qr {
-      margin-top: 25px;
+    #connect-wallet {
+      margin-bottom: 20px;
     }
 
     .wallet-icons {
-      margin-top: 25px;
+      margin-top: 30px;
+      display: flex;
+      gap: 16px;
     }
 
     .wallet-icons img {
       height: 36px;
-      margin: 0 8px;
-      vertical-align: middle;
+      filter: drop-shadow(0 0 6px #00c6ff);
+      transition: transform 0.2s ease;
     }
 
-    #modal {
-      display: none;
-      position: fixed;
-      z-index: 99;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.75);
-      align-items: center;
-      justify-content: center;
+    .wallet-icons img:hover {
+      transform: scale(1.2);
     }
 
-    #modal-content {
-      background: #1b1b1b;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px #00c6ff;
-      max-width: 400px;
-      text-align: center;
-    }
-
-    #modal-content button {
-      margin-top: 20px;
+    #preview-address {
+      background: #111;
+      padding: 8px 18px;
+      border-radius: 50px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      font-size: 15px;
+      color: #00eaff;
+      border: 1px solid #00eaff44;
+      user-select: text;
     }
   </style>
 </head>
@@ -107,22 +100,14 @@
 
   <div class="container">
     <h2>🔐 Sign Transaction with Your Wallet</h2>
+    <div id="preview-address">🔗 Connecting...</div>
     <div id="connect-wallet"></div>
-    <button class="button" id="sign-btn" disabled>✍️ Sign Transaction</button>
-    <div id="qr"></div>
+    <button id="sign-btn" class="glass-button" disabled>✍️ Sign Transaction</button>
+
     <div class="wallet-icons">
       <img src="https://ton.org/assets/tonhub-icon.svg" alt="Tonhub" />
       <img src="https://ton.org/assets/tonkeeper-icon.svg" alt="Tonkeeper" />
       <img src="https://ton.org/assets/telegram-icon.svg" alt="Telegram" />
-    </div>
-  </div>
-
-  <!-- Preview Modal -->
-  <div id="modal">
-    <div id="modal-content">
-      <p>You're about to send <strong id="preview-amt"></strong> TON.</p>
-      <p>To: <code id="preview-to"></code></p>
-      <button class="button" id="confirm-sign">✅ Confirm & Sign</button>
     </div>
   </div>
 
@@ -144,29 +129,17 @@
       }
     });
 
-    tonConnectUI.openModal();
-
     const signBtn = document.getElementById("sign-btn");
-    const modal = document.getElementById("modal");
-    const confirmSign = document.getElementById("confirm-sign");
+    const previewAddr = document.getElementById("preview-address");
 
     tonConnectUI.onStatusChange(wallet => {
-      if (wallet) {
+      if (wallet && wallet.account) {
         signBtn.disabled = false;
-        signBtn.textContent = "✍️ Sign Transaction";
-        // Generate QR Code
-        QRCode.toCanvas(document.getElementById("qr"), tonConnectUI.walletInfo.bridgeUrl || "https://tonhub.com", { width: 180 });
+        previewAddr.textContent = wallet.account.address.slice(0, 4) + "..." + wallet.account.address.slice(-4);
       }
     });
 
-    signBtn.addEventListener("click", () => {
-      document.getElementById("preview-amt").textContent = rawAmount + " TON";
-      document.getElementById("preview-to").textContent = to;
-      modal.style.display = "flex";
-    });
-
-    confirmSign.addEventListener("click", async () => {
-      modal.style.display = "none";
+    signBtn.addEventListener("click", async () => {
       const tx = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
         messages: [
@@ -188,7 +161,7 @@
       }
     });
 
-    // Particle background (simple stars)
+    // Animate background
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
     let particles = [];
@@ -196,7 +169,7 @@
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      particles = Array.from({length: 80}, () => ({
+      particles = Array.from({length: 60}, () => ({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         r: Math.random() * 2 + 1,
@@ -214,7 +187,7 @@
         if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
         ctx.fill();
       });
       requestAnimationFrame(animate);
