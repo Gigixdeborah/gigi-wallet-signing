@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Sign Transaction</title>
   <link rel="icon" href="/favicon.ico" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
@@ -12,17 +12,18 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
-      margin: 0;
-      font-family: sans-serif;
-      background-color: #fafafa;
+      font-family: Arial, sans-serif;
     }
     h2 {
       margin-bottom: 20px;
     }
+    #connect-wallet {
+      margin-bottom: 15px;
+    }
     #sign-btn {
-      margin-top: 20px;
       padding: 10px 20px;
       font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -34,7 +35,7 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const rawAmount = parseFloat(urlParams.get("amount"));
-    const mainNano = Math.floor(rawAmount * 1e9); // Main amount in nanoTON
+    const mainNano = Math.floor(rawAmount * 1e9);
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
 
@@ -86,3 +87,4 @@
   </script>
 </body>
 </html>
+
