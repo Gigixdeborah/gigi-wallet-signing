@@ -2,198 +2,151 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign Transaction</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="/favicon.ico" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100%;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
-      height: 100vh;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       overflow: hidden;
+      color: white;
+    }
+
+    canvas#bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: white;
-      text-align: center;
-    }
-
-    canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: -1;
+      height: 100vh;
+      padding: 20px;
     }
 
     h2 {
       font-size: 26px;
-      margin-bottom: 30px;
-      backdrop-filter: blur(6px);
-    }
-
-    #wallet-display {
-      background: rgba(0, 0, 0, 0.4);
-      padding: 10px 18px;
-      border-radius: 25px;
-      font-weight: bold;
-      font-size: 16px;
       margin-bottom: 20px;
+      color: #ffffff;
+    }
+
+    .glass-button {
+      margin: 12px;
+      padding: 14px 32px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 500;
       color: #fff;
-    }
-
-    .btn {
-      padding: 14px 28px;
-      border: none;
-      border-radius: 12px;
-      font-size: 18px;
-      margin: 10px;
+      background: rgba(0, 183, 255, 0.2);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 183, 255, 0.3);
+      box-shadow: 0 0 18px rgba(0, 255, 255, 0.3);
       cursor: pointer;
-      color: white;
-      font-weight: 600;
-      background: linear-gradient(90deg, #00c6ff, #0072ff);
-      box-shadow: 0 0 20px rgba(0, 198, 255, 0.5);
-      transition: transform 0.2s ease, box-shadow 0.3s ease;
+      transition: all 0.3s ease;
     }
 
-    .btn:hover {
+    .glass-button:hover, .glass-button:active {
       transform: scale(1.05);
-      box-shadow: 0 0 25px rgba(0, 198, 255, 0.8);
+      box-shadow: 0 0 25px rgba(0, 183, 255, 0.7), 0 0 50px rgba(0, 183, 255, 0.3);
     }
 
-    #preview-modal {
-      display: none;
-      background: rgba(0, 0, 0, 0.85);
-      padding: 30px;
-      border-radius: 15px;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 10;
-      text-align: center;
-      color: white;
+    #connect-wallet {
+      margin-bottom: 20px;
     }
 
-    .lang-switch {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: #0072ff;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 10px;
-      color: white;
-      cursor: pointer;
-    }
-
-    .wallet-options {
+    .wallet-icons {
       margin-top: 30px;
+      display: flex;
+      gap: 16px;
     }
 
-    .wallet-options button {
-      background: #1f1f1f;
-      color: white;
-      margin: 6px;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
+    .wallet-icons img {
+      height: 36px;
+      filter: drop-shadow(0 0 6px #00c6ff);
+      transition: transform 0.2s ease;
+    }
+
+    .wallet-icons img:hover {
+      transform: scale(1.2);
+    }
+
+    #preview-address {
+      background: #111;
+      padding: 8px 18px;
+      border-radius: 50px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      font-size: 15px;
+      color: #00eaff;
+      border: 1px solid #00eaff44;
+      user-select: text;
     }
   </style>
 </head>
 <body>
-  <button class="lang-switch" onclick="toggleLang()">🌍 EN</button>
-  <h2>🔐 <span id="title">Sign Transaction with Your Wallet</span></h2>
-  <div id="wallet-display">🔌 Wallet Not Connected</div>
-  <div id="connect-wallet"></div>
-  <button class="btn" id="sign-btn" disabled>✍️ Sign Transaction</button>
+  <canvas id="bg"></canvas>
 
-  <div class="wallet-options">
-    <button onclick="openWallet('tonhub')">Tonhub</button>
-    <button onclick="openWallet('tonkeeper')">Tonkeeper</button>
-    <button onclick="openWallet('telegram')">Telegram</button>
+  <div class="container">
+    <h2>🔐 Sign Transaction with Your Wallet</h2>
+    <div id="preview-address">🔗 Connecting...</div>
+    <div id="connect-wallet"></div>
+    <button id="sign-btn" class="glass-button" disabled>✍️ Sign Transaction</button>
+
+    <div class="wallet-icons">
+      <img src="https://ton.org/assets/tonhub-icon.svg" alt="Tonhub" />
+      <img src="https://ton.org/assets/tonkeeper-icon.svg" alt="Tonkeeper" />
+      <img src="https://ton.org/assets/telegram-icon.svg" alt="Telegram" />
+    </div>
   </div>
 
-  <div id="preview-modal"></div>
-
-  <audio id="click-sound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
-
-  <canvas id="stars"></canvas>
-
   <script>
-    const langText = {
-      en: { title: "Sign Transaction with Your Wallet", sign: "Sign Transaction" },
-      fr: { title: "Signer la transaction avec votre portefeuille", sign: "Signer" }
-    };
-    let currentLang = "en";
-    const switchBtn = document.querySelector(".lang-switch");
-
-    function toggleLang() {
-      currentLang = currentLang === "en" ? "fr" : "en";
-      document.getElementById("title").textContent = langText[currentLang].title;
-      document.getElementById("sign-btn").textContent = `✍️ ${langText[currentLang].sign}`;
-      switchBtn.textContent = currentLang === "en" ? "🌍 EN" : "🌍 FR";
-    }
-
-    function openWallet(type) {
-      window.open(`https://t.me/wallet/start?startapp=tonconnect-v2&manifestUrl=https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json`, "_blank");
-    }
-
     const urlParams = new URLSearchParams(window.location.search);
     const rawAmount = parseFloat(urlParams.get("amount"));
-    const mainNano = Math.floor(rawAmount * 1e9);
+    const nanoAmount = Math.floor(rawAmount);
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
-    const previewModal = document.getElementById("preview-modal");
 
     const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH";
     const feeNano = Math.floor(0.1 * 1e9);
 
-    const sound = document.getElementById("click-sound");
-
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
       buttonRootId: "connect-wallet",
-      actionsConfiguration: { twaReturnUrl: "https://t.me/gigip2bot" }
+      actionsConfiguration: {
+        twaReturnUrl: "https://t.me/gigip2bot"
+      }
     });
 
     const signBtn = document.getElementById("sign-btn");
-    tonConnectUI.openModal();
+    const previewAddr = document.getElementById("preview-address");
 
     tonConnectUI.onStatusChange(wallet => {
-      if (wallet) {
+      if (wallet && wallet.account) {
         signBtn.disabled = false;
-        document.getElementById("wallet-display").textContent = wallet.account.address.slice(0, 5) + "..." + wallet.account.address.slice(-4);
+        previewAddr.textContent = wallet.account.address.slice(0, 4) + "..." + wallet.account.address.slice(-4);
       }
     });
 
     signBtn.addEventListener("click", async () => {
-      sound.play();
-      previewModal.style.display = "block";
-      previewModal.innerHTML = `
-        <h3>🧾 Transaction Preview</h3>
-        <p><strong>Send:</strong> ${rawAmount} TON</p>
-        <p><strong>Fee:</strong> 0.1 TON</p>
-        <p><strong>Recipient:</strong> ${to}</p>
-        <button onclick="confirmTransaction()" class="btn">✅ Confirm</button>
-      `;
-    });
-
-    async function confirmTransaction() {
-      previewModal.style.display = "none";
       const tx = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
         messages: [
-          { address: to, amount: mainNano.toString() },
+          { address: to, amount: nanoAmount.toString() },
           { address: feeAddress, amount: feeNano.toString() }
         ]
       };
-
       try {
         const result = await tonConnectUI.sendTransaction(tx);
         alert("✅ Transaction Sent!");
@@ -204,50 +157,45 @@
           body: JSON.stringify({ user_id: userId, amount: rawAmount, to, tx: result })
         });
       } catch (error) {
-        alert("❌ Error: " + error.message);
+        alert("❌ Signing failed: " + error.message);
       }
-    }
+    });
 
-    // Star particles
-    const canvas = document.getElementById("stars");
+    // Animate background
+    const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
-    let stars = [];
+    let particles = [];
 
-    function resizeCanvas() {
+    function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      stars = Array.from({ length: 100 }, () => ({
+      particles = Array.from({length: 60}, () => ({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        r: Math.random() * 1.2,
-        d: Math.random() * 1.5
+        r: Math.random() * 2 + 1,
+        dx: (Math.random() - 0.5) * 0.5,
+        dy: (Math.random() - 0.5) * 0.5
       }));
     }
 
-    function drawStars() {
+    function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fff";
-      stars.forEach(star => {
+      particles.forEach(p => {
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2, true);
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
         ctx.fill();
       });
-      moveStars();
+      requestAnimationFrame(animate);
     }
 
-    function moveStars() {
-      stars.forEach(star => {
-        star.y += star.d;
-        if (star.y > canvas.height) {
-          star.y = 0;
-          star.x = Math.random() * canvas.width;
-        }
-      });
-    }
-
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-    setInterval(drawStars, 30);
+    window.addEventListener("resize", resize);
+    resize();
+    animate();
   </script>
 </body>
 </html>
