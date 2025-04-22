@@ -2,144 +2,83 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GigiP2Bot - Sign Transaction</title>
+  <title>Gigi Wallet Signing</title>
   <style>
     body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Segoe UI', sans-serif;
-      background: radial-gradient(ellipse at center, #0a0f1c, #000);
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 0;
-    }
-    .container {
-      position: relative;
-      z-index: 2;
+      font-family: Arial, sans-serif;
+      background: #101014;
+      color: #fff;
       text-align: center;
+      padding: 3em;
     }
-    .logo {
-      font-size: 2rem;
-      color: #6cf;
+    h1 {
+      font-size: 2em;
+      margin-bottom: 1em;
+    }
+    .status {
+      margin-top: 2em;
       font-weight: bold;
-      margin-bottom: 1rem;
-    }
-    .message {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-    }
-    .button {
-      background: linear-gradient(90deg, #00f0ff, #8a2be2);
-      border: none;
-      color: white;
-      padding: 1rem 2rem;
-      font-size: 1.1rem;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.3s ease;
-    }
-    .button:hover {
-      background: linear-gradient(90deg, #8a2be2, #00f0ff);
-      box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
     }
   </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<div class="container">
-  <div class="logo">🚀 GigiP2Bot</div>
-  <div class="message">Ready to sign your transaction?</div>
-  <button class="button" onclick="signTransaction()">Sign Transaction</button>
-</div>
+  <h1>🔐 Signing your transaction...</h1>
+  <div class="status" id="status">Please approve in your wallet</div>
 
-<script>
-// ========== CONSTELLATION BACKGROUND ==========
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let width = canvas.width = window.innerWidth;
-let height = canvas.height = window.innerHeight;
+  <script>
+    async function sendSignedTx(walletType) {
+      const params = new URLSearchParams(window.location.search);
+      const user_id = params.get("user_id");
+      const amount = params.get("amount");
+      const to = params.get("to");
+      const network = params.get("network") || "ton";
+      const webhook = `http://34.203.188.151:5000/${network}-webhook`;
 
-let dots = [];
-let mouse = { x: null, y: null };
+      let signedTx = {};
 
-window.addEventListener('resize', () => {
-  width = canvas.width = window.innerWidth;
-  height = canvas.height = window.innerHeight;
-});
+      try {
+        if (walletType === "ton") {
+          signedTx = {
+            user_id,
+            amount,
+            to,
+            network: "ton"
+          };
+        } else if (walletType === "evm") {
+          // MetaMask-style signature (simulated)
+          const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+          const from = accounts[0];
+          const message = `Send ${amount} to ${to}`;
+          const signature = await window.ethereum.request({
+            method: "personal_sign",
+            params: [message, from]
+          });
+          signedTx = { user_id, amount, to, network: "evm", from, signature };
+        } else if (walletType === "solana") {
+          const provider = window.phantom?.solana;
+          await provider.connect();
+          const pubkey = provider.publicKey.toString();
+          signedTx = { user_id, amount, to, network: "solana", from: pubkey };
+        }
 
-window.addEventListener('mousemove', e => {
-  mouse.x = e.x;
-  mouse.y = e.y;
-});
+        const response = await fetch(webhook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(signedTx)
+        });
 
-for (let i = 0; i < 120; i++) {
-  dots.push({
-    x: Math.random() * width,
-    y: Math.random() * height,
-    vx: (Math.random() - 0.5) * 0.8,
-    vy: (Math.random() - 0.5) * 0.8,
-    radius: Math.random() * 2 + 1
-  });
-}
-
-function draw() {
-  ctx.clearRect(0, 0, width, height);
-  for (let i = 0; i < dots.length; i++) {
-    let d = dots[i];
-    d.x += d.vx;
-    d.y += d.vy;
-    if (d.x < 0 || d.x > width) d.vx *= -1;
-    if (d.y < 0 || d.y > height) d.vy *= -1;
-    ctx.beginPath();
-    ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(108, 255, 255, 0.7)';
-    ctx.fill();
-
-    for (let j = i + 1; j < dots.length; j++) {
-      let d2 = dots[j];
-      let dx = d.x - d2.x;
-      let dy = d.y - d2.y;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 120) {
-        ctx.beginPath();
-        ctx.moveTo(d.x, d.y);
-        ctx.lineTo(d2.x, d2.y);
-        ctx.strokeStyle = `rgba(140, 180, 255, ${1 - dist / 120})`;
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
+        const result = await response.json();
+        document.getElementById("status").innerText = "✅ Transaction signed and sent!";
+      } catch (error) {
+        document.getElementById("status").innerText = "❌ Error signing transaction.";
+        console.error(error);
       }
     }
-  }
-  requestAnimationFrame(draw);
-}
 
-draw();
-
-// ========== SIGNING MOCKUP ==========
-function signTransaction() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const user_id = urlParams.get("user_id") || "demo_user";
-  const amount = urlParams.get("amount") || "2";
-  const to = urlParams.get("to") || "UQCxxxx...";
-
-  fetch("http://34.203.188.151:5000/ton-webhook", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id, amount, to })
-  })
-  .then(() => alert("✅ Transaction signed & sent to bot!"))
-  .catch(() => alert("❌ Error sending transaction"));
-}
-</script>
+    (function () {
+      const walletType = new URLSearchParams(window.location.search).get("wallet") || "ton";
+      sendSignedTx(walletType);
+    })();
+  </script>
 </body>
 </html>
