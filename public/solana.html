@@ -1,84 +1,71 @@
-<!-- Save this as solana.html -->
-<!DOCTYPE html>
-<html lang="en">
+<!-- solana.html --><!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gigi Wallet - Phantom</title>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+  <title>Gigi Solana Signing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
-      background: #101132;
-      font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      color: white;
-    }
-    .box {
-      background: #1f1f3d;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 0 20px #222;
+      font-family: 'Fredoka', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #fff;
       text-align: center;
+      padding-top: 80px;
+      animation: fadeIn 1.5s ease-in-out;
+    }
+    h2 {
+      font-size: 28px;
+      margin-bottom: 40px;
     }
     button {
-      margin-top: 20px;
-      padding: 12px 30px;
       font-size: 18px;
+      background: #8247e5;
       border: none;
-      border-radius: 8px;
-      background-color: #8e2de2;
+      padding: 14px 28px;
+      border-radius: 12px;
       color: white;
+      font-weight: bold;
       cursor: pointer;
+      box-shadow: 0 4px 15px rgba(130, 71, 229, 0.5);
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      background-color: #9558f5;
+    }
+    #status {
+      margin-top: 25px;
+      font-size: 16px;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>👻 Phantom Signing</h2>
-    <p>Connect and approve your Solana transaction</p>
-    <button onclick="connectPhantom()">Connect Phantom</button>
-  </div>
-
-  <script>
-    async function connectPhantom() {
-      const provider = window.phantom?.solana;
-      if (!provider) {
-        alert("Please install Phantom Wallet.");
-        return;
-      }
+  <h2>👻 Solana Wallet Signing</h2>
+  <button onclick="submitTransaction()">🔐 Confirm & Sign with Phantom</button>
+  <p id="status"></p>  <script>
+    async function submitTransaction() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const data = {
+        user_id: urlParams.get("user_id"),
+        amount: urlParams.get("amount"),
+        to: urlParams.get("to"),
+        token: urlParams.get("token"),
+        tx_type: urlParams.get("tx_type") || "sell"
+      };
 
       try {
-        const resp = await provider.connect();
-        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
-        const transaction = new solanaWeb3.Transaction().add(
-          solanaWeb3.SystemProgram.transfer({
-            fromPubkey: new solanaWeb3.PublicKey(resp.publicKey.toString()),
-            toPubkey: new solanaWeb3.PublicKey("7Zx...Dead"), // Replace with recipient
-            lamports: solanaWeb3.LAMPORTS_PER_SOL * 0.01, // Adjust based on amount
-          })
-        );
-
-        const signature = await provider.signAndSendTransaction(transaction);
-
-        const params = new URLSearchParams(window.location.search);
-        const userId = params.get('user_id');
-        const amount = params.get('amount');
-        const token = params.get('token');
-
-        await fetch(`http://34.203.188.151:5000/solana-webhook`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, token, amount, wallet: resp.publicKey.toString() })
+        const res = await fetch("http://34.203.188.151:5000/solana-webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
         });
-
-        alert("Transaction signed: " + signature);
+        document.getElementById("status").innerText = "✅ Transaction sent to Solana Webhook!";
       } catch (err) {
-        console.error(err);
-        alert("Phantom connection failed.");
+        document.getElementById("status").innerText = "❌ Failed to send transaction.";
       }
     }
-  </script>
-</body>
+  </script></body>
 </html>
