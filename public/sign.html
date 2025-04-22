@@ -6,120 +6,144 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="/favicon.ico" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <style>
-    html, body {
+    body {
       margin: 0;
       padding: 0;
-      height: 100%;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      overflow: hidden;
-      color: white;
-    }
-
-    canvas#bg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 0;
-    }
-
-    .container {
-      position: relative;
-      z-index: 1;
+      height: 100vh;
+      background: linear-gradient(135deg, #10131a, #1b1f29);
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      padding: 20px;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    #bg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      background: radial-gradient(circle at 20% 30%, #00f2ff33 0%, transparent 80%),
+                  radial-gradient(circle at 80% 70%, #ff00cc33 0%, transparent 80%);
+      animation: pulseBG 8s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulseBG {
+      0% { filter: blur(40px); }
+      100% { filter: blur(80px); }
+    }
+
+    .glass-container {
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      text-align: center;
+      max-width: 420px;
+      width: 90%;
+      position: relative;
     }
 
     h2 {
-      font-size: 26px;
-      margin-bottom: 20px;
-      color: #ffffff;
+      font-size: 22px;
+      margin-bottom: 30px;
     }
 
-    .glass-button {
-      margin: 12px;
-      padding: 14px 32px;
-      border-radius: 14px;
+    .btn {
+      margin: 15px 0;
+      padding: 16px 32px;
       font-size: 16px;
-      font-weight: 500;
-      color: #fff;
-      background: rgba(0, 183, 255, 0.2);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(0, 183, 255, 0.3);
-      box-shadow: 0 0 18px rgba(0, 255, 255, 0.3);
+      border: none;
+      border-radius: 12px;
+      font-weight: bold;
       cursor: pointer;
-      transition: all 0.3s ease;
+      color: white;
+      background: linear-gradient(90deg, #00f2ff, #00d8d6);
+      box-shadow: 0 0 12px #00f2ff, 0 0 24px #00f2ff;
+      transition: transform 0.2s;
+      animation: glow 2s ease-in-out infinite;
     }
 
-    .glass-button:hover, .glass-button:active {
+    .btn:hover {
       transform: scale(1.05);
-      box-shadow: 0 0 25px rgba(0, 183, 255, 0.7), 0 0 50px rgba(0, 183, 255, 0.3);
     }
 
-    #connect-wallet {
-      margin-bottom: 20px;
+    @keyframes glow {
+      0% { box-shadow: 0 0 10px #00f2ff, 0 0 20px #00f2ff; }
+      50% { box-shadow: 0 0 20px #00f2ff, 0 0 40px #00f2ff; }
+      100% { box-shadow: 0 0 10px #00f2ff, 0 0 20px #00f2ff; }
     }
 
-    .wallet-icons {
-      margin-top: 30px;
-      display: flex;
-      gap: 16px;
+    .price-box {
+      font-size: 14px;
+      color: #ccc;
+      margin-bottom: 10px;
     }
 
-    .wallet-icons img {
-      height: 36px;
-      filter: drop-shadow(0 0 6px #00c6ff);
-      transition: transform 0.2s ease;
+    .lang-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #aaa;
     }
 
-    .wallet-icons img:hover {
-      transform: scale(1.2);
+    .loader {
+      display: none;
+      margin: 10px auto;
+      border: 5px solid #222;
+      border-top: 5px solid #00f2ff;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
     }
 
-    #preview-address {
-      background: #111;
-      padding: 8px 18px;
-      border-radius: 50px;
-      margin-bottom: 20px;
-      font-weight: 600;
-      font-size: 15px;
-      color: #00eaff;
-      border: 1px solid #00eaff44;
-      user-select: text;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .assistant-tip {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 10px 15px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-top: 20px;
+      text-align: left;
+      line-height: 1.4;
+      color: #ccc;
     }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
-
-  <div class="container">
-    <h2>🔐 Sign Transaction with Your Wallet</h2>
-    <div id="preview-address">🔗 Connecting...</div>
+  <div id="bg"></div>
+  <div class="glass-container">
+    <div class="lang-toggle" onclick="toggleLang()">🌍 EN</div>
+    <div class="price-box" id="ton-price">Loading TON price...</div>
+    <h2>🔐 <strong id="title-text">Sign Transaction with Your Wallet</strong></h2>
     <div id="connect-wallet"></div>
-    <button id="sign-btn" class="glass-button" disabled>✍️ Sign Transaction</button>
-
-    <div class="wallet-icons">
-      <img src="https://ton.org/assets/tonhub-icon.svg" alt="Tonhub" />
-      <img src="https://ton.org/assets/tonkeeper-icon.svg" alt="Tonkeeper" />
-      <img src="https://ton.org/assets/telegram-icon.svg" alt="Telegram" />
+    <button class="btn" id="sign-btn" disabled>👍 Sign Transaction</button>
+    <div class="loader" id="loader"></div>
+    <div class="assistant-tip" id="tip-box">
+      💡 Tip: You can use TON mobile or Telegram Wallet to approve this transaction.
     </div>
   </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const rawAmount = parseFloat(urlParams.get("amount"));
-    const nanoAmount = Math.floor(rawAmount);
+    const rawAmount = parseFloat(urlParams.get("amount") || "0");
+    const nanoAmount = Math.floor(rawAmount * 1e9);
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
 
     const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH";
     const feeNano = Math.floor(0.1 * 1e9);
+    const loader = document.getElementById("loader");
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
@@ -130,16 +154,15 @@
     });
 
     const signBtn = document.getElementById("sign-btn");
-    const previewAddr = document.getElementById("preview-address");
 
     tonConnectUI.onStatusChange(wallet => {
-      if (wallet && wallet.account) {
+      if (wallet) {
         signBtn.disabled = false;
-        previewAddr.textContent = wallet.account.address.slice(0, 4) + "..." + wallet.account.address.slice(-4);
       }
     });
 
     signBtn.addEventListener("click", async () => {
+      loader.style.display = "inline-block";
       const tx = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
         messages: [
@@ -147,55 +170,50 @@
           { address: feeAddress, amount: feeNano.toString() }
         ]
       };
+
       try {
         const result = await tonConnectUI.sendTransaction(tx);
         alert("✅ Transaction Sent!");
-
         await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: userId, amount: rawAmount, to, tx: result })
         });
-      } catch (error) {
-        alert("❌ Signing failed: " + error.message);
+      } catch (err) {
+        alert("❌ Error: " + err.message);
+      } finally {
+        loader.style.display = "none";
       }
     });
 
-    // Animate background
-    const canvas = document.getElementById("bg");
-    const ctx = canvas.getContext("2d");
-    let particles = [];
-
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      particles = Array.from({length: 60}, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 2 + 1,
-        dx: (Math.random() - 0.5) * 0.5,
-        dy: (Math.random() - 0.5) * 0.5
-      }));
+    // Live TON price
+    async function loadPrice() {
+      try {
+        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=toncoin&vs_currencies=usd");
+        const data = await res.json();
+        document.getElementById("ton-price").textContent = `📈 TON Price: $${data.toncoin.usd}`;
+      } catch {
+        document.getElementById("ton-price").textContent = "🔄 TON Price Unavailable";
+      }
     }
 
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => {
-        p.x += p.dx;
-        p.y += p.dy;
-        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.25)";
-        ctx.fill();
-      });
-      requestAnimationFrame(animate);
-    }
+    loadPrice();
 
-    window.addEventListener("resize", resize);
-    resize();
-    animate();
+    // Language toggle (EN/FR)
+    function toggleLang() {
+      const title = document.getElementById("title-text");
+      const tip = document.getElementById("tip-box");
+      const langBtn = document.querySelector('.lang-toggle');
+      if (langBtn.textContent.includes("EN")) {
+        langBtn.textContent = "🌍 FR";
+        title.textContent = "🔐 Connectez votre portefeuille pour signer";
+        tip.textContent = "💡 Astuce : Vous pouvez utiliser TON mobile ou Telegram Wallet pour approuver.";
+      } else {
+        langBtn.textContent = "🌍 EN";
+        title.textContent = "🔐 Sign Transaction with Your Wallet";
+        tip.textContent = "💡 Tip: You can use TON mobile or Telegram Wallet to approve this transaction.";
+      }
+    }
   </script>
 </body>
 </html>
