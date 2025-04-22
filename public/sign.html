@@ -2,191 +2,160 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Gigi Wallet Signing 🌟</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gigi Wallet Signing</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"/>
   <style>
-    html, body {
+    body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      height: 100%;
-      background: #0f0c29;
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-      font-family: 'Segoe UI', sans-serif;
+      background: #0d0c1d;
       color: white;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
     }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 0;
+
+    canvas#bg {
+      position: fixed;
+      top: 0; left: 0;
+      z-index: -1;
     }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
     .card {
-      position: relative;
-      z-index: 2;
       background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 30px 20px;
-      width: 90%;
-      max-width: 400px;
-      margin: 10% auto;
+      padding: 30px;
+      border-radius: 20px;
       text-align: center;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 0 40px rgba(255,255,255,0.1);
     }
+
     .card h1 {
       font-size: 24px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
+
     .card p {
-      font-size: 15px;
-      opacity: 0.85;
+      font-size: 14px;
+      margin-bottom: 25px;
+      color: #ccc;
     }
-    .btn {
-      margin: 12px auto;
-      padding: 12px 20px;
-      font-size: 16px;
+
+    .wallet-btn {
+      display: block;
+      width: 250px;
+      margin: 10px auto;
+      padding: 15px;
       border: none;
       border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
       cursor: pointer;
-      width: 80%;
-      display: block;
-      transition: transform 0.2s ease;
+      color: white;
+      transition: all 0.3s;
     }
-    .btn:hover {
+
+    .wallet-btn:hover {
       transform: scale(1.05);
     }
-    .btn.ton { background: #0098ea; color: white; }
-    .btn.evm { background: #f6851b; color: white; }
-    .btn.solana { background: linear-gradient(135deg, #9945FF, #14F195); color: white; }
+
+    .ton { background-color: #1ca4e9; }
+    .evm { background-color: #ff7b00; }
+    .sol { background: linear-gradient(90deg, #915EFF, #00FFA3); }
+
   </style>
 </head>
 <body>
-<canvas id="bgCanvas"></canvas>
-<div class="card">
-  <h1>🔐 Gigi Wallet Signing</h1>
-  <p>Tap your wallet to approve this transaction.</p>
-  <button class="btn ton" onclick="connectTON()">🔗 Connect TON</button>
-  <button class="btn evm" onclick="connectMetaMask()">🦊 MetaMask</button>
-  <button class="btn solana" onclick="connectPhantom()">👻 Phantom</button>
+
+<canvas id="bg"></canvas>
+
+<div class="container">
+  <div class="card">
+    <h1>🔐 Gigi Wallet Signing</h1>
+    <p>Tap your wallet to approve this transaction.</p>
+
+    <button class="wallet-btn ton" onclick="connectTON()">🔗 Connect TON</button>
+    <button class="wallet-btn evm" onclick="connectEVM()">🦊 MetaMask</button>
+    <button class="wallet-btn sol" onclick="connectSolana()">👻 Phantom</button>
+  </div>
 </div>
 
 <script>
-const canvas = document.getElementById('bgCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+  // Background animation dots
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  let particles = [];
 
-let nodes = [];
-let mouse = { x: null, y: null };
-
-for (let i = 0; i < 120; i++) {
-  nodes.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 0.8,
-    vy: (Math.random() - 0.5) * 0.8,
-    radius: Math.random() * 2 + 1
-  });
-}
-
-canvas.addEventListener("mousemove", e => {
-  mouse.x = e.x;
-  mouse.y = e.y;
-});
-
-canvas.addEventListener("touchmove", e => {
-  mouse.x = e.touches[0].clientX;
-  mouse.y = e.touches[0].clientY;
-}, { passive: true });
-
-function drawNodes() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  nodes.forEach((n, i) => {
-    n.x += n.vx;
-    n.y += n.vy;
-    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
-    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
-
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff20";
-    ctx.fill();
-
-    for (let j = i + 1; j < nodes.length; j++) {
-      let dx = nodes[j].x - n.x;
-      let dy = nodes[j].y - n.y;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 100) {
-        ctx.beginPath();
-        ctx.moveTo(n.x, n.y);
-        ctx.lineTo(nodes[j].x, nodes[j].y);
-        ctx.strokeStyle = `rgba(255,255,255,${1 - dist / 100})`;
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-      }
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.radius = Math.random() * 2;
+      this.dx = (Math.random() - 0.5) * 0.8;
+      this.dy = (Math.random() - 0.5) * 0.8;
     }
-    if (mouse.x && mouse.y) {
-      let dx = n.x - mouse.x;
-      let dy = n.y - mouse.y;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 80) {
-        ctx.beginPath();
-        ctx.moveTo(n.x, n.y);
-        ctx.lineTo(mouse.x, mouse.y);
-        ctx.strokeStyle = `rgba(255,255,255,${1 - dist / 80})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff20';
+      ctx.fill();
     }
-  });
-  requestAnimationFrame(drawNodes);
-}
-
-drawNodes();
-
-// Wallet logic
-const params = new URLSearchParams(location.search);
-const amount = params.get("amount");
-const to = params.get("to");
-const userId = params.get("user_id");
-const webhookBase = "http://34.203.188.151:5000";
-
-function connectTON() {
-  window.location.href = `https://t.me/wallet/start?startapp=tonconnect-v2&manifestUrl=https://gigi-ton-connect-v2.onrender.com/tonconnect-manifest.json&amount=${amount}&to=${to}&user_id=${userId}`;
-}
-
-async function connectMetaMask() {
-  if (!window.ethereum) return alert("MetaMask not found");
-  const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-  const from = accounts[0];
-  const tx = { from, to, value: `0x${(parseFloat(amount) * 1e18).toString(16)}` };
-  try {
-    const txHash = await ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-    notifyTelegram("evm", txHash);
-  } catch {
-    alert("Transaction rejected.");
+    update() {
+      this.x += this.dx;
+      this.y += this.dy;
+      if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
+      if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
+      this.draw();
+    }
   }
-}
 
-async function connectPhantom() {
-  if (!window.solana?.isPhantom) return alert("Phantom not found");
-  try {
-    const resp = await window.solana.connect();
-    notifyTelegram("solana", "phantom-signed");
-  } catch {
-    alert("Phantom rejected the request.");
+  function initParticles() {
+    for (let i = 0; i < 100; i++) {
+      particles.push(new Particle());
+    }
   }
-}
 
-function notifyTelegram(network, txHash) {
-  fetch(`${webhookBase}/${network}-webhook`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount, to, user_id: userId, txHash })
-  });
-  alert("✅ Transaction sent! You may close this tab.");
-}
+  function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => p.update());
+    requestAnimationFrame(animateParticles);
+  }
+
+  initParticles();
+  animateParticles();
+
+  // Parse query params
+  const params = new URLSearchParams(window.location.search);
+  const user_id = params.get('user_id');
+  const action = params.get('action');
+  const token = params.get('token');
+  const amount = params.get('amount');
+
+  // Define destination URLs
+  const BASE_URL = "https://gigi-wallet-signing.onrender.com";
+  const TX_ENDPOINT = `${BASE_URL}/sign`;
+
+  function connectTON() {
+    window.location.href = `https://t.me/wallet/start?startapp=tonconnect-v2&manifestUrl=https://gigi-ton-connect-v2.onrender.com/tonconnect-manifest.json`;
+  }
+
+  function connectEVM() {
+    window.location.href = `https://gigi-wallet-signing.onrender.com/evm.html?user_id=${user_id}&action=${action}&token=${token}&amount=${amount}`;
+  }
+
+  function connectSolana() {
+    window.location.href = `https://gigi-wallet-signing.onrender.com/solana.html?user_id=${user_id}&action=${action}&token=${token}&amount=${amount}`;
+  }
 </script>
+
 </body>
 </html>
