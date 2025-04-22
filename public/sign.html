@@ -1,110 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Sign Transaction</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="/favicon.ico" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <link rel="icon" href="/favicon.ico" />
+
+  <!-- Particle.js -->
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      height: 100vh;
-      background: linear-gradient(120deg, #1c1f27, #2a2d3a);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height: 100%;
+      font-family: "Segoe UI", sans-serif;
+      background: #0f2027;
       overflow: hidden;
     }
 
-    #bg {
+    #particles-js {
       position: absolute;
-      top: 0; left: 0;
       width: 100%;
       height: 100%;
-      z-index: -1;
-      background: radial-gradient(#0ff2, #0000),
-                  radial-gradient(#0ff2, #0000),
-                  radial-gradient(#0ff2, #0000);
-      background-size: 50% 50%;
-      animation: moveBackground 10s infinite alternate;
+      z-index: 0;
     }
 
-    @keyframes moveBackground {
-      0% {
-        background-position: 0% 0%, 100% 0%, 50% 100%;
-      }
-      100% {
-        background-position: 100% 100%, 0% 100%, 50% 0%;
-      }
-    }
-
-    .glass-container {
-      backdrop-filter: blur(20px);
-      background: rgba(255, 255, 255, 0.08);
+    .container {
+      z-index: 2;
+      position: relative;
+      max-width: 420px;
+      margin: auto;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
       padding: 40px;
       text-align: center;
-      color: white;
-      max-width: 400px;
-      width: 90%;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+      color: #fff;
     }
 
     h2 {
-      font-size: 22px;
+      margin-bottom: 30px;
+      font-size: 26px;
+      color: #ffffffdd;
+    }
+
+    #connect-wallet {
       margin-bottom: 30px;
     }
 
-    .btn {
-      margin: 10px 0;
-      padding: 15px 30px;
-      font-size: 16px;
+    #sign-btn {
+      background: linear-gradient(135deg, #00c3ff, #0070ff);
+      color: white;
+      padding: 18px 32px;
+      font-size: 18px;
       border: none;
-      border-radius: 12px;
+      border-radius: 50px;
       cursor: pointer;
-      font-weight: bold;
-      background: #00f2ff;
-      color: #000;
-      box-shadow: 0 0 10px #00f2ff, 0 0 20px #00f2ff, 0 0 30px #00f2ff;
-      animation: glowPulse 2s infinite ease-in-out;
-      transition: transform 0.2s ease-in-out;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 20px rgba(0, 195, 255, 0.5);
+      width: 100%;
     }
 
-    .btn:hover {
-      transform: scale(1.05);
+    #sign-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(0, 195, 255, 0.7);
     }
 
-    @keyframes glowPulse {
-      0% {
-        box-shadow: 0 0 10px #00f2ff, 0 0 20px #00f2ff, 0 0 30px #00f2ff;
-      }
-      50% {
-        box-shadow: 0 0 20px #00f2ff, 0 0 40px #00f2ff, 0 0 60px #00f2ff;
-      }
-      100% {
-        box-shadow: 0 0 10px #00f2ff, 0 0 20px #00f2ff, 0 0 30px #00f2ff;
-      }
+    #sign-btn:disabled {
+      background: #888;
+      cursor: not-allowed;
+      box-shadow: none;
     }
   </style>
 </head>
 <body>
-  <div id="bg"></div>
 
-  <div class="glass-container">
-    <h2>🔐 <strong>Sign Transaction with Your Wallet</strong></h2>
+  <div id="particles-js"></div>
 
+  <div class="container">
+    <h2>🔐 Sign Your TON Transaction</h2>
     <div id="connect-wallet"></div>
-
-    <button class="btn" id="sign-btn" disabled>👍 Sign Transaction</button>
+    <button id="sign-btn" disabled>✍️ Sign Transaction</button>
   </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const rawAmount = parseFloat(urlParams.get("amount") || "0");
-    const nanoAmount = Math.floor(rawAmount * 1e9);
+    const mainNano = parseInt(urlParams.get("amount"));
     const to = urlParams.get("to");
     const userId = urlParams.get("user_id");
 
@@ -119,34 +105,59 @@
       }
     });
 
+    tonConnectUI.openModal();
+
     const signBtn = document.getElementById("sign-btn");
 
     tonConnectUI.onStatusChange(wallet => {
       if (wallet) {
         signBtn.disabled = false;
+        signBtn.textContent = "✍️ Sign Now";
       }
     });
 
     signBtn.addEventListener("click", async () => {
-      const tx = {
+      const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
         messages: [
-          { address: to, amount: nanoAmount.toString() },
+          { address: to, amount: mainNano.toString() },
           { address: feeAddress, amount: feeNano.toString() }
         ]
       };
 
       try {
-        const result = await tonConnectUI.sendTransaction(tx);
+        const result = await tonConnectUI.sendTransaction(transaction);
         alert("✅ Transaction Sent!");
 
         await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId, amount: rawAmount, to, tx: result })
+          body: JSON.stringify({ user_id: userId, amount: mainNano, to, tx: result })
         });
-      } catch (err) {
-        alert("❌ Signing failed: " + err.message);
+
+      } catch (error) {
+        alert("❌ Signing failed: " + error.message);
+      }
+    });
+
+    // Load Particles
+    tsParticles.load("particles-js", {
+      fullScreen: { enable: false },
+      particles: {
+        number: { value: 80 },
+        color: { value: "#00c3ff" },
+        shape: { type: "circle" },
+        opacity: { value: 0.3 },
+        size: { value: 3 },
+        move: { enable: true, speed: 1 }
+      },
+      interactivity: {
+        events: {
+          onhover: { enable: true, mode: "repulse" }
+        }
+      },
+      background: {
+        color: "#0f2027"
       }
     });
   </script>
