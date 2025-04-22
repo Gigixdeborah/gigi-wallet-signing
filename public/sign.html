@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gigi Wallet Signing</title>
+                                                                                                                                                                                                                                                                                                                                                        <title>Gigi TON Wallet Signing</title>
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
+      background: linear-gradient(to bottom right, #0f0c29, #302b63, #24243e);
       color: white;
       display: flex;
       flex-direction: column;
@@ -22,28 +22,38 @@
       margin-bottom: 30px;
     }
 
-    .wallet {
-      background-color: #fff;
-      color: #333;
+    .wallet-button {
+      background-color: #3b82f6;
+      color: #fff;
       padding: 15px 25px;
       margin: 15px;
       border-radius: 12px;
       border: none;
       font-size: 16px;
       cursor: pointer;
-      transition: 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s ease;
       display: flex;
       align-items: center;
       gap: 10px;
+      animation: pulse 2s infinite;
     }
 
-    .wallet:hover {
+    .wallet-button:hover {
       transform: scale(1.05);
+      background-color: #2563eb;
     }
 
-    .ton { background-color: #3b82f6; color: #fff; }
-    .evm { background-color: #f97316; color: #fff; }
-    .sol { background-color: #9333ea; color: #fff; }
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+      }
+    }
 
     #status {
       margin-top: 20px;
@@ -52,16 +62,16 @@
   </style>
 </head>
 <body>
-  <h1>Gigi Wallet Signing</h1>
+  <h1>Gigi TON Wallet Signing</h1>
 
-  <button class="wallet ton" onclick="submitTransaction('ton')">🔐 Confirm & Sign (TON)</button>
-  <button class="wallet evm" onclick="submitTransaction('evm')">🦊 Sign with MetaMask (EVM)</button>
-  <button class="wallet sol" onclick="submitTransaction('solana')">👻 Sign with Phantom (Solana)</button>
+  <button class="wallet-button" onclick="submitTransaction()">
+    🚀 Connect & Sign with TON Wallet
+  </button>
 
   <div id="status"></div>
 
   <script>
-    async function submitTransaction(chain) {
+    async function submitTransaction() {
       const urlParams = new URLSearchParams(window.location.search);
       const data = {
         user_id: urlParams.get("user_id"),
@@ -78,20 +88,15 @@
         return;
       }
 
-      let endpoint = "";
-      if (chain === "ton") endpoint = "/ton-webhook";
-      if (chain === "evm") endpoint = "/evm-webhook";
-      if (chain === "solana") endpoint = "/solana-webhook";
-
       try {
-        const res = await fetch(`http://34.203.188.151:5000${endpoint}`, {
+        const res = await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
 
         if (res.ok) {
-          status.innerText = `✅ ${chain.toUpperCase()} transaction submitted!`;
+          status.innerText = `✅ TON transaction submitted!`;
         } else {
           status.innerText = "❌ Error sending transaction.";
         }
