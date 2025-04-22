@@ -1,161 +1,95 @@
+<!-- sign.html (TON) -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gigi Wallet Signing</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"/>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #0d0c1d;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      overflow: hidden;
+  <title>Gigi TON Signing</title>
+  <script>
+    async function submitTransaction() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const data = {
+        user_id: urlParams.get("user_id"),
+        amount: urlParams.get("amount"),
+        to: urlParams.get("to"),
+        token: urlParams.get("token"),
+        tx_type: urlParams.get("tx_type") || "sell"
+      };
+
+      const res = await fetch("http://34.203.188.151:5000/ton-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      document.getElementById("status").innerText = "✅ Transaction sent to TON Webhook!";
     }
-
-    canvas#bg {
-      position: fixed;
-      top: 0; left: 0;
-      z-index: -1;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 30px;
-      border-radius: 20px;
-      text-align: center;
-      box-shadow: 0 0 40px rgba(255,255,255,0.1);
-    }
-
-    .card h1 {
-      font-size: 24px;
-      margin-bottom: 12px;
-    }
-
-    .card p {
-      font-size: 14px;
-      margin-bottom: 25px;
-      color: #ccc;
-    }
-
-    .wallet-btn {
-      display: block;
-      width: 250px;
-      margin: 10px auto;
-      padding: 15px;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      color: white;
-      transition: all 0.3s;
-    }
-
-    .wallet-btn:hover {
-      transform: scale(1.05);
-    }
-
-    .ton { background-color: #1ca4e9; }
-    .evm { background-color: #ff7b00; }
-    .sol { background: linear-gradient(90deg, #915EFF, #00FFA3); }
-
-  </style>
+  </script>
 </head>
 <body>
+  <h2>TON Wallet Signing</h2>
+  <button onclick="submitTransaction()">🔐 Confirm & Sign</button>
+  <p id="status"></p>
+</body>
+</html>
 
-<canvas id="bg"></canvas>
+<!-- evm.html (MetaMask) -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gigi EVM Signing</title>
+  <script>
+    async function submitTransaction() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const data = {
+        user_id: urlParams.get("user_id"),
+        amount: urlParams.get("amount"),
+        to: urlParams.get("to"),
+        token: urlParams.get("token"),
+        tx_type: urlParams.get("tx_type") || "sell"
+      };
 
-<div class="container">
-  <div class="card">
-    <h1>🔐 Gigi Wallet Signing</h1>
-    <p>Tap your wallet to approve this transaction.</p>
-
-    <button class="wallet-btn ton" onclick="connectTON()">🔗 Connect TON</button>
-    <button class="wallet-btn evm" onclick="connectEVM()">🦊 MetaMask</button>
-    <button class="wallet-btn sol" onclick="connectSolana()">👻 Phantom</button>
-  </div>
-</div>
-
-<script>
-  // Background animation dots
-  const canvas = document.getElementById('bg');
-  const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  let particles = [];
-
-  class Particle {
-    constructor() {
-      this.x = Math.random() * canvas.width;
-      this.y = Math.random() * canvas.height;
-      this.radius = Math.random() * 2;
-      this.dx = (Math.random() - 0.5) * 0.8;
-      this.dy = (Math.random() - 0.5) * 0.8;
+      const res = await fetch("http://34.203.188.151:5000/evm-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      document.getElementById("status").innerText = "✅ Transaction sent to EVM Webhook!";
     }
-    draw() {
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff20';
-      ctx.fill();
+  </script>
+</head>
+<body>
+  <h2>EVM Wallet Signing</h2>
+  <button onclick="submitTransaction()">🔐 Confirm & Sign with MetaMask</button>
+  <p id="status"></p>
+</body>
+</html>
+
+<!-- solana.html (Phantom) -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gigi Solana Signing</title>
+  <script>
+    async function submitTransaction() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const data = {
+        user_id: urlParams.get("user_id"),
+        amount: urlParams.get("amount"),
+        to: urlParams.get("to"),
+        token: urlParams.get("token"),
+        tx_type: urlParams.get("tx_type") || "sell"
+      };
+
+      const res = await fetch("http://34.203.188.151:5000/solana-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      document.getElementById("status").innerText = "✅ Transaction sent to Solana Webhook!";
     }
-    update() {
-      this.x += this.dx;
-      this.y += this.dy;
-      if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
-      if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
-      this.draw();
-    }
-  }
-
-  function initParticles() {
-    for (let i = 0; i < 100; i++) {
-      particles.push(new Particle());
-    }
-  }
-
-  function animateParticles() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particles.forEach(p => p.update());
-    requestAnimationFrame(animateParticles);
-  }
-
-  initParticles();
-  animateParticles();
-
-  // Parse query params
-  const params = new URLSearchParams(window.location.search);
-  const user_id = params.get('user_id');
-  const action = params.get('action');
-  const token = params.get('token');
-  const amount = params.get('amount');
-
-  // Define destination URLs
-  const BASE_URL = "https://gigi-wallet-signing.onrender.com";
-  const TX_ENDPOINT = `${BASE_URL}/sign`;
-
-  function connectTON() {
-    window.location.href = `https://t.me/wallet/start?startapp=tonconnect-v2&manifestUrl=https://gigi-ton-connect-v2.onrender.com/tonconnect-manifest.json`;
-  }
-
-  function connectEVM() {
-    window.location.href = `https://gigi-wallet-signing.onrender.com/evm.html?user_id=${user_id}&action=${action}&token=${token}&amount=${amount}`;
-  }
-
-  function connectSolana() {
-    window.location.href = `https://gigi-wallet-signing.onrender.com/solana.html?user_id=${user_id}&action=${action}&token=${token}&amount=${amount}`;
-  }
-</script>
-
+  </script>
+</head>
+<body>
+  <h2>Solana Wallet Signing</h2>
+  <button onclick="submitTransaction()">🔐 Confirm & Sign with Phantom</button>
+  <p id="status"></p>
 </body>
 </html>
