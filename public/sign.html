@@ -2,83 +2,191 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Gigi Wallet Signing</title>
+  <title>Gigi Wallet Signing 🌟</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #101014;
-      color: #fff;
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      background: #0f0c29;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      font-family: 'Segoe UI', sans-serif;
+      color: white;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+    .card {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 30px 20px;
+      width: 90%;
+      max-width: 400px;
+      margin: 10% auto;
       text-align: center;
-      padding: 3em;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
     }
-    h1 {
-      font-size: 2em;
-      margin-bottom: 1em;
+    .card h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
     }
-    .status {
-      margin-top: 2em;
-      font-weight: bold;
+    .card p {
+      font-size: 15px;
+      opacity: 0.85;
     }
+    .btn {
+      margin: 12px auto;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      width: 80%;
+      display: block;
+      transition: transform 0.2s ease;
+    }
+    .btn:hover {
+      transform: scale(1.05);
+    }
+    .btn.ton { background: #0098ea; color: white; }
+    .btn.evm { background: #f6851b; color: white; }
+    .btn.solana { background: linear-gradient(135deg, #9945FF, #14F195); color: white; }
   </style>
 </head>
 <body>
-  <h1>🔐 Signing your transaction...</h1>
-  <div class="status" id="status">Please approve in your wallet</div>
+<canvas id="bgCanvas"></canvas>
+<div class="card">
+  <h1>🔐 Gigi Wallet Signing</h1>
+  <p>Tap your wallet to approve this transaction.</p>
+  <button class="btn ton" onclick="connectTON()">🔗 Connect TON</button>
+  <button class="btn evm" onclick="connectMetaMask()">🦊 MetaMask</button>
+  <button class="btn solana" onclick="connectPhantom()">👻 Phantom</button>
+</div>
 
-  <script>
-    async function sendSignedTx(walletType) {
-      const params = new URLSearchParams(window.location.search);
-      const user_id = params.get("user_id");
-      const amount = params.get("amount");
-      const to = params.get("to");
-      const network = params.get("network") || "ton";
-      const webhook = `http://34.203.188.151:5000/${network}-webhook`;
+<script>
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-      let signedTx = {};
+let nodes = [];
+let mouse = { x: null, y: null };
 
-      try {
-        if (walletType === "ton") {
-          signedTx = {
-            user_id,
-            amount,
-            to,
-            network: "ton"
-          };
-        } else if (walletType === "evm") {
-          // MetaMask-style signature (simulated)
-          const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-          const from = accounts[0];
-          const message = `Send ${amount} to ${to}`;
-          const signature = await window.ethereum.request({
-            method: "personal_sign",
-            params: [message, from]
-          });
-          signedTx = { user_id, amount, to, network: "evm", from, signature };
-        } else if (walletType === "solana") {
-          const provider = window.phantom?.solana;
-          await provider.connect();
-          const pubkey = provider.publicKey.toString();
-          signedTx = { user_id, amount, to, network: "solana", from: pubkey };
-        }
+for (let i = 0; i < 120; i++) {
+  nodes.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.8,
+    vy: (Math.random() - 0.5) * 0.8,
+    radius: Math.random() * 2 + 1
+  });
+}
 
-        const response = await fetch(webhook, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(signedTx)
-        });
+canvas.addEventListener("mousemove", e => {
+  mouse.x = e.x;
+  mouse.y = e.y;
+});
 
-        const result = await response.json();
-        document.getElementById("status").innerText = "✅ Transaction signed and sent!";
-      } catch (error) {
-        document.getElementById("status").innerText = "❌ Error signing transaction.";
-        console.error(error);
+canvas.addEventListener("touchmove", e => {
+  mouse.x = e.touches[0].clientX;
+  mouse.y = e.touches[0].clientY;
+}, { passive: true });
+
+function drawNodes() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  nodes.forEach((n, i) => {
+    n.x += n.vx;
+    n.y += n.vy;
+    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff20";
+    ctx.fill();
+
+    for (let j = i + 1; j < nodes.length; j++) {
+      let dx = nodes[j].x - n.x;
+      let dy = nodes[j].y - n.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 100) {
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.strokeStyle = `rgba(255,255,255,${1 - dist / 100})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
       }
     }
+    if (mouse.x && mouse.y) {
+      let dx = n.x - mouse.x;
+      let dy = n.y - mouse.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 80) {
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(mouse.x, mouse.y);
+        ctx.strokeStyle = `rgba(255,255,255,${1 - dist / 80})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  });
+  requestAnimationFrame(drawNodes);
+}
 
-    (function () {
-      const walletType = new URLSearchParams(window.location.search).get("wallet") || "ton";
-      sendSignedTx(walletType);
-    })();
-  </script>
+drawNodes();
+
+// Wallet logic
+const params = new URLSearchParams(location.search);
+const amount = params.get("amount");
+const to = params.get("to");
+const userId = params.get("user_id");
+const webhookBase = "http://34.203.188.151:5000";
+
+function connectTON() {
+  window.location.href = `https://t.me/wallet/start?startapp=tonconnect-v2&manifestUrl=https://gigi-ton-connect-v2.onrender.com/tonconnect-manifest.json&amount=${amount}&to=${to}&user_id=${userId}`;
+}
+
+async function connectMetaMask() {
+  if (!window.ethereum) return alert("MetaMask not found");
+  const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+  const from = accounts[0];
+  const tx = { from, to, value: `0x${(parseFloat(amount) * 1e18).toString(16)}` };
+  try {
+    const txHash = await ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+    notifyTelegram("evm", txHash);
+  } catch {
+    alert("Transaction rejected.");
+  }
+}
+
+async function connectPhantom() {
+  if (!window.solana?.isPhantom) return alert("Phantom not found");
+  try {
+    const resp = await window.solana.connect();
+    notifyTelegram("solana", "phantom-signed");
+  } catch {
+    alert("Phantom rejected the request.");
+  }
+}
+
+function notifyTelegram(network, txHash) {
+  fetch(`${webhookBase}/${network}-webhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, to, user_id: userId, txHash })
+  });
+  alert("✅ Transaction sent! You may close this tab.");
+}
+</script>
 </body>
 </html>
