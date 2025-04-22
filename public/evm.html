@@ -1,61 +1,62 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gigi Wallet Signing - EVM</title>
+  <title>Gigi EVM Wallet Signing</title>
   <style>
     body {
+      margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(-45deg, #2b1055, #7597de, #a29bfe, #81ecec);
-      background-size: 400% 400%;
-      animation: gradientBG 12s ease infinite;
-      color: #fff;
+      background: linear-gradient(to bottom right, #1f1c2c, #928dab);
+      color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      margin: 0;
+      height: 100vh;
       text-align: center;
-    }@keyframes gradientBG {
-  0% {background-position: 0% 50%;}
-  50% {background-position: 100% 50%;}
-  100% {background-position: 0% 50%;}
-}
+    }
 
-h1 {
-  font-size: 2em;
-  margin-bottom: 1em;
-}
+    h1 {
+      font-size: 2em;
+      margin-bottom: 30px;
+    }
 
-button {
-  background-color: #ff7675;
-  color: white;
-  border: none;
-  padding: 15px 30px;
-  margin: 10px;
-  font-size: 1em;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.2s, background-color 0.3s;
-}
+    .wallet-button {
+      background-color: #f97316;
+      color: #fff;
+      padding: 15px 25px;
+      margin: 15px;
+      border-radius: 12px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-button:hover {
-  background-color: #ff5252;
-  transform: scale(1.05);
-}
+    .wallet-button:hover {
+      transform: scale(1.05);
+    }
 
-#status {
-  margin-top: 1em;
-  font-size: 1.2em;
-}
-
+    #status {
+      margin-top: 20px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
-  <h1>Gigi EVM Signing</h1>
-  <button onclick="submitTransaction()">🔐 Confirm & Sign with MetaMask</button>
-  <p id="status"></p>  <script>
+  <h1>Gigi EVM Wallet Signing</h1>
+
+  <button class="wallet-button" onclick="submitTransaction()">
+    🦊 Confirm & Sign with MetaMask
+  </button>
+
+  <div id="status"></div>
+
+  <script>
     async function submitTransaction() {
       const urlParams = new URLSearchParams(window.location.search);
       const data = {
@@ -66,13 +67,30 @@ button:hover {
         tx_type: urlParams.get("tx_type") || "sell"
       };
 
-      const res = await fetch("http://34.203.188.151:5000/evm-webhook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
+      const status = document.getElementById("status");
 
-      document.getElementById("status").innerText = "✅ Transaction sent to EVM Webhook!";
+      if (!data.user_id || !data.amount || !data.to || !data.token) {
+        status.innerText = "❌ Missing required transaction info in URL!";
+        return;
+      }
+
+      try {
+        const res = await fetch("http://34.203.188.151:5000/evm-webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+          status.innerText = `✅ EVM transaction submitted!`;
+        } else {
+          status.innerText = "❌ Error sending transaction.";
+        }
+      } catch (e) {
+        console.error(e);
+        status.innerText = "⚠️ Network error.";
+      }
     }
-  </script></body>
+  </script>
+</body>
 </html>
