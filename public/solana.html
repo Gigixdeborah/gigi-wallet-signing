@@ -1,0 +1,84 @@
+<!-- Save this as solana.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gigi Wallet - Phantom</title>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+  <style>
+    body {
+      background: #101132;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+    }
+    .box {
+      background: #1f1f3d;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 0 20px #222;
+      text-align: center;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 30px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background-color: #8e2de2;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>👻 Phantom Signing</h2>
+    <p>Connect and approve your Solana transaction</p>
+    <button onclick="connectPhantom()">Connect Phantom</button>
+  </div>
+
+  <script>
+    async function connectPhantom() {
+      const provider = window.phantom?.solana;
+      if (!provider) {
+        alert("Please install Phantom Wallet.");
+        return;
+      }
+
+      try {
+        const resp = await provider.connect();
+        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
+        const transaction = new solanaWeb3.Transaction().add(
+          solanaWeb3.SystemProgram.transfer({
+            fromPubkey: new solanaWeb3.PublicKey(resp.publicKey.toString()),
+            toPubkey: new solanaWeb3.PublicKey("7Zx...Dead"), // Replace with recipient
+            lamports: solanaWeb3.LAMPORTS_PER_SOL * 0.01, // Adjust based on amount
+          })
+        );
+
+        const signature = await provider.signAndSendTransaction(transaction);
+
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('user_id');
+        const amount = params.get('amount');
+        const token = params.get('token');
+
+        await fetch(`http://34.203.188.151:5000/solana-webhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, token, amount, wallet: resp.publicKey.toString() })
+        });
+
+        alert("Transaction signed: " + signature);
+      } catch (err) {
+        console.error(err);
+        alert("Phantom connection failed.");
+      }
+    }
+  </script>
+</body>
+</html>
