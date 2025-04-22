@@ -7,7 +7,7 @@
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #1f1c2c, #928dab);
+      background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
       color: white;
       display: flex;
       flex-direction: column;
@@ -23,7 +23,7 @@
     }
 
     .wallet-button {
-      background-color: #f97316;
+      background-color: #10b981;
       color: #fff;
       padding: 15px 25px;
       margin: 15px;
@@ -31,14 +31,28 @@
       border: none;
       font-size: 16px;
       cursor: pointer;
-      transition: 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s ease;
       display: flex;
       align-items: center;
       gap: 10px;
+      animation: pulse 2s infinite;
     }
 
     .wallet-button:hover {
       transform: scale(1.05);
+      background-color: #059669;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
     }
 
     #status {
@@ -51,7 +65,7 @@
   <h1>Gigi EVM Wallet Signing</h1>
 
   <button class="wallet-button" onclick="submitTransaction()">
-    🦊 Confirm & Sign with MetaMask
+    🧘‍♂️ Confirm & Sign with MetaMask
   </button>
 
   <div id="status"></div>
