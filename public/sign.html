@@ -1,165 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sign Transaction</title>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <link rel="icon" href="/favicon.ico" />
-
-  <!-- Particle.js -->
-  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
-
+  <title>GigiP2Bot - Sign Transaction</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: "Segoe UI", sans-serif;
-      background: #0f2027;
       overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      background: radial-gradient(ellipse at center, #0a0f1c, #000);
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
-
-    #particles-js {
-      position: absolute;
-      width: 100%;
-      height: 100%;
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
       z-index: 0;
     }
-
     .container {
-      z-index: 2;
       position: relative;
-      max-width: 420px;
-      margin: auto;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 20px;
-      padding: 40px;
+      z-index: 2;
       text-align: center;
-      backdrop-filter: blur(14px);
-      box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
-      color: #fff;
     }
-
-    h2 {
-      margin-bottom: 30px;
-      font-size: 26px;
-      color: #ffffffdd;
+    .logo {
+      font-size: 2rem;
+      color: #6cf;
+      font-weight: bold;
+      margin-bottom: 1rem;
     }
-
-    #connect-wallet {
-      margin-bottom: 30px;
+    .message {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
     }
-
-    #sign-btn {
-      background: linear-gradient(135deg, #00c3ff, #0070ff);
-      color: white;
-      padding: 18px 32px;
-      font-size: 18px;
+    .button {
+      background: linear-gradient(90deg, #00f0ff, #8a2be2);
       border: none;
-      border-radius: 50px;
+      color: white;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      border-radius: 12px;
       cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 0 20px rgba(0, 195, 255, 0.5);
-      width: 100%;
+      transition: 0.3s ease;
     }
-
-    #sign-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 0 30px rgba(0, 195, 255, 0.7);
-    }
-
-    #sign-btn:disabled {
-      background: #888;
-      cursor: not-allowed;
-      box-shadow: none;
+    .button:hover {
+      background: linear-gradient(90deg, #8a2be2, #00f0ff);
+      box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
     }
   </style>
 </head>
 <body>
+<canvas id="canvas"></canvas>
+<div class="container">
+  <div class="logo">🚀 GigiP2Bot</div>
+  <div class="message">Ready to sign your transaction?</div>
+  <button class="button" onclick="signTransaction()">Sign Transaction</button>
+</div>
 
-  <div id="particles-js"></div>
+<script>
+// ========== CONSTELLATION BACKGROUND ==========
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
 
-  <div class="container">
-    <h2>🔐 Sign Your TON Transaction</h2>
-    <div id="connect-wallet"></div>
-    <button id="sign-btn" disabled>✍️ Sign Transaction</button>
-  </div>
+let dots = [];
+let mouse = { x: null, y: null };
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const mainNano = parseInt(urlParams.get("amount"));
-    const to = urlParams.get("to");
-    const userId = urlParams.get("user_id");
+window.addEventListener('resize', () => {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+});
 
-    const feeAddress = "UQCMbQomO3XD1FSt7pyfjqj2jBRzyg23myKDtCky_CedKpEH";
-    const feeNano = Math.floor(0.1 * 1e9);
+window.addEventListener('mousemove', e => {
+  mouse.x = e.x;
+  mouse.y = e.y;
+});
 
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
-      buttonRootId: "connect-wallet",
-      actionsConfiguration: {
-        twaReturnUrl: "https://t.me/gigip2bot"
+for (let i = 0; i < 120; i++) {
+  dots.push({
+    x: Math.random() * width,
+    y: Math.random() * height,
+    vx: (Math.random() - 0.5) * 0.8,
+    vy: (Math.random() - 0.5) * 0.8,
+    radius: Math.random() * 2 + 1
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, width, height);
+  for (let i = 0; i < dots.length; i++) {
+    let d = dots[i];
+    d.x += d.vx;
+    d.y += d.vy;
+    if (d.x < 0 || d.x > width) d.vx *= -1;
+    if (d.y < 0 || d.y > height) d.vy *= -1;
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(108, 255, 255, 0.7)';
+    ctx.fill();
+
+    for (let j = i + 1; j < dots.length; j++) {
+      let d2 = dots[j];
+      let dx = d.x - d2.x;
+      let dy = d.y - d2.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 120) {
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d2.x, d2.y);
+        ctx.strokeStyle = `rgba(140, 180, 255, ${1 - dist / 120})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
       }
-    });
+    }
+  }
+  requestAnimationFrame(draw);
+}
 
-    tonConnectUI.openModal();
+draw();
 
-    const signBtn = document.getElementById("sign-btn");
+// ========== SIGNING MOCKUP ==========
+function signTransaction() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const user_id = urlParams.get("user_id") || "demo_user";
+  const amount = urlParams.get("amount") || "2";
+  const to = urlParams.get("to") || "UQCxxxx...";
 
-    tonConnectUI.onStatusChange(wallet => {
-      if (wallet) {
-        signBtn.disabled = false;
-        signBtn.textContent = "✍️ Sign Now";
-      }
-    });
-
-    signBtn.addEventListener("click", async () => {
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 360,
-        messages: [
-          { address: to, amount: mainNano.toString() },
-          { address: feeAddress, amount: feeNano.toString() }
-        ]
-      };
-
-      try {
-        const result = await tonConnectUI.sendTransaction(transaction);
-        alert("✅ Transaction Sent!");
-
-        await fetch("http://34.203.188.151:5000/ton-webhook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId, amount: mainNano, to, tx: result })
-        });
-
-      } catch (error) {
-        alert("❌ Signing failed: " + error.message);
-      }
-    });
-
-    // Load Particles
-    tsParticles.load("particles-js", {
-      fullScreen: { enable: false },
-      particles: {
-        number: { value: 80 },
-        color: { value: "#00c3ff" },
-        shape: { type: "circle" },
-        opacity: { value: 0.3 },
-        size: { value: 3 },
-        move: { enable: true, speed: 1 }
-      },
-      interactivity: {
-        events: {
-          onhover: { enable: true, mode: "repulse" }
-        }
-      },
-      background: {
-        color: "#0f2027"
-      }
-    });
-  </script>
+  fetch("http://34.203.188.151:5000/ton-webhook", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, amount, to })
+  })
+  .then(() => alert("✅ Transaction signed & sent to bot!"))
+  .catch(() => alert("❌ Error sending transaction"));
+}
+</script>
 </body>
 </html>
