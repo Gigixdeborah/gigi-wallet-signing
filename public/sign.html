@@ -1,110 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
-                                                                                                                                                                                                                                                                                                                                                        <title>Gigi TON Wallet Signing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gigi TON Wallet Connect</title>
+  <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #0f0f0f;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #0f0c29, #302b63, #24243e);
-      color: white;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      color: #fff;
       text-align: center;
     }
-
-    h1 {
-      font-size: 2em;
-      margin-bottom: 30px;
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
     }
-
-    .wallet-button {
-      background-color: #3b82f6;
-      color: #fff;
-      padding: 15px 25px;
-      margin: 15px;
-      border-radius: 12px;
-      border: none;
+    .content {
+      z-index: 2;
+      position: relative;
+    }
+    button {
+      padding: 14px 28px;
+      margin: 12px;
       font-size: 16px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
       cursor: pointer;
-      transition: transform 0.3s ease, background-color 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: pulse 2s infinite;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s ease-in-out;
     }
-
-    .wallet-button:hover {
+    button:hover {
       transform: scale(1.05);
-      background-color: #2563eb;
     }
-
-    @keyframes pulse {
-      0% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-      }
-      70% {
-        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-      }
-      100% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-      }
-    }
-
     #status {
       margin-top: 20px;
-      font-size: 18px;
     }
   </style>
 </head>
 <body>
-  <h1>Gigi TON Wallet Signing</h1>
-
-  <button class="wallet-button" onclick="submitTransaction()">
-    🚀 Connect & Sign with TON Wallet
-  </button>
-
-  <div id="status"></div>
-
+  <canvas id="canvas"></canvas>
+  <div class="content">
+    <h2>🔐 Gigi Wallet Signing (TON)</h2>
+    <button id="connectBtn">🔗 Connect TON Wallet</button>
+    <button id="signBtn" disabled>📝 Sign Transaction</button>
+    <p id="status"></p>
+  </div>
   <script>
-    async function submitTransaction() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const data = {
-        user_id: urlParams.get("user_id"),
-        amount: urlParams.get("amount"),
-        to: urlParams.get("to"),
-        token: urlParams.get("token"),
-        tx_type: urlParams.get("tx_type") || "sell"
-      };
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;let nodes = Array.from({ length: 60 }, () => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  dx: (Math.random() - 0.5) * 1.5,
+  dy: (Math.random() - 0.5) * 1.5
+}));
 
-      const status = document.getElementById("status");
-
-      if (!data.user_id || !data.amount || !data.to || !data.token) {
-        status.innerText = "❌ Missing required transaction info in URL!";
-        return;
-      }
-
-      try {
-        const res = await fetch("http://34.203.188.151:5000/ton-webhook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-
-        if (res.ok) {
-          status.innerText = `✅ TON transaction submitted!`;
-        } else {
-          status.innerText = "❌ Error sending transaction.";
-        }
-      } catch (e) {
-        console.error(e);
-        status.innerText = "⚠️ Network error.";
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let a = 0; a < nodes.length; a++) {
+    let nodeA = nodes[a];
+    nodeA.x += nodeA.dx;
+    nodeA.y += nodeA.dy;
+    if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
+    if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
+    ctx.beginPath();
+    ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = "#00ffff";
+    ctx.fill();
+    for (let b = a + 1; b < nodes.length; b++) {
+      let nodeB = nodes[b];
+      const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+      if (dist < 100) {
+        ctx.beginPath();
+        ctx.moveTo(nodeA.x, nodeA.y);
+        ctx.lineTo(nodeB.x, nodeB.y);
+        ctx.strokeStyle = "rgba(0,255,255,0.1)";
+        ctx.stroke();
       }
     }
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+
+const urlParams = new URLSearchParams(window.location.search);
+const user_id = urlParams.get("user_id");
+const amount = urlParams.get("amount");
+const to = urlParams.get("to");
+const token = urlParams.get("token");
+const tx_type = urlParams.get("tx_type") || "sell";
+
+const connector = new TONConnect();
+let connectedWallet;
+
+document.getElementById("connectBtn").addEventListener("click", async () => {
+  try {
+    await connector.restoreConnection();
+    const connected = await connector.connect({ universalLink: "https://app.tonkeeper.com/ton-connect", bridgeUrl: "https://bridge.tonapi.io/bridge" });
+    connectedWallet = connected.account;
+    document.getElementById("status").innerText = "✅ TON Wallet connected.";
+    document.getElementById("signBtn").disabled = false;
+  } catch (e) {
+    document.getElementById("status").innerText = "❌ Connection failed.";
+  }
+});
+
+document.getElementById("signBtn").addEventListener("click", async () => {
+  try {
+    const tx = {
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [{ address: to, amount: (parseFloat(amount) * 1e9).toFixed(0).toString() }]
+    };
+    await connector.sendTransaction(tx);
+
+    await fetch("http://34.203.188.151:5000/ton-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id, amount, to, token, tx_type })
+    });
+
+    document.getElementById("status").innerText = "✅ Transaction signed and webhook sent!";
+  } catch (err) {
+    document.getElementById("status").innerText = "❌ Signing failed.";
+  }
+});
+
   </script>
 </body>
 </html>
