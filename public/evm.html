@@ -1,110 +1,158 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gigi EVM Wallet Signing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gigi Wallet Signing</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #0f0f0f;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
-      color: white;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      color: #fff;
       text-align: center;
     }
-
-    h1 {
-      font-size: 2em;
-      margin-bottom: 30px;
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
     }
-
-    .wallet-button {
-      background-color: #10b981;
-      color: #fff;
-      padding: 15px 25px;
-      margin: 15px;
-      border-radius: 12px;
-      border: none;
+    .content {
+      z-index: 2;
+      position: relative;
+    }
+    button {
+      padding: 14px 28px;
+      margin: 12px;
       font-size: 16px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
       cursor: pointer;
-      transition: transform 0.3s ease, background-color 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: pulse 2s infinite;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s ease-in-out;
     }
-
-    .wallet-button:hover {
+    button:hover {
       transform: scale(1.05);
-      background-color: #059669;
     }
-
-    @keyframes pulse {
-      0% {
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      }
-      70% {
-        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-      }
-      100% {
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-      }
-    }
-
     #status {
       margin-top: 20px;
-      font-size: 18px;
     }
   </style>
 </head>
 <body>
-  <h1>Gigi EVM Wallet Signing</h1>
-
-  <button class="wallet-button" onclick="submitTransaction()">
-    🧘‍♂️ Confirm & Sign with MetaMask
-  </button>
-
-  <div id="status"></div>
-
+  <canvas id="canvas"></canvas>
+  <div class="content">
+    <h2>🔐 Gigi Wallet Signing</h2>
+    <button onclick="connectWallet()">🔌 Connect Wallet</button>
+    <button onclick="signTransaction()">📝 Sign Transaction</button>
+    <p id="status"></p>
+  </div>
   <script>
-    async function submitTransaction() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const data = {
-        user_id: urlParams.get("user_id"),
-        amount: urlParams.get("amount"),
-        to: urlParams.get("to"),
-        token: urlParams.get("token"),
-        tx_type: urlParams.get("tx_type") || "sell"
-      };
+    let connected = false;async function connectWallet() {
+  if (window.ethereum) {
+    try {
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      connected = true;
+      document.getElementById("status").innerText = "✅ Wallet connected";
+    } catch (error) {
+      document.getElementById("status").innerText = "❌ Wallet connection failed.";
+    }
+  } else {
+    document.getElementById("status").innerText = "❌ MetaMask not detected.";
+  }
+}
 
-      const status = document.getElementById("status");
+async function signTransaction() {
+  if (!connected) {
+    document.getElementById("status").innerText = "⚠️ Please connect wallet first.";
+    return;
+  }
+  const urlParams = new URLSearchParams(window.location.search);
+  const user_id = urlParams.get("user_id");
+  const amount = urlParams.get("amount");
+  const to = urlParams.get("to");
+  const token = urlParams.get("token");
+  const tx_type = urlParams.get("tx_type") || "sell";
 
-      if (!data.user_id || !data.amount || !data.to || !data.token) {
-        status.innerText = "❌ Missing required transaction info in URL!";
-        return;
-      }
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const from = accounts[0];
 
-      try {
-        const res = await fetch("http://34.203.188.151:5000/evm-webhook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
+    const tx = {
+      from,
+      to,
+      value: "0x" + (parseFloat(amount) * 1e18).toString(16)
+    };
 
-        if (res.ok) {
-          status.innerText = `✅ EVM transaction submitted!`;
-        } else {
-          status.innerText = "❌ Error sending transaction.";
-        }
-      } catch (e) {
-        console.error(e);
-        status.innerText = "⚠️ Network error.";
+    await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+
+    // Notify webhook
+    await fetch("http://34.203.188.151:5000/evm-webhook", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, amount, to, token, tx_type })
+    });
+
+    document.getElementById("status").innerText = "✅ Transaction signed and webhook sent!";
+  } catch (err) {
+    document.getElementById("status").innerText = "❌ Signing failed.";
+  }
+}
+
+// Canvas animation
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let nodes = Array.from({ length: 60 }, () => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  dx: (Math.random() - 0.5) * 1.5,
+  dy: (Math.random() - 0.5) * 1.5
+}));
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let a = 0; a < nodes.length; a++) {
+    let nodeA = nodes[a];
+    nodeA.x += nodeA.dx;
+    nodeA.y += nodeA.dy;
+
+    if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
+    if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
+
+    ctx.beginPath();
+    ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = "#00ffff";
+    ctx.fill();
+
+    for (let b = a + 1; b < nodes.length; b++) {
+      let nodeB = nodes[b];
+      const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+      if (dist < 100) {
+        ctx.beginPath();
+        ctx.moveTo(nodeA.x, nodeA.y);
+        ctx.lineTo(nodeB.x, nodeB.y);
+        ctx.strokeStyle = "rgba(0,255,255,0.1)";
+        ctx.stroke();
       }
     }
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+
   </script>
 </body>
 </html>
