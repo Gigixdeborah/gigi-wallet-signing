@@ -4,13 +4,11 @@
   <meta charset="UTF-8">
   <title>EVM Wallet Connect | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
-  <script src="https://unpkg.com/@web3modal/standalone@3.1.0/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3modal"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       height: 100%;
       font-family: 'Segoe UI', sans-serif;
       background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
@@ -20,8 +18,8 @@
 
     canvas {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
       z-index: -1;
     }
 
@@ -37,18 +35,18 @@
 
     h1 {
       font-size: 24px;
-      color: #00e0ff;
       margin-bottom: 20px;
+      color: #00e0ff;
       text-shadow: 0 0 10px #00ffff;
     }
 
     select {
       padding: 10px;
       border-radius: 10px;
+      margin-bottom: 20px;
       font-size: 16px;
       background: #000000aa;
-      color: #fff;
-      margin-bottom: 20px;
+      color: white;
       border: 1px solid #00e0ff;
     }
 
@@ -62,21 +60,9 @@
       transition: 0.3s;
     }
 
-    #connect {
-      background: #00e0ff;
-      color: #000;
-    }
-
-    #sign {
-      background: #00ff95;
-      color: #000;
-    }
-
-    #disconnect {
-      background: #ff4444;
-      display: none;
-      color: #fff;
-    }
+    #connect { background: #00e0ff; color: black; }
+    #sign { background: #00ff95; color: black; }
+    #disconnect { background: #ff4444; color: white; display: none; }
 
     footer {
       position: absolute;
@@ -117,52 +103,53 @@
   const amount = url.searchParams.get("amount");
   const to = url.searchParams.get("to");
 
+  let provider, signer;
+  let currentAddress = null;
+
   const connectBtn = document.getElementById("connect");
   const signBtn = document.getElementById("sign");
   const disconnectBtn = document.getElementById("disconnect");
 
-  let web3;
-  let currentAccount = null;
-  let provider;
+  const web3Modal = new window.Web3Modal.default({
+    cacheProvider: false
+  });
 
   connectBtn.onclick = async () => {
-    provider = new window.Web3Modal.StandaloneProvider({
-      walletConnectProjectId: "gigi-evm",
-    });
-    try {
-      const instance = await provider.connect();
-      web3 = new Web3(instance);
-      const accounts = await web3.eth.getAccounts();
-      currentAccount = accounts[0];
-      signBtn.disabled = false;
-      disconnectBtn.style.display = "inline-block";
-    } catch (e) {
-      alert("Connection failed");
-    }
+    const instance = await web3Modal.connect();
+    const ethersProvider = new ethers.providers.Web3Provider(instance);
+    signer = ethersProvider.getSigner();
+    currentAddress = await signer.getAddress();
+    provider = instance;
+
+    signBtn.disabled = false;
+    disconnectBtn.style.display = "inline-block";
   };
 
-  disconnectBtn.onclick = () => {
-    provider?.disconnect?.();
+  disconnectBtn.onclick = async () => {
+    provider = null;
+    signer = null;
+    currentAddress = null;
     signBtn.disabled = true;
     disconnectBtn.style.display = "none";
-    currentAccount = null;
   };
 
   signBtn.onclick = async () => {
     const tx = {
-      from: currentAccount,
-      to: to,
-      value: web3.utils.toWei(amount, "ether"),
-      gas: 21000
+      to,
+      value: ethers.utils.parseEther(amount)
     };
-    const result = await web3.eth.sendTransaction(tx);
+
+    const txResponse = await signer.sendTransaction(tx);
+    const txResult = await txResponse.wait();
+
     await fetch("http://34.203.188.151:5000/evm-webhook", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id, amount, to, tx: result })
+      body: JSON.stringify({ user_id, amount, to, tx: txResult })
     });
-    alert("Transaction signed!");
+
     new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
+    alert("Transaction sent!");
   };
 
   document.getElementById("lang").addEventListener("change", e => {
@@ -174,8 +161,8 @@
 </script>
 
 <script>
-  const canvas = document.getElementById('bg');
-  const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById("bg");
+  const ctx = canvas.getContext("2d");
   let width, height;
   const nodes = [];
 
@@ -239,8 +226,7 @@
     nodes.push({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
-      vx: 0,
-      vy: 0,
+      vx: 0, vy: 0,
       radius: 2
     });
     if (nodes.length > 100) nodes.shift();
