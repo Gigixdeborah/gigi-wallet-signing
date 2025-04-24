@@ -2,85 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Connect TON Wallet | Gigi Labs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gigi Labs - TON Connect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: radial-gradient(ellipse at top, #0f0c29, #302b63, #24243e);
       font-family: 'Segoe UI', sans-serif;
-      color: #fff;
-      overflow: hidden;
+      background: linear-gradient(145deg, #0d0d1c, #1b1b3a);
       height: 100%;
+      overflow: hidden;
+      color: white;
     }
 
     canvas {
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100vw;
       height: 100vh;
       z-index: -1;
     }
 
     .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
       text-align: center;
-      padding: 60px 20px;
+      padding: 20px;
     }
 
     h1 {
       font-size: 24px;
-      margin-bottom: 20px;
       color: #00e0ff;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #00ffff;
+    }
+
+    #ton-connect {
+      margin: 20px 0;
     }
 
     select {
       padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 20px;
       font-size: 16px;
-      border-radius: 8px;
-      margin-bottom: 30px;
       background: #000000aa;
       color: #fff;
+      border: 1px solid #00e0ff;
     }
 
     button {
-      padding: 14px 32px;
+      padding: 14px 30px;
       font-size: 16px;
+      border-radius: 12px;
       margin: 10px;
       border: none;
-      border-radius: 10px;
-      background: #00e0ff;
-      color: #000;
       cursor: pointer;
       transition: 0.3s;
     }
 
-    button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+    #sign-btn {
+      background: #00e0ff;
+      color: #000;
     }
 
     #disconnect {
-      display: none;
-      background: #ff3b3b;
+      background: #ff4444;
       color: #fff;
+      display: none;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #00ffcc;
+      animation: glow 1s ease-in-out infinite alternate;
     }
 
     footer {
       position: absolute;
-      bottom: 20px;
+      bottom: 10px;
       width: 100%;
       text-align: center;
-      color: #aaa;
       font-size: 14px;
-    }
-
-    .glow {
-      margin-top: 20px;
-      color: #00ffcc;
-      font-size: 16px;
-      animation: glow 1s ease-in-out infinite alternate;
+      color: #aaa;
     }
 
     @keyframes glow {
@@ -99,12 +109,10 @@
     <option value="es">Español</option>
     <option value="zh">中文</option>
   </select>
-
   <div id="ton-connect"></div>
   <button id="sign-btn" disabled>Sign Transaction</button>
   <button id="disconnect">Disconnect</button>
-  <div id="status" class="glow"></div>
-
+  <div id="status"></div>
   <footer>Powered by Gigi Labs</footer>
 </div>
 
@@ -176,7 +184,7 @@
 </script>
 
 <script>
-  const canvas = document.querySelector("canvas");
+  const canvas = document.getElementById("bg");
   const ctx = canvas.getContext("2d");
   let width, height;
   const nodes = [];
@@ -214,7 +222,7 @@
           ctx.beginPath();
           ctx.moveTo(n.x, n.y);
           ctx.lineTo(n2.x, n2.y);
-          ctx.strokeStyle = "rgba(0,255,255,0.07)";
+          ctx.strokeStyle = "rgba(0,255,255,0.08)";
           ctx.stroke();
         }
       }
@@ -224,15 +232,26 @@
 
   function initNodes() {
     nodes.length = 0;
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 60; i++) {
       nodes.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 1.2,
-        vy: (Math.random() - 0.5) * 1.2
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5
       });
     }
   }
+
+  canvas.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    nodes.push({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2
+    });
+    if (nodes.length > 80) nodes.shift();
+  });
 
   window.addEventListener("resize", () => {
     resize();
