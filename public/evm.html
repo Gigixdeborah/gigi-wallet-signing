@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>EVM Wallet Connect | Gigi Labs</title>
+  <title>Connect EVM Wallet | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/web3modal"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
@@ -43,10 +43,10 @@
     select {
       padding: 10px;
       border-radius: 10px;
-      margin-bottom: 20px;
       font-size: 16px;
       background: #000000aa;
       color: white;
+      margin-bottom: 20px;
       border: 1px solid #00e0ff;
     }
 
@@ -57,7 +57,6 @@
       border: none;
       margin: 10px;
       cursor: pointer;
-      transition: 0.3s;
     }
 
     #connect { background: #00e0ff; color: black; }
@@ -91,65 +90,81 @@
 </div>
 
 <script>
-  const translations = {
-    en: { title: "Connect Your EVM Wallet", connect: "Connect Wallet", sign: "Sign Transaction" },
-    fr: { title: "Connectez votre portefeuille EVM", connect: "Connecter", sign: "Signer la transaction" },
-    es: { title: "Conecta tu billetera EVM", connect: "Conectar", sign: "Firmar transacción" },
-    zh: { title: "连接您的EVM钱包", connect: "连接钱包", sign: "签署交易" },
-  };
-
   const url = new URL(window.location.href);
   const user_id = url.searchParams.get("user_id");
   const amount = url.searchParams.get("amount");
   const to = url.searchParams.get("to");
 
-  let provider, signer;
-  let currentAddress = null;
+  let currentAccount = null;
 
   const connectBtn = document.getElementById("connect");
   const signBtn = document.getElementById("sign");
   const disconnectBtn = document.getElementById("disconnect");
 
+  const providerOptions = {}; // default (includes injected + walletconnect)
   const web3Modal = new window.Web3Modal.default({
-    cacheProvider: false
+    cacheProvider: false,
+    providerOptions
   });
 
-  connectBtn.onclick = async () => {
-    const instance = await web3Modal.connect();
-    const ethersProvider = new ethers.providers.Web3Provider(instance);
-    signer = ethersProvider.getSigner();
-    currentAddress = await signer.getAddress();
-    provider = instance;
+  let web3Provider = null;
 
-    signBtn.disabled = false;
-    disconnectBtn.style.display = "inline-block";
+  connectBtn.onclick = async () => {
+    try {
+      const instance = await web3Modal.connect();
+      web3Provider = new ethers.providers.Web3Provider(instance);
+      const accounts = await web3Provider.listAccounts();
+      currentAccount = accounts[0];
+      signBtn.disabled = false;
+      disconnectBtn.style.display = "inline-block";
+    } catch (e) {
+      alert("Connection failed");
+    }
   };
 
-  disconnectBtn.onclick = async () => {
-    provider = null;
-    signer = null;
-    currentAddress = null;
+  disconnectBtn.onclick = () => {
+    web3Modal.clearCachedProvider();
+    web3Provider = null;
+    currentAccount = null;
     signBtn.disabled = true;
     disconnectBtn.style.display = "none";
   };
 
   signBtn.onclick = async () => {
-    const tx = {
-      to,
-      value: ethers.utils.parseEther(amount)
+    if (!window.ethereum || !currentAccount) return alert("Wallet not connected");
+
+    const txParams = {
+      from: currentAccount,
+      to: to,
+      value: ethers.utils.parseEther(amount)._hex,
     };
 
-    const txResponse = await signer.sendTransaction(tx);
-    const txResult = await txResponse.wait();
+    try {
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [txParams]
+      });
 
-    await fetch("http://34.203.188.151:5000/evm-webhook", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id, amount, to, tx: txResult })
-    });
+      await fetch("http://34.203.188.151:5000/evm-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id, amount, to, txHash })
+      });
 
-    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-    alert("Transaction sent!");
+      new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
+      alert("Transaction sent! TX: " + txHash);
+    } catch (err) {
+      alert("Signing cancelled or failed.");
+    }
+  };
+</script>
+
+<script>
+  const translations = {
+    en: { title: "Connect Your EVM Wallet", connect: "Connect Wallet", sign: "Sign Transaction" },
+    fr: { title: "Connectez votre portefeuille EVM", connect: "Connecter", sign: "Signer la transaction" },
+    es: { title: "Conecta tu billetera EVM", connect: "Conectar", sign: "Firmar transacción" },
+    zh: { title: "连接您的EVM钱包", connect: "连接钱包", sign: "签署交易" },
   };
 
   document.getElementById("lang").addEventListener("change", e => {
