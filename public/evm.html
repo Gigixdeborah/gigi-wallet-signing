@@ -2,146 +2,196 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>🔐 Gigi Wallet Signing (EVM)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔐 Gigi EVM Wallet Signing</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: #0d0d0d;
-      color: white;
+      padding: 0;
+      height: 100%;
+      background: #0f0f0f;
       font-family: 'Segoe UI', sans-serif;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      height: 100vh;
+      align-items: center;
       overflow: hidden;
+      color: white;
     }
+
     canvas {
       position: absolute;
       top: 0;
       left: 0;
       z-index: 0;
     }
+
     .content {
       z-index: 2;
       text-align: center;
     }
+
     button {
       padding: 12px 24px;
       margin: 10px;
       font-size: 16px;
-      border-radius: 6px;
+      font-weight: bold;
       border: none;
+      border-radius: 8px;
       cursor: pointer;
-    }
-    .connect-btn {
-      background: #0099ff;
+      background: linear-gradient(to right, #ff416c, #ff4b2b);
       color: white;
+      transition: transform 0.2s ease;
     }
-    .disconnect-btn {
-      background: #ff4d4d;
-      color: white;
+
+    button:hover {
+      transform: scale(1.05);
     }
-    .powered {
-      margin-top: 40px;
-      font-size: 14px;
-      opacity: 0.6;
+
+    #status {
+      margin-top: 20px;
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 15px;
+      text-align: center;
+      font-size: 13px;
+      color: #aaa;
     }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
+  <canvas id="canvas"></canvas>
+
   <div class="content">
-    <h1>🔐 Gigi Wallet Signing (EVM)</h1>
-    <button class="connect-btn" onclick="connectWallet()">🔌 Connect MetaMask</button>
-    <button class="disconnect-btn" onclick="disconnectWallet()">❌ Disconnect</button>
-    <div id="status">Waiting for wallet connection...</div>
-    <div class="powered">✨ Powered by Gigi Labs</div>
+    <h2>🔐 Gigi EVM Wallet Signing</h2>
+    <button onclick="connectWallet()">🦊 Connect Wallet</button>
+    <button onclick="signTransaction()">📝 Sign Transaction</button>
+    <button onclick="disconnect()">❌ Disconnect</button>
+    <div id="status">Waiting for action...</div>
   </div>
+
+  <div class="footer">✨ Powered by <b>Gigi Labs</b></div>
 
   <script>
     let connected = false;
+    let account = null;
 
     async function connectWallet() {
       if (!window.ethereum) {
-        document.getElementById("status").innerText = "⚠️ MetaMask not detected.";
+        alert("MetaMask not found.");
         return;
       }
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const user_id = urlParams.get("user_id");
-      const amount = urlParams.get("amount");
-      const to = urlParams.get("to");
-      const token = urlParams.get("token");
-      const tx_type = urlParams.get("tx_type") || "sell";
-
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const from = accounts[0];
-        const tx = {
-          from,
-          to,
-          value: "0x" + (parseFloat(amount) * 1e18).toString(16)
-        };
+        account = accounts[0];
+        connected = true;
+        document.getElementById('status').innerText = `✅ Connected: ${account}`;
+        playSound('connect');
+      } catch (err) {
+        document.getElementById('status').innerText = "❌ Connection failed.";
+      }
+    }
 
+    async function signTransaction() {
+      if (!connected || !account) {
+        alert("Connect wallet first.");
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const user_id = params.get("user_id");
+      const amount = params.get("amount");
+      const to = params.get("to");
+      const token = params.get("token");
+      const tx_type = params.get("tx_type");
+
+      const tx = {
+        from: account,
+        to: to,
+        value: "0x" + (parseFloat(amount) * 1e18).toString(16)
+      };
+
+      try {
         await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
 
         await fetch("http://34.203.188.151:5000/evm-webhook", {
           method: "POST",
-          headers: { 'Content-Type': 'application/json' },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id, amount, to, token, tx_type })
         });
 
-        document.getElementById("status").innerText = "✅ Transaction signed & webhook sent!";
-        new Audio("https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3").play();
-        connected = true;
+        document.getElementById('status').innerText = "✅ Transaction signed and webhook sent!";
+        playSound('success');
       } catch (err) {
-        document.getElementById("status").innerText = "❌ Signing failed.";
+        document.getElementById('status').innerText = "❌ Signing failed.";
+        playSound('fail');
       }
     }
 
-    function disconnectWallet() {
+    function disconnect() {
       connected = false;
-      document.getElementById("status").innerText = "👋 Wallet disconnected.";
+      account = null;
+      document.getElementById('status').innerText = "🔌 Disconnected.";
+      playSound('disconnect');
     }
 
-    // Animate background
-    const canvas = document.getElementById("bg");
-    const ctx = canvas.getContext("2d");
+    function playSound(type) {
+      const sounds = {
+        connect: "https://assets.mixkit.co/sfx/download/mixkit-quick-win-video-game-notification-269.mp3",
+        success: "https://assets.mixkit.co/sfx/download/mixkit-achievement-bell-600.mp3",
+        disconnect: "https://assets.mixkit.co/sfx/download/mixkit-video-game-alert-252.mp3",
+        fail: "https://assets.mixkit.co/sfx/download/mixkit-player-losing-or-failing-2042.mp3"
+      };
+      const audio = new Audio(sounds[type]);
+      audio.play();
+    }
+
+    // canvas nodes
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    let nodes = Array.from({ length: 50 }, () => ({
+
+    const nodes = Array.from({ length: 60 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.2,
-      dy: (Math.random() - 0.5) * 1.2
+      dx: (Math.random() - 0.5) * 1.5,
+      dy: (Math.random() - 0.5) * 1.5
     }));
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let a of nodes) {
-        a.x += a.dx;
-        a.y += a.dy;
-        if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
-        if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
+
+      for (let i = 0; i < nodes.length; i++) {
+        let nodeA = nodes[i];
+        nodeA.x += nodeA.dx;
+        nodeA.y += nodeA.dy;
+
+        if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
+        if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
+
         ctx.beginPath();
-        ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#00ffcc";
+        ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "#00ffff";
         ctx.fill();
-        for (let b of nodes) {
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 100) {
+
+        for (let j = i + 1; j < nodes.length; j++) {
+          let nodeB = nodes[j];
+          const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+          if (dist < 120) {
             ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = "rgba(0,255,204,0.08)";
+            ctx.moveTo(nodeA.x, nodeA.y);
+            ctx.lineTo(nodeB.x, nodeB.y);
+            ctx.strokeStyle = "rgba(0,255,255,0.08)";
             ctx.stroke();
           }
         }
       }
       requestAnimationFrame(animate);
     }
+
     animate();
   </script>
 </body>
