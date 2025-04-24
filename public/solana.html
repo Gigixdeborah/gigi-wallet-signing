@@ -2,176 +2,197 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🔐 Gigi EVM Wallet Signing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔐 Gigi Solana Wallet Signing</title>
+  <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.9.18/lib/cjs/index.umd.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-base@0.9.18/lib/cjs/index.umd.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-react-ui@0.9.18/lib/cjs/index.umd.js"></script>
+  <script src="https://unpkg.com/@solana/web3.js@1.66.2/lib/index.iife.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@solana/wallet-adapter-react-ui/styles.css" />
   <style>
-    html, body {
+    body, html {
       margin: 0;
       padding: 0;
-      height: 100%;
-      background: #0b0b0b;
-      font-family: 'Segoe UI', sans-serif;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0f0f0f;
+      color: white;
+      height: 100%;
     }
     canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
+      position: absolute;
+      width: 100%;
+      height: 100%;
       z-index: 0;
     }
     .content {
+      position: relative;
       z-index: 2;
       text-align: center;
+      top: 20%;
+    }
+    h2 {
+      font-size: 2em;
     }
     button {
-      padding: 12px 24px;
       margin: 10px;
-      font-size: 16px;
-      font-weight: bold;
+      padding: 14px 28px;
       border: none;
-      border-radius: 6px;
-      background: linear-gradient(to right, #f2709c, #ff9472);
+      background: linear-gradient(135deg, #ff5e62, #ff9966);
       color: white;
+      font-size: 1em;
+      font-weight: bold;
+      border-radius: 8px;
       cursor: pointer;
+      transition: 0.3s;
     }
-    .powered {
+    button:hover {
+      transform: scale(1.05);
+    }
+    #status {
+      margin-top: 20px;
+    }
+    footer {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 0.9em;
       color: #aaa;
-      font-size: 0.85rem;
-      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div class="content">
-    <h2>🔐 Gigi EVM Wallet Signing</h2>
-    <button onclick="connectWallet()">Connect Wallet</button>
-    <button onclick="signTransaction()">Sign Transaction</button>
-    <button onclick="disconnect()">Disconnect</button>
-    <p id="status"></p>
-    <div class="powered">✨ Powered by Gigi Labs
-    </div>
-  </div>
+<canvas id="canvas"></canvas>
+<div class="content">
+  <h2>🔐 Gigi Solana Signing</h2>
+  <button onclick="connectWallet()">🧩 Connect Wallet</button>
+  <button onclick="signTransaction()">📝 Sign Transaction</button>
+  <button onclick="disconnectWallet()">🔌 Disconnect</button>
+  <p id="status"></p>
+</div>
+<footer>✨ Powered by Gigi Labs ✨</footer>
 
-  <script type="module">
-    import Onboard from "https://cdn.skypack.dev/@web3-onboard/core";
-    import injectedModule from "https://cdn.skypack.dev/@web3-onboard/injected-wallets";
+<script>
+let provider;
+let connected = false;
 
-    const injected = injectedModule();
-    const onboard = Onboard({
-      wallets: [injected],
-      chains: [
-        {
-          id: '0x1',
-          token: 'ETH',
-          label: 'Ethereum Mainnet',
-          rpcUrl: 'https://mainnet.infura.io/v3/your-infura-key'
-        }
-      ],
-      appMetadata: {
-        name: 'Gigi Labs',
-        icon: '',
-        description: 'Universal EVM Signing Flow'
-      }
+async function connectWallet() {
+  try {
+    const solana = window.solana;
+    if (solana && solana.isPhantom) {
+      const res = await solana.connect();
+      provider = solana;
+      connected = true;
+      document.getElementById("status").innerText = "✅ Wallet connected: " + res.publicKey.toString();
+      new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3").play();
+    } else {
+      alert("Phantom Wallet not found. Install it from https://phantom.app");
+    }
+  } catch (err) {
+    console.error(err);
+    document.getElementById("status").innerText = "❌ Wallet connection failed";
+  }
+}
+
+function disconnectWallet() {
+  if (provider && provider.disconnect) {
+    provider.disconnect();
+    document.getElementById("status").innerText = "🔌 Wallet disconnected";
+    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3").play();
+  }
+}
+
+async function signTransaction() {
+  if (!connected || !provider) {
+    alert("Please connect your wallet first.");
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const user_id = params.get("user_id");
+  const amount = parseFloat(params.get("amount"));
+  const to = params.get("to");
+  const token = params.get("token");
+  const tx_type = params.get("tx_type");
+
+  try {
+    const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"), "confirmed");
+    const fromPubkey = provider.publicKey;
+    const toPubkey = new solanaWeb3.PublicKey(to);
+
+    const transaction = new solanaWeb3.Transaction().add(
+      solanaWeb3.SystemProgram.transfer({
+        fromPubkey,
+        toPubkey,
+        lamports: amount * solanaWeb3.LAMPORTS_PER_SOL
+      })
+    );
+
+    const { blockhash } = await connection.getRecentBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = fromPubkey;
+
+    const signed = await provider.signTransaction(transaction);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig);
+
+    await fetch("http://34.203.188.151:5000/solana-webhook", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, amount, to, token, tx_type, signature: sig })
     });
 
-    let walletProvider = null;
-    let address = null;
+    document.getElementById("status").innerText = `✅ Signed and sent: ${sig}`;
+  } catch (e) {
+    console.error(e);
+    document.getElementById("status").innerText = "❌ Signing failed.";
+  }
+}
 
-    const url = new URLSearchParams(window.location.search);
-    const user_id = url.get("user_id");
-    const amount = url.get("amount");
-    const to = url.get("to");
-    const token = url.get("token");
-    const tx_type = url.get("tx_type") || "sell";
+// Magical node canvas animation
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-    async function connectWallet() {
-      const wallets = await onboard.connectWallet();
-      if (wallets[0]) {
-        walletProvider = wallets[0].provider;
-        address = wallets[0].accounts[0].address;
-        document.getElementById("status").innerText = `✅ Connected: ${address}`;
-      }
-    }
+let nodes = Array.from({ length: 50 }, () => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  dx: (Math.random() - 0.5) * 2,
+  dy: (Math.random() - 0.5) * 2
+}));
 
-    async function signTransaction() {
-      if (!walletProvider || !address) {
-        document.getElementById("status").innerText = "⚠️ Connect wallet first";
-        return;
-      }
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let a = 0; a < nodes.length; a++) {
+    const nodeA = nodes[a];
+    nodeA.x += nodeA.dx;
+    nodeA.y += nodeA.dy;
 
-      const tx = {
-        from: address,
-        to: to,
-        value: "0x" + (parseFloat(amount) * 1e18).toString(16),
-        chainId: 1
-      };
+    if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
+    if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
 
-      try {
-        await walletProvider.request({ method: 'eth_sendTransaction', params: [tx] });
-        fetch("http://34.203.188.151:5000/evm-webhook", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, amount, to, token, tx_type })
-        });
-        document.getElementById("status").innerText = "✅ Transaction signed and webhook sent!";
-      } catch (e) {
-        document.getElementById("status").innerText = "❌ Signing failed.";
-      }
-    }
+    ctx.beginPath();
+    ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffaa00";
+    ctx.fill();
 
-    function disconnect() {
-      onboard.disconnectWallet({ label: onboard.state.get().wallets[0]?.label });
-      document.getElementById("status").innerText = "❌ Wallet disconnected.";
-    }
-
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const dots = Array.from({ length: 50 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.2,
-      dy: (Math.random() - 0.5) * 1.2
-    }));
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let a = 0; a < dots.length; a++) {
-        let dotA = dots[a];
-        dotA.x += dotA.dx;
-        dotA.y += dotA.dy;
-
-        if (dotA.x < 0 || dotA.x > canvas.width) dotA.dx *= -1;
-        if (dotA.y < 0 || dotA.y > canvas.height) dotA.dy *= -1;
-
+    for (let b = a + 1; b < nodes.length; b++) {
+      const nodeB = nodes[b];
+      const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+      if (dist < 100) {
         ctx.beginPath();
-        ctx.arc(dotA.x, dotA.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#fff";
-        ctx.fill();
-
-        for (let b = a + 1; b < dots.length; b++) {
-          let dotB = dots[b];
-          const dist = Math.hypot(dotA.x - dotB.x, dotA.y - dotB.y);
-          if (dist < 80) {
-            ctx.beginPath();
-            ctx.moveTo(dotA.x, dotA.y);
-            ctx.lineTo(dotB.x, dotB.y);
-            ctx.strokeStyle = "rgba(255,255,255,0.1)";
-            ctx.stroke();
-          }
-        }
+        ctx.moveTo(nodeA.x, nodeA.y);
+        ctx.lineTo(nodeB.x, nodeB.y);
+        ctx.strokeStyle = "rgba(255, 170, 0, 0.1)";
+        ctx.stroke();
       }
-      requestAnimationFrame(animate);
     }
-    animate();
-  </script>
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
 </body>
 </html>
