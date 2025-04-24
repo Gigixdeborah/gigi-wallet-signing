@@ -2,26 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Gigi Labs - TON Connect</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gigi Labs | TON Wallet Connect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(145deg, #0d0d1c, #1b1b3a);
-      height: 100%;
-      overflow: hidden;
+      background: radial-gradient(ellipse at center, #0f0c29, #302b63, #24243e);
       color: white;
+      overflow: hidden;
+      height: 100%;
     }
 
     canvas {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
       z-index: -1;
     }
 
@@ -37,33 +35,32 @@
 
     h1 {
       font-size: 24px;
-      color: #00e0ff;
       margin-bottom: 20px;
-      text-shadow: 0 0 10px #00ffff;
-    }
-
-    #ton-connect {
-      margin: 20px 0;
+      color: #00e0ff;
+      text-shadow: 0 0 15px #00ffff;
     }
 
     select {
       padding: 10px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      font-size: 16px;
+      border-radius: 8px;
       background: #000000aa;
       color: #fff;
+      margin-bottom: 20px;
       border: 1px solid #00e0ff;
+      font-size: 16px;
+    }
+
+    #ton-connect {
+      margin-bottom: 20px;
     }
 
     button {
       padding: 14px 30px;
       font-size: 16px;
-      border-radius: 12px;
-      margin: 10px;
       border: none;
+      border-radius: 10px;
+      margin: 5px;
       cursor: pointer;
-      transition: 0.3s;
     }
 
     #sign-btn {
@@ -72,7 +69,7 @@
     }
 
     #disconnect {
-      background: #ff4444;
+      background: #ff3b3b;
       color: #fff;
       display: none;
     }
@@ -94,8 +91,8 @@
     }
 
     @keyframes glow {
-      from { text-shadow: 0 0 10px #00e0ff, 0 0 20px #00e0ff; }
-      to { text-shadow: 0 0 20px #00ffff, 0 0 30px #00e0ff; }
+      from { text-shadow: 0 0 10px #00e0ff; }
+      to { text-shadow: 0 0 20px #00ffff; }
     }
   </style>
 </head>
@@ -194,11 +191,13 @@
     height = canvas.height = window.innerHeight;
   }
 
-  function drawNode(node) {
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = "#00e0ff";
-    ctx.fill();
+  function createNode(x, y) {
+    return {
+      x, y,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      size: 2.5
+    };
   }
 
   function animate() {
@@ -211,7 +210,10 @@
       if (n.x < 0 || n.x > width) n.vx *= -1;
       if (n.y < 0 || n.y > height) n.vy *= -1;
 
-      drawNode(n);
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
+      ctx.fillStyle = "#00e0ff";
+      ctx.fill();
 
       for (let j = i + 1; j < nodes.length; j++) {
         const n2 = nodes[j];
@@ -233,24 +235,16 @@
   function initNodes() {
     nodes.length = 0;
     for (let i = 0; i < 60; i++) {
-      nodes.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: (Math.random() - 0.5) * 1.5
-      });
+      nodes.push(createNode(Math.random() * width, Math.random() * height));
     }
   }
 
-  canvas.addEventListener("mousemove", (e) => {
+  canvas.addEventListener("pointermove", e => {
     const rect = canvas.getBoundingClientRect();
-    nodes.push({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2
-    });
-    if (nodes.length > 80) nodes.shift();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    nodes.push(createNode(x, y));
+    if (nodes.length > 100) nodes.shift();
   });
 
   window.addEventListener("resize", () => {
