@@ -3,76 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gigi Wallet Signing - TON</title>
-  <link rel="icon" href="/favicon.ico" />
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <title>🔐 Gigi TON Wallet Signing</title>
+  <script src="https://unpkg.com/@tonconnect/ui@0.0.6/dist/tonconnect-ui.min.js"></script>
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      background: #000;
+      margin: 0; padding: 0;
       font-family: 'Segoe UI', sans-serif;
-      color: white;
-      text-align: center;
-      height: 100%;
+      height: 100vh;
+      background: #0f0f0f;
+      color: #fff;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
     }
     canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
+      position: absolute;
+      top: 0; left: 0;
       z-index: 0;
     }
-    .container {
+    .content {
       position: relative;
       z-index: 2;
-      padding-top: 80px;
+      text-align: center;
     }
     button {
-      background: #2f89fc;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      padding: 14px 28px;
+      padding: 12px 24px;
       margin: 10px;
       font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #00f260, #0575e6);
+      color: white;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transition: transform 0.2s;
     }
     button:hover {
-      background: #4fa1ff;
+      transform: scale(1.05);
     }
     #status {
-      margin-top: 20px;
-      font-size: 16px;
+      margin-top: 10px;
     }
-    #footer {
-      position: fixed;
-      bottom: 10px;
-      width: 100%;
-      font-size: 14px;
-      color: #999;
-      animation: glow 2s infinite ease-in-out;
-    }
-    @keyframes glow {
-      0%, 100% { color: #00fff7; }
-      50% { color: #00c3ff; }
+    .footer {
+      position: absolute;
+      bottom: 15px;
+      font-size: 13px;
+      color: #aaa;
     }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
-  <div class="container">
-    <h2>🔐 Gigi Wallet Signing (TON)</h2>
+  <canvas id="canvas"></canvas>
+  <div class="content">
+    <h2>🔐 Gigi TON Wallet Signing</h2>
     <div id="ton-connect"></div>
     <button onclick="signTransaction()">📝 Sign Transaction</button>
-    <button onclick="disconnect()">❌ Disconnect</button>
-    <div id="status"></div>
+    <button onclick="disconnectWallet()">❌ Disconnect</button>
+    <div id="status">Waiting for connection...</div>
   </div>
-  <div id="footer">⚡ Powered by Gigi Labs</div>
-
-  <audio id="success-sound" src="https://assets.mixkit.co/sfx/download/mixkit-game-bonus-reached-2065.wav"></audio>
-  <audio id="error-sound" src="https://assets.mixkit.co/sfx/download/mixkit-click-error-1110.wav"></audio>
+  <div class="footer">✨ Powered by <strong>Gigi Labs</strong></div>
 
   <script>
     const connector = new TON_CONNECT_UI.TonConnectUI({
@@ -80,82 +71,124 @@
       buttonRootId: "ton-connect"
     });
 
+    connector.uiOptions = { language: "en", restoreConnection: true };
+    let connectedWallet = null;
+
+    const url = new URL(window.location.href);
+    const user_id = url.searchParams.get("user_id");
+    const amount = url.searchParams.get("amount");
+    const to = url.searchParams.get("to");
+    const token = url.searchParams.get("token");
+    const tx_type = url.searchParams.get("tx_type");
+
+    function playSound(type) {
+      const sounds = {
+        connect: "https://assets.mixkit.co/sfx/download/mixkit-quick-win-video-game-notification-269.mp3",
+        success: "https://assets.mixkit.co/sfx/download/mixkit-achievement-bell-600.mp3",
+        fail: "https://assets.mixkit.co/sfx/download/mixkit-player-losing-or-failing-2042.mp3",
+        disconnect: "https://assets.mixkit.co/sfx/download/mixkit-video-game-alert-252.mp3"
+      };
+      new Audio(sounds[type]).play();
+    }
+
+    connector.onStatusChange(wallet => {
+      if (wallet && wallet.account) {
+        connectedWallet = wallet;
+        document.getElementById("status").innerText = `✅ Connected: ${wallet.account.address}`;
+        playSound("connect");
+      } else {
+        document.getElementById("status").innerText = "🔌 Not connected";
+      }
+    });
+
     async function signTransaction() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const user_id = urlParams.get("user_id");
-      const amount = urlParams.get("amount");
-      const to = urlParams.get("to");
-      const token = urlParams.get("token");
-      const tx_type = urlParams.get("tx_type");
+      if (!connectedWallet) {
+        alert("Please connect your wallet first.");
+        return;
+      }
 
       try {
-        const connectedWallet = await connector.connectWallet();
-        const tx = {
+        await connector.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + 360,
-          messages: [{ address: to, amount: (parseFloat(amount) * 1e9).toString() }]
-        };
-        await connector.sendTransaction(tx);
-        document.getElementById("status").innerText = "✅ Transaction sent!";
-        document.getElementById("success-sound").play();
+          messages: [{
+            address: to,
+            amount: (parseFloat(amount) * 1e9).toFixed(0).toString()
+          }]
+        });
 
+        // Webhook
         await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id, amount, to, token, tx_type })
         });
 
+        document.getElementById("status").innerText = "✅ Transaction signed and webhook sent!";
+        playSound("success");
       } catch (err) {
-        document.getElementById("status").innerText = "❌ Signing failed or cancelled.";
-        document.getElementById("error-sound").play();
+        document.getElementById("status").innerText = "❌ Signing failed.";
+        playSound("fail");
       }
     }
 
-    async function disconnect() {
-      await connector.disconnect();
-      document.getElementById("status").innerText = "🔌 Disconnected.";
+    function disconnectWallet() {
+      connector.disconnect();
+      document.getElementById("status").innerText = "🔌 Disconnected";
+      playSound("disconnect");
     }
 
-    // Background Canvas
-    const canvas = document.getElementById("bg");
+    // Touch-reactive animation
+    const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    let nodes = Array.from({ length: 50 }, () => ({
+
+    const nodes = Array.from({ length: 60 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.4,
-      dy: (Math.random() - 0.5) * 1.4
+      dx: (Math.random() - 0.5) * 1.3,
+      dy: (Math.random() - 0.5) * 1.3
     }));
 
-    function draw() {
+    canvas.addEventListener("pointermove", (e) => {
+      nodes.push({
+        x: e.clientX,
+        y: e.clientY,
+        dx: (Math.random() - 0.5) * 2,
+        dy: (Math.random() - 0.5) * 2
+      });
+    });
+
+    function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < nodes.length; i++) {
-        let a = nodes[i];
-        a.x += a.dx;
-        a.y += a.dy;
-        if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
-        if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
+      for (let a = 0; a < nodes.length; a++) {
+        let nodeA = nodes[a];
+        nodeA.x += nodeA.dx;
+        nodeA.y += nodeA.dy;
+
+        if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
+        if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
 
         ctx.beginPath();
-        ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#00f0ff";
+        ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "#00ffff";
         ctx.fill();
 
-        for (let j = i + 1; j < nodes.length; j++) {
-          let b = nodes[j];
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        for (let b = a + 1; b < nodes.length; b++) {
+          let nodeB = nodes[b];
+          const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
           if (dist < 100) {
             ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = "rgba(0,255,255,0.1)";
+            ctx.moveTo(nodeA.x, nodeA.y);
+            ctx.lineTo(nodeB.x, nodeB.y);
+            ctx.strokeStyle = "rgba(0,255,255,0.08)";
             ctx.stroke();
           }
         }
       }
-      requestAnimationFrame(draw);
+      requestAnimationFrame(animate);
     }
-    draw();
+    animate();
   </script>
 </body>
 </html>
