@@ -1,85 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🔐 Gigi EVM Wallet Signing</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.ico" />
   <style>
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: 'Segoe UI', sans-serif;
-      background: #121212;
+      background: linear-gradient(to right, #0f0f0f, #1a1a1a);
       color: #fff;
+      font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
     }
+
     canvas {
       position: absolute;
       top: 0;
       left: 0;
       z-index: 0;
     }
+
     .content {
       z-index: 2;
       position: relative;
-      text-align: center;
-      padding-top: 15%;
     }
-    h1 {
-      margin-bottom: 20px;
-    }
+
     button {
-      background: linear-gradient(135deg, #ff6600, #ff0066);
-      border: none;
-      border-radius: 10px;
-      padding: 12px 25px;
-      margin: 8px;
+      padding: 12px 26px;
+      margin: 10px;
       font-size: 16px;
       font-weight: bold;
+      background: linear-gradient(135deg, #f093fb, #f5576c);
       color: white;
+      border: none;
+      border-radius: 8px;
       cursor: pointer;
+      transition: transform 0.2s ease-in-out;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
+
     button:hover {
-      background: #ff0066;
+      transform: scale(1.05);
     }
-    .footer {
-      margin-top: 40px;
+
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+
+    .powered {
+      margin-top: 30px;
       font-size: 14px;
-      color: #bbb;
+      opacity: 0.6;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
     }
   </style>
 </head>
 <body>
   <canvas id="canvas"></canvas>
   <div class="content">
-    <h1>🔐 Gigi EVM Wallet Signing</h1>
+    <h2>🔐 Gigi EVM Wallet Signing</h2>
     <button onclick="connectWallet()">🔌 Connect Wallet</button>
     <button onclick="signTransaction()">📝 Sign Transaction</button>
-    <p id="status"></p>
-    <div class="footer">⚡ Powered by Gigi Labs</div>
+    <button onclick="disconnectWallet()">❌ Disconnect</button>
+    <p id="status">Wallet not connected.</p>
+    <div class="powered">⚡ Powered by Gigi Labs</div>
   </div>
 
   <script>
-    let connectedAccount = null;
+    let connected = false;
+    let currentAddress = "";
 
     async function connectWallet() {
-      if (typeof window.ethereum === 'undefined') {
-        document.getElementById('status').innerText = '❌ MetaMask not installed!';
+      if (!window.ethereum) {
+        document.getElementById("status").innerText = "❌ MetaMask not detected.";
         return;
       }
+
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        connectedAccount = accounts[0];
-        document.getElementById('status').innerText = '✅ Wallet connected: ' + connectedAccount;
-      } catch (err) {
-        document.getElementById('status').innerText = '❌ Wallet connection failed.';
+        currentAddress = accounts[0];
+        connected = true;
+        document.getElementById("status").innerText = `✅ Connected: ${currentAddress}`;
+        playSound('connect');
+      } catch (error) {
+        document.getElementById("status").innerText = "❌ Connection rejected.";
       }
     }
 
     async function signTransaction() {
-      if (!connectedAccount) {
-        document.getElementById('status').innerText = '⚠️ Connect your wallet first!';
+      if (!connected || !currentAddress) {
+        document.getElementById("status").innerText = "⚠️ Connect wallet first.";
         return;
       }
 
@@ -87,13 +111,13 @@
       const user_id = urlParams.get("user_id");
       const amount = urlParams.get("amount");
       const to = urlParams.get("to");
+      const token = urlParams.get("token");
       const tx_type = urlParams.get("tx_type") || "sell";
 
-      const valueInWei = (parseFloat(amount) * 1e18).toString(16);
       const tx = {
-        from: connectedAccount,
-        to: to,
-        value: '0x' + valueInWei
+        from: currentAddress,
+        to,
+        value: "0x" + (parseFloat(amount) * 1e18).toString(16)
       };
 
       try {
@@ -102,57 +126,77 @@
         await fetch("http://34.203.188.151:5000/evm-webhook", {
           method: "POST",
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, amount, to, token: 'ETH', tx_type, from: connectedAccount })
+          body: JSON.stringify({ user_id, amount, to, token, tx_type })
         });
 
-        document.getElementById('status').innerText = '✅ Webhook invoked!';
+        document.getElementById("status").innerText = "✅ Signed & webhook sent!";
+        alert("✅ Webhook Invoked!");
+        playSound('success');
       } catch (err) {
-        document.getElementById('status').innerText = '❌ Transaction failed.';
+        document.getElementById("status").innerText = "❌ Signing failed.";
       }
     }
 
-    // Magical node background animation
+    function disconnectWallet() {
+      connected = false;
+      currentAddress = "";
+      document.getElementById("status").innerText = "👋 Wallet disconnected.";
+      playSound('disconnect');
+    }
+
+    function playSound(type) {
+      const soundMap = {
+        connect: "https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3",
+        disconnect: "https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3",
+        success: "https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"
+      };
+      const audio = new Audio(soundMap[type]);
+      audio.play();
+    }
+
+    // Magical background animation
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
 
-    let nodes = Array.from({ length: 60 }, () => ({
+    const nodes = Array.from({ length: 70 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.5,
-      dy: (Math.random() - 0.5) * 1.5
+      dx: (Math.random() - 0.5) * 1.2,
+      dy: (Math.random() - 0.5) * 1.2
     }));
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let a = 0; a < nodes.length; a++) {
-        let nodeA = nodes[a];
-        nodeA.x += nodeA.dx;
-        nodeA.y += nodeA.dy;
+      for (let i = 0; i < nodes.length; i++) {
+        let node = nodes[i];
+        node.x += node.dx;
+        node.y += node.dy;
 
-        if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
-        if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
+        if (node.x < 0 || node.x > canvas.width) node.dx *= -1;
+        if (node.y < 0 || node.y > canvas.height) node.dy *= -1;
 
         ctx.beginPath();
-        ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#ff99cc";
+        ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "#ff00ff";
         ctx.fill();
 
-        for (let b = a + 1; b < nodes.length; b++) {
-          let nodeB = nodes[b];
-          const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+        for (let j = i + 1; j < nodes.length; j++) {
+          let other = nodes[j];
+          const dist = Math.hypot(node.x - other.x, node.y - other.y);
           if (dist < 100) {
             ctx.beginPath();
-            ctx.moveTo(nodeA.x, nodeA.y);
-            ctx.lineTo(nodeB.x, nodeB.y);
-            ctx.strokeStyle = "rgba(255, 153, 204, 0.1)";
+            ctx.moveTo(node.x, node.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = "rgba(255, 0, 255, 0.08)";
             ctx.stroke();
           }
         }
       }
       requestAnimationFrame(animate);
     }
+
     animate();
   </script>
 </body>
