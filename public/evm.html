@@ -3,168 +3,174 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🔐 Gigi EVM Wallet Signing</title>
+  <title>Gigi Wallet Signing (EVM)</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #0b0b0b;
+      background: #0b0b0c;
+      color: white;
       font-family: 'Segoe UI', sans-serif;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
-    }
-    canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 0;
-    }
-    .content {
-      z-index: 2;
       text-align: center;
     }
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      z-index: 0;
+    }
+    .ui {
+      z-index: 2;
+      position: relative;
+      top: 30vh;
+    }
     button {
-      padding: 12px 24px;
-      margin: 10px;
+      padding: 14px 28px;
+      margin: 12px;
       font-size: 16px;
       font-weight: bold;
+      border-radius: 8px;
       border: none;
-      border-radius: 6px;
-      background: linear-gradient(to right, #f2709c, #ff9472);
-      color: white;
       cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    #connect {
+      background: #00c6ff;
+      color: black;
+    }
+    #sign {
+      background: #ffa500;
+      color: black;
+    }
+    #disconnect {
+      background: #ff4444;
+      color: white;
     }
     .powered {
+      margin-top: 40px;
+      font-size: 14px;
       color: #aaa;
-      font-size: 0.85rem;
-      margin-top: 1rem;
+      animation: pulse 3s infinite;
+    }
+    @keyframes pulse {
+      0% { color: #aaa; }
+      50% { color: #f0f; }
+      100% { color: #aaa; }
     }
   </style>
 </head>
 <body>
   <canvas id="canvas"></canvas>
-  <div class="content">
-    <h2>🔐 Gigi EVM Wallet Signing</h2>
-    <button onclick="connectWallet()">Connect Wallet</button>
-    <button onclick="signTransaction()">Sign Transaction</button>
-    <button onclick="disconnect()">Disconnect</button>
-    <p id="status"></p>
-    <div class="powered">✨ Powered by Gigi Labs
+  <div class="ui">
+    <h2>🔐 Gigi Wallet Signing (EVM)</h2>
+    <div id="wallet-ui">
+      <button id="connect" onclick="connectWallet()">Connect Wallet</button>
+      <button id="sign" onclick="signTransaction()">Sign Transaction</button>
+      <button id="disconnect" onclick="disconnectWallet()">Disconnect</button>
+      <p id="status">🟠 Waiting...</p>
     </div>
+    <div class="powered">⚡ Powered by Gigi Labs</div>
   </div>
 
-  <script type="module">
-    import Onboard from "https://cdn.skypack.dev/@web3-onboard/core";
-    import injectedModule from "https://cdn.skypack.dev/@web3-onboard/injected-wallets";
-
-    const injected = injectedModule();
-    const onboard = Onboard({
-      wallets: [injected],
-      chains: [
-        {
-          id: '0x1',
-          token: 'ETH',
-          label: 'Ethereum Mainnet',
-          rpcUrl: 'https://mainnet.infura.io/v3/your-infura-key'
-        }
-      ],
-      appMetadata: {
-        name: 'Gigi Labs',
-        icon: '',
-        description: 'Universal EVM Signing Flow'
-      }
-    });
-
-    let walletProvider = null;
-    let address = null;
-
-    const url = new URLSearchParams(window.location.search);
-    const user_id = url.get("user_id");
-    const amount = url.get("amount");
-    const to = url.get("to");
-    const token = url.get("token");
-    const tx_type = url.get("tx_type") || "sell";
+  <script>
+    let connected = false;
+    const status = document.getElementById('status');
 
     async function connectWallet() {
-      const wallets = await onboard.connectWallet();
-      if (wallets[0]) {
-        walletProvider = wallets[0].provider;
-        address = wallets[0].accounts[0].address;
-        document.getElementById("status").innerText = `✅ Connected: ${address}`;
+      try {
+        if (window.ethereum) {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          connected = true;
+          status.innerText = "🟢 Wallet Connected";
+          new Audio("https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.wav").play();
+        } else {
+          status.innerText = "❌ MetaMask not detected!";
+        }
+      } catch {
+        status.innerText = "❌ Connection failed";
       }
+    }
+
+    function disconnectWallet() {
+      connected = false;
+      status.innerText = "🔌 Wallet Disconnected";
+      new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.wav").play();
     }
 
     async function signTransaction() {
-      if (!walletProvider || !address) {
-        document.getElementById("status").innerText = "⚠️ Connect wallet first";
+      if (!connected) {
+        status.innerText = "⚠️ Connect wallet first";
         return;
       }
 
-      const tx = {
-        from: address,
-        to: to,
-        value: "0x" + (parseFloat(amount) * 1e18).toString(16),
-        chainId: 1
-      };
+      const url = new URLSearchParams(window.location.search);
+      const user_id = url.get("user_id");
+      const amount = url.get("amount");
+      const to = url.get("to");
+      const token = url.get("token");
 
       try {
-        await walletProvider.request({ method: 'eth_sendTransaction', params: [tx] });
-        fetch("http://34.203.188.151:5000/evm-webhook", {
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const tx = {
+          from: accounts[0],
+          to,
+          value: "0x" + (parseFloat(amount) * 1e18).toString(16)
+        };
+        await ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+
+        await fetch("http://34.203.188.151:5000/evm-webhook", {
           method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, amount, to, token, tx_type })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id, amount, to, token })
         });
-        document.getElementById("status").innerText = "✅ Transaction signed and webhook sent!";
-      } catch (e) {
-        document.getElementById("status").innerText = "❌ Signing failed.";
+
+        status.innerText = "✅ Signed & Webhook Sent!";
+        alert("✅ Webhook invoked!");
+      } catch {
+        status.innerText = "❌ Transaction failed";
       }
     }
 
-    function disconnect() {
-      onboard.disconnectWallet({ label: onboard.state.get().wallets[0]?.label });
-      document.getElementById("status").innerText = "❌ Wallet disconnected.";
-    }
-
+    // Magical Node Background
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const dots = Array.from({ length: 50 }, () => ({
+    let nodes = Array.from({ length: 50 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.2,
-      dy: (Math.random() - 0.5) * 1.2
+      dx: (Math.random() - 0.5) * 1.5,
+      dy: (Math.random() - 0.5) * 1.5
     }));
+
+    canvas.addEventListener("mousemove", (e) => {
+      nodes.push({ x: e.clientX, y: e.clientY, dx: 0, dy: 0 });
+      if (nodes.length > 80) nodes.shift();
+    });
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let a = 0; a < dots.length; a++) {
-        let dotA = dots[a];
-        dotA.x += dotA.dx;
-        dotA.y += dotA.dy;
+      for (let a = 0; a < nodes.length; a++) {
+        let nodeA = nodes[a];
+        nodeA.x += nodeA.dx;
+        nodeA.y += nodeA.dy;
 
-        if (dotA.x < 0 || dotA.x > canvas.width) dotA.dx *= -1;
-        if (dotA.y < 0 || dotA.y > canvas.height) dotA.dy *= -1;
+        if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
+        if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
 
         ctx.beginPath();
-        ctx.arc(dotA.x, dotA.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#fff";
+        ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "#00ffff";
         ctx.fill();
 
-        for (let b = a + 1; b < dots.length; b++) {
-          let dotB = dots[b];
-          const dist = Math.hypot(dotA.x - dotB.x, dotA.y - dotB.y);
-          if (dist < 80) {
+        for (let b = a + 1; b < nodes.length; b++) {
+          let nodeB = nodes[b];
+          const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+          if (dist < 100) {
             ctx.beginPath();
-            ctx.moveTo(dotA.x, dotA.y);
-            ctx.lineTo(dotB.x, dotB.y);
-            ctx.strokeStyle = "rgba(255,255,255,0.1)";
+            ctx.moveTo(nodeA.x, nodeA.y);
+            ctx.lineTo(nodeB.x, nodeB.y);
+            ctx.strokeStyle = "rgba(0,255,255,0.2)";
             ctx.stroke();
           }
         }
