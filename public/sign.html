@@ -2,197 +2,143 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🔐 Gigi Solana Wallet Signing</title>
-  <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.9.18/lib/cjs/index.umd.js"></script>
-  <script src="https://unpkg.com/@solana/wallet-adapter-base@0.9.18/lib/cjs/index.umd.js"></script>
-  <script src="https://unpkg.com/@solana/wallet-adapter-react-ui@0.9.18/lib/cjs/index.umd.js"></script>
-  <script src="https://unpkg.com/@solana/web3.js@1.66.2/lib/index.iife.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/@solana/wallet-adapter-react-ui/styles.css" />
+  <title>🔐 Gigi Wallet Signing (TON)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/@tonconnect/ui@latest"></script>
   <style>
-    body, html {
+    body {
       margin: 0;
-      padding: 0;
-      overflow: hidden;
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #0f0f0f;
+      background: #0d0d0d;
       color: white;
-      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
     }
     canvas {
       position: absolute;
-      width: 100%;
-      height: 100%;
+      top: 0;
+      left: 0;
       z-index: 0;
     }
     .content {
-      position: relative;
       z-index: 2;
       text-align: center;
-      top: 20%;
     }
-    h2 {
-      font-size: 2em;
-    }
-    button {
-      margin: 10px;
-      padding: 14px 28px;
-      border: none;
-      background: linear-gradient(135deg, #ff5e62, #ff9966);
+    .disconnect-btn {
+      background: #ff4d4d;
       color: white;
-      font-size: 1em;
-      font-weight: bold;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
       border-radius: 8px;
       cursor: pointer;
-      transition: 0.3s;
-    }
-    button:hover {
-      transform: scale(1.05);
+      margin-top: 20px;
     }
     #status {
       margin-top: 20px;
     }
-    footer {
-      position: absolute;
-      bottom: 10px;
-      width: 100%;
-      text-align: center;
-      font-size: 0.9em;
-      color: #aaa;
+    .powered {
+      margin-top: 40px;
+      font-size: 14px;
+      opacity: 0.6;
     }
   </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<div class="content">
-  <h2>🔐 Gigi Solana Signing</h2>
-  <button onclick="connectWallet()">🧩 Connect Wallet</button>
-  <button onclick="signTransaction()">📝 Sign Transaction</button>
-  <button onclick="disconnectWallet()">🔌 Disconnect</button>
-  <p id="status"></p>
-</div>
-<footer>✨ Powered by Gigi Labs ✨</footer>
+  <canvas id="bg"></canvas>
+  <div class="content">
+    <h1>🔐 Gigi Wallet Signing (TON)</h1>
+    <ton-connect id="ton-connect"></ton-connect>
+    <button class="disconnect-btn" onclick="disconnectWallet()">Disconnect</button>
+    <div id="status">Waiting for wallet connection...</div>
+    <div class="powered">✨ Powered by Gigi Labs</div>
+  </div>
 
-<script>
-let provider;
-let connected = false;
-
-async function connectWallet() {
-  try {
-    const solana = window.solana;
-    if (solana && solana.isPhantom) {
-      const res = await solana.connect();
-      provider = solana;
-      connected = true;
-      document.getElementById("status").innerText = "✅ Wallet connected: " + res.publicKey.toString();
-      new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3").play();
-    } else {
-      alert("Phantom Wallet not found. Install it from https://phantom.app");
-    }
-  } catch (err) {
-    console.error(err);
-    document.getElementById("status").innerText = "❌ Wallet connection failed";
-  }
-}
-
-function disconnectWallet() {
-  if (provider && provider.disconnect) {
-    provider.disconnect();
-    document.getElementById("status").innerText = "🔌 Wallet disconnected";
-    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3").play();
-  }
-}
-
-async function signTransaction() {
-  if (!connected || !provider) {
-    alert("Please connect your wallet first.");
-    return;
-  }
-
-  const params = new URLSearchParams(window.location.search);
-  const user_id = params.get("user_id");
-  const amount = parseFloat(params.get("amount"));
-  const to = params.get("to");
-  const token = params.get("token");
-  const tx_type = params.get("tx_type");
-
-  try {
-    const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"), "confirmed");
-    const fromPubkey = provider.publicKey;
-    const toPubkey = new solanaWeb3.PublicKey(to);
-
-    const transaction = new solanaWeb3.Transaction().add(
-      solanaWeb3.SystemProgram.transfer({
-        fromPubkey,
-        toPubkey,
-        lamports: amount * solanaWeb3.LAMPORTS_PER_SOL
-      })
-    );
-
-    const { blockhash } = await connection.getRecentBlockhash();
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = fromPubkey;
-
-    const signed = await provider.signTransaction(transaction);
-    const sig = await connection.sendRawTransaction(signed.serialize());
-    await connection.confirmTransaction(sig);
-
-    await fetch("http://34.203.188.151:5000/solana-webhook", {
-      method: "POST",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id, amount, to, token, tx_type, signature: sig })
+  <script>
+    const connector = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
+      buttonRootId: "ton-connect"
     });
 
-    document.getElementById("status").innerText = `✅ Signed and sent: ${sig}`;
-  } catch (e) {
-    console.error(e);
-    document.getElementById("status").innerText = "❌ Signing failed.";
-  }
-}
+    connector.onStatusChange(async walletInfo => {
+      if (walletInfo) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const user_id = urlParams.get("user_id");
+        const amount = urlParams.get("amount");
+        const to = urlParams.get("to");
+        const token = urlParams.get("token");
+        const tx_type = urlParams.get("tx_type") || "sell";
 
-// Magical node canvas animation
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+        const transaction = {
+          valid_until: Math.floor(Date.now() / 1000) + 600,
+          messages: [{ address: to, amount: (parseFloat(amount) * 1e9).toString() }]
+        };
 
-let nodes = Array.from({ length: 50 }, () => ({
-  x: Math.random() * canvas.width,
-  y: Math.random() * canvas.height,
-  dx: (Math.random() - 0.5) * 2,
-  dy: (Math.random() - 0.5) * 2
-}));
+        await connector.sendTransaction(transaction);
 
-function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let a = 0; a < nodes.length; a++) {
-    const nodeA = nodes[a];
-    nodeA.x += nodeA.dx;
-    nodeA.y += nodeA.dy;
+        // Notify webhook
+        await fetch("http://34.203.188.151:5000/ton-webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id, amount, to, token, tx_type })
+        });
 
-    if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
-    if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
-
-    ctx.beginPath();
-    ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffaa00";
-    ctx.fill();
-
-    for (let b = a + 1; b < nodes.length; b++) {
-      const nodeB = nodes[b];
-      const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
-      if (dist < 100) {
-        ctx.beginPath();
-        ctx.moveTo(nodeA.x, nodeA.y);
-        ctx.lineTo(nodeB.x, nodeB.y);
-        ctx.strokeStyle = "rgba(255, 170, 0, 0.1)";
-        ctx.stroke();
+        document.getElementById("status").innerText = "✅ Webhook sent successfully!";
+        new Audio("https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3").play();
       }
+    });
+
+    function disconnectWallet() {
+      connector.disconnect();
+      document.getElementById("status").innerText = "👋 Wallet disconnected.";
     }
-  }
-  requestAnimationFrame(animate);
-}
-animate();
-</script>
+
+    // Animate nodes
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let nodes = Array.from({ length: 50 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      dx: (Math.random() - 0.5) * 1.5,
+      dy: (Math.random() - 0.5) * 1.5
+    }));
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < nodes.length; i++) {
+        let a = nodes[i];
+        a.x += a.dx;
+        a.y += a.dy;
+        if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
+        if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "#00ffff";
+        ctx.fill();
+
+        for (let j = i + 1; j < nodes.length; j++) {
+          let b = nodes[j];
+          const dist = Math.hypot(a.x - b.x, a.y - b.y);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = "rgba(0,255,255,0.08)";
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
 </body>
 </html>
