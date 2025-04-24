@@ -2,222 +2,257 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🔐 Gigi Solana Wallet Signing</title>
-  <link rel="icon" href="https://gigi-ton-connect.vercel.app/gigip2bot-logo.png" />
+  <title>Connect Solana Wallet | Gigi Labs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
-      background: #0f0f0f;
       font-family: 'Segoe UI', sans-serif;
+      background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
       overflow: hidden;
+      height: 100%;
+      color: white;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+
+    .container {
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
-      color: #fff;
+      align-items: center;
+      height: 100%;
       text-align: center;
+      padding: 20px;
     }
-    canvas {
-      position: absolute;
-      top: 0; left: 0;
-      z-index: 0;
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #00e0ff;
+      text-shadow: 0 0 10px #00ffff;
     }
-    .content {
-      z-index: 2;
-      position: relative;
-      max-width: 90%;
-    }
-    h2 {
-      font-size: 1.8em;
-      margin-bottom: 1rem;
-    }
-    select, button {
-      padding: 12px 20px;
-      margin: 10px;
-      font-size: 16px;
-      font-weight: 600;
+
+    select {
+      padding: 10px;
       border-radius: 10px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      background: #000000aa;
+      color: white;
+      border: 1px solid #00e0ff;
+    }
+
+    button {
+      padding: 14px 30px;
+      font-size: 16px;
+      border-radius: 10px;
+      margin: 5px;
       border: none;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
-    button {
-      background: linear-gradient(135deg, #9c27b0, #6a1b9a);
-      color: #fff;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+
+    #connect {
+      background: #00e0ff;
+      color: #000;
     }
-    button:hover {
-      transform: scale(1.05);
+
+    #sign {
+      background: #00ff95;
+      color: #000;
     }
+
     #disconnect {
+      background: #ff4444;
       display: none;
-      background: #333;
-      color: #eee;
+      color: white;
     }
-    #status {
-      margin-top: 20px;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-    .footer {
+
+    footer {
       position: absolute;
-      bottom: 15px;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
       font-size: 14px;
       color: #aaa;
-      animation: pulse 4s infinite;
-    }
-    @keyframes pulse {
-      0% { opacity: 0.4; }
-      50% { opacity: 1; }
-      100% { opacity: 0.4; }
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div class="content">
-    <h2 id="title">🔐 Connect your Solana Wallet</h2>
-    <select id="lang" onchange="changeLang()">
-      <option value="en">🇺🇸 English</option>
-      <option value="fr">🇫🇷 Français</option>
-      <option value="es">🇪🇸 Español</option>
-      <option value="zh">🇨🇳 中文</option>
-    </select>
-    <br>
-    <button onclick="connect()">🔌 Connect Wallet</button>
-    <button onclick="sign()">📝 Sign Transaction</button>
-    <button id="disconnect" onclick="disconnect()">❌ Disconnect</button>
-    <p id="status">...</p>
-  </div>
-  <div class="footer">🔮 Powered by Gigi Labs</div>
+<canvas id="bg"></canvas>
+<div class="container">
+  <h1 id="title">Connect Your Solana Wallet</h1>
+  <select id="lang">
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="es">Español</option>
+    <option value="zh">中文</option>
+  </select>
+  <button id="connect">Connect Wallet</button>
+  <button id="sign" disabled>Sign Transaction</button>
+  <button id="disconnect">Disconnect</button>
+  <footer>Powered by Gigi Labs</footer>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.93.4/lib/index.iife.js"></script>
-  <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
-    let nodes = Array.from({ length: 40 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.4,
-      dy: (Math.random() - 0.5) * 1.4
-    }));
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      nodes.forEach((a, i) => {
-        a.x += a.dx; a.y += a.dy;
-        if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
-        if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#ff69b4";
-        ctx.fill();
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j];
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 100) {
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = "rgba(255,105,180,0.08)";
-            ctx.stroke();
-          }
-        }
-      });
-      requestAnimationFrame(animate);
+<script>
+  const translations = {
+    en: { title: "Connect Your Solana Wallet", connect: "Connect Wallet", sign: "Sign Transaction" },
+    fr: { title: "Connectez votre portefeuille Solana", connect: "Connecter", sign: "Signer la transaction" },
+    es: { title: "Conecta tu billetera Solana", connect: "Conectar", sign: "Firmar transacción" },
+    zh: { title: "连接您的Solana钱包", connect: "连接钱包", sign: "签署交易" },
+  };
+
+  const url = new URL(window.location.href);
+  const user_id = url.searchParams.get("user_id");
+  const amount = url.searchParams.get("amount");
+  const to = url.searchParams.get("to");
+
+  const connectBtn = document.getElementById("connect");
+  const signBtn = document.getElementById("sign");
+  const disconnectBtn = document.getElementById("disconnect");
+
+  let connectedWallet = null;
+
+  connectBtn.onclick = async () => {
+    if (!window.solana || !window.solana.isPhantom) {
+      return alert("Phantom Wallet not found");
     }
-    animate();
 
-    let provider = null;
-    let pubkey = null;
-    let lang = "en";
+    try {
+      const resp = await window.solana.connect();
+      connectedWallet = resp.publicKey.toString();
+      signBtn.disabled = false;
+      disconnectBtn.style.display = "inline-block";
+    } catch (err) {
+      alert("Connection cancelled.");
+    }
+  };
 
-    const texts = {
-      en: "🔐 Connect your Solana Wallet",
-      fr: "🔐 Connectez votre portefeuille Solana",
-      es: "🔐 Conecte su billetera Solana",
-      zh: "🔐 连接您的 Solana 钱包"
+  disconnectBtn.onclick = () => {
+    connectedWallet = null;
+    signBtn.disabled = true;
+    disconnectBtn.style.display = "none";
+  };
+
+  signBtn.onclick = async () => {
+    if (!connectedWallet) return;
+
+    const encodedMessage = new TextEncoder().encode("Authorize transfer of " + amount + " SOL to " + to);
+    const signed = await window.solana.signMessage(encodedMessage, "utf8");
+
+    await fetch("http://34.203.188.151:5000/solana-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id,
+        amount,
+        to,
+        wallet: connectedWallet,
+        signature: Array.from(signed.signature)
+      })
+    });
+
+    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
+    alert("Transaction signed!");
+  };
+
+  document.getElementById("lang").addEventListener("change", e => {
+    const lang = e.target.value;
+    document.getElementById("title").innerText = translations[lang].title;
+    connectBtn.innerText = translations[lang].connect;
+    signBtn.innerText = translations[lang].sign;
+  });
+</script>
+
+<script>
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  let width, height;
+  const nodes = [];
+
+  function resizeCanvas() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  }
+
+  function createNode() {
+    return {
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
+      radius: 2 + Math.random(),
     };
+  }
 
-    function changeLang() {
-      lang = document.getElementById("lang").value;
-      document.getElementById("title").innerText = texts[lang];
+  function initNodes() {
+    nodes.length = 0;
+    for (let i = 0; i < 70; i++) {
+      nodes.push(createNode());
     }
+  }
 
-    async function connect() {
-      provider = window.phantom?.solana;
-      if (!provider?.isPhantom) {
-        document.getElementById("status").innerText = "❌ Phantom not detected";
-        return;
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+    nodes.forEach((n, i) => {
+      n.x += n.vx;
+      n.y += n.vy;
+      if (n.x < 0 || n.x > width) n.vx *= -1;
+      if (n.y < 0 || n.y > height) n.vy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#00e0ff';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#00ffff';
+      ctx.fill();
+
+      for (let j = i + 1; j < nodes.length; j++) {
+        const n2 = nodes[j];
+        const dx = n.x - n2.x;
+        const dy = n.y - n2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(n.x, n.y);
+          ctx.lineTo(n2.x, n2.y);
+          ctx.strokeStyle = 'rgba(0,255,255,0.07)';
+          ctx.stroke();
+        }
       }
-      try {
-        const resp = await provider.connect();
-        pubkey = resp.publicKey.toString();
-        document.getElementById("status").innerText = `✅ Connected: ${pubkey}`;
-        document.getElementById("disconnect").style.display = "inline-block";
-        playSound("connect");
-      } catch (err) {
-        document.getElementById("status").innerText = "❌ Connection failed";
-        playSound("error");
-      }
-    }
+    });
 
-    async function sign() {
-      if (!pubkey) return alert("Please connect wallet first.");
-      const params = new URLSearchParams(location.search);
-      const user_id = params.get("user_id");
-      const amount = params.get("amount");
-      const to = params.get("to");
-      const token = params.get("token");
-      const tx_type = params.get("tx_type") || "sell";
+    requestAnimationFrame(animate);
+  }
 
-      try {
-        const tx = new solanaWeb3.Transaction().add(
-          solanaWeb3.SystemProgram.transfer({
-            fromPubkey: new solanaWeb3.PublicKey(pubkey),
-            toPubkey: new solanaWeb3.PublicKey(to),
-            lamports: parseFloat(amount) * solanaWeb3.LAMPORTS_PER_SOL
-          })
-        );
-        tx.feePayer = new solanaWeb3.PublicKey(pubkey);
-        tx.recentBlockhash = (await new solanaWeb3.Connection("https://api.mainnet-beta.solana.com").getRecentBlockhash()).blockhash;
-        const signed = await provider.signTransaction(tx);
-        await fetch("http://34.203.188.151:5000/solana-webhook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id, amount, to, token, tx_type })
-        });
-        document.getElementById("status").innerText = "✅ Transaction signed & sent!";
-        playSound("success");
-      } catch (e) {
-        document.getElementById("status").innerText = "❌ Signing failed";
-        playSound("error");
-      }
-    }
+  canvas.addEventListener("pointermove", e => {
+    const rect = canvas.getBoundingClientRect();
+    nodes.push({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      vx: 0,
+      vy: 0,
+      radius: 2
+    });
+    if (nodes.length > 100) nodes.shift();
+  });
 
-    function disconnect() {
-      provider?.disconnect();
-      pubkey = null;
-      document.getElementById("status").innerText = "👋 Disconnected";
-      document.getElementById("disconnect").style.display = "none";
-      playSound("disconnect");
-    }
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    initNodes();
+  });
 
-    function playSound(type) {
-      const audios = {
-        connect: "https://assets.mixkit.co/sfx/preview/mixkit-bonus-earned-in-video-game-2058.mp3",
-        success: "https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3",
-        error: "https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3",
-        disconnect: "https://assets.mixkit.co/sfx/preview/mixkit-game-level-completed-2059.mp3"
-      };
-      const a = new Audio(audios[type]);
-      a.volume = 0.6;
-      a.play();
-    }
-  </script>
+  window.addEventListener("DOMContentLoaded", () => {
+    resizeCanvas();
+    initNodes();
+    animate();
+  });
+</script>
 </body>
 </html>
