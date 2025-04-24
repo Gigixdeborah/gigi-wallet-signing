@@ -2,198 +2,208 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🔐 Gigi TON Wallet Signing</title>
+  <title>TON Wallet Signing</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: #0e0e0e;
-      color: #fff;
-      font-family: 'Segoe UI', sans-serif;
-      overflow: hidden;
       height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      font-family: 'Segoe UI', sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+    }
+    #bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: -1;
     }
     canvas {
-      position: absolute;
-      top: 0; left: 0;
-      z-index: 0;
+      width: 100%;
+      height: 100%;
     }
-    .content {
+    .container {
       position: relative;
-      z-index: 2;
       text-align: center;
-      padding: 20px;
+      padding: 40px 20px;
     }
     button {
-      padding: 14px 28px;
-      margin: 10px;
+      padding: 14px 30px;
       font-size: 16px;
-      background: linear-gradient(135deg, #2af598, #009efd);
-      border: none;
       border-radius: 10px;
+      background-color: #03a9f4;
       color: white;
+      border: none;
+      margin: 10px;
       cursor: pointer;
-    }
-    .lang-select {
-      background: #222;
-      color: #fff;
-      margin-top: 10px;
-      padding: 6px;
-      border-radius: 6px;
     }
     #disconnect {
       display: none;
-      margin-top: 12px;
+      background: #ff5252;
+    }
+    footer {
+      position: absolute;
+      bottom: 15px;
+      width: 100%;
+      text-align: center;
       font-size: 14px;
-      color: #ccc;
-      cursor: pointer;
-    }
-    #footer {
-      margin-top: 30px;
-      font-size: 13px;
       opacity: 0.7;
-      animation: fadeInUp 2s ease infinite alternate;
     }
-    @keyframes fadeInUp {
-      from { transform: translateY(0); }
-      to { transform: translateY(-5px); }
+    select {
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div class="content">
-    <h2 id="title">🔐 Gigi Wallet Signing</h2>
-    <div id="ton-connect"></div>
-    <button id="signBtn">📝 <span id="signLabel">Sign Transaction</span></button>
-    <div id="disconnect" onclick="disconnectWallet()">🔌 Disconnect Wallet</div>
-    <select class="lang-select" onchange="switchLang(this.value)">
-      <option value="en">🌐 English</option>
-      <option value="fr">🇫🇷 French</option>
-      <option value="es">🇪🇸 Spanish</option>
-      <option value="zh">🇨🇳 Chinese</option>
-    </select>
-    <p id="status"></p>
-    <div id="footer">✨ Powered by <b>Gigi Labs</b></div>
-  </div>
+<canvas id="bg"></canvas>
+<div class="container">
+  <h1 id="title">Connect Your TON Wallet</h1>
+  <select id="lang">
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="es">Español</option>
+    <option value="zh">中文</option>
+  </select>
+  <div id="ton-connect"></div>
+  <button id="sign-btn" disabled>Sign Transaction</button>
+  <button id="disconnect">Disconnect</button>
+  <footer>Powered by Gigi Labs</footer>
+</div>
 
-  <script>
-    const langMap = {
-      en: { title: "🔐 Gigi Wallet Signing", sign: "Sign Transaction" },
-      fr: { title: "🔐 Signature de portefeuille Gigi", sign: "Signer la transaction" },
-      es: { title: "🔐 Firma de billetera Gigi", sign: "Firmar transacción" },
-      zh: { title: "🔐 Gigi 钱包签名", sign: "签署交易" }
-    };
+<script>
+  const translations = {
+    en: { title: "Connect Your TON Wallet", sign: "Sign Transaction" },
+    fr: { title: "Connectez votre portefeuille TON", sign: "Signer la transaction" },
+    es: { title: "Conecta tu billetera TON", sign: "Firmar transacción" },
+    zh: { title: "连接您的TON钱包", sign: "签署交易" },
+  };
 
-    function switchLang(lang) {
-      document.getElementById("title").innerText = langMap[lang].title;
-      document.getElementById("signLabel").innerText = langMap[lang].sign;
+  const url = new URL(window.location.href);
+  const user_id = url.searchParams.get("user_id");
+  const amount = url.searchParams.get("amount");
+  const to = url.searchParams.get("to");
+
+  const connector = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: "https://gigi-ton-connect-v2.onrender.com/tonconnect-manifest.json",
+    buttonRootId: "ton-connect",
+  });
+
+  const signBtn = document.getElementById("sign-btn");
+  const disconnectBtn = document.getElementById("disconnect");
+  const langSelect = document.getElementById("lang");
+  const title = document.getElementById("title");
+
+  langSelect.addEventListener("change", () => {
+    const lang = langSelect.value;
+    title.innerText = translations[lang].title;
+    signBtn.innerText = translations[lang].sign;
+  });
+
+  connector.onStatusChange(async (wallet) => {
+    if (wallet) {
+      signBtn.disabled = false;
+      disconnectBtn.style.display = 'inline-block';
+    } else {
+      signBtn.disabled = true;
+      disconnectBtn.style.display = 'none';
     }
+  });
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const user_id = urlParams.get("user_id");
-    const to = urlParams.get("to");
-    const amount = urlParams.get("amount");
-    const token = urlParams.get("token") || "TON";
-    const tx_type = urlParams.get("tx_type") || "sell";
+  disconnectBtn.onclick = () => connector.disconnect();
 
-    const connector = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
-      buttonRootId: "ton-connect"
-    });
-
-    document.getElementById("ton-connect").onclick = () => {
-      document.getElementById("disconnect").style.display = "block";
-      new Audio("https://cdn.pixabay.com/download/audio/2021/08/04/audio_203f156f62.mp3?filename=pop-click-1-189497.mp3").play();
-    };
-
-    async function disconnectWallet() {
-      await connector.disconnect();
-      document.getElementById("status").innerText = "🔌 Wallet disconnected.";
-      document.getElementById("disconnect").style.display = "none";
-    }
-
-    document.getElementById("signBtn").onclick = async () => {
-      const wallet = await connector.connectedWallet;
-      if (!wallet) {
-        document.getElementById("status").innerText = "⚠️ Please connect wallet first.";
-        return;
-      }
-
-      const nanoAmount = Math.floor(parseFloat(amount) * 1e9);
-      try {
-        await connector.sendTransaction({
-          validUntil: Math.floor(Date.now() / 1000) + 60,
-          messages: [{ address: to, amount: nanoAmount.toString() }]
-        });
-
-        await fetch("http://34.203.188.151:5000/ton-webhook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id, amount, to, token, tx_type })
-        });
-
-        new Audio("https://cdn.pixabay.com/download/audio/2022/10/20/audio_70d64f4ac1.mp3?filename=coin-sound-3-115805.mp3").play();
-        document.getElementById("status").innerText = "✅ Transaction signed! Webhook sent.";
-      } catch (e) {
-        document.getElementById("status").innerText = "❌ Signing failed.";
-      }
-    };
-
-    // Language auto-select based on token
-    if (token === "TON") switchLang("en");
-
-    // Touch-reactive nodes
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    let nodes = Array.from({ length: 50 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1,
-      dy: (Math.random() - 0.5) * 1
-    }));
-
-    canvas.addEventListener("touchmove", e => {
-      const touch = e.touches[0];
-      nodes.push({ x: touch.clientX, y: touch.clientY, dx: 0, dy: 0 });
-      if (nodes.length > 100) nodes.shift();
-    });
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      nodes.forEach((a, i) => {
-        a.x += a.dx; a.y += a.dy;
-        if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
-        if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#00ffff";
-        ctx.fill();
-
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j];
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 80) {
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = "rgba(0,255,255,0.1)";
-            ctx.stroke();
-          }
+  signBtn.onclick = async () => {
+    const result = await connector.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [
+        {
+          address: to,
+          amount: (parseFloat(amount) * 1e9).toString(), // to nanoTON
         }
-      });
-      requestAnimationFrame(animate);
+      ]
+    });
+    // Notify bot server
+    await fetch("http://34.203.188.151:5000/ton-webhook", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, amount, to, tx: result })
+    });
+    alert("Transaction signed!");
+    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
+  };
+</script>
+
+<script>
+  const canvas = document.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+  let width, height;
+  const nodes = [];
+
+  function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  }
+
+  function drawNode(node) {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#03a9f4";
+    ctx.fill();
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      n.x += n.vx;
+      n.y += n.vy;
+
+      if (n.x < 0 || n.x > width) n.vx *= -1;
+      if (n.y < 0 || n.y > height) n.vy *= -1;
+
+      drawNode(n);
+
+      for (let j = i + 1; j < nodes.length; j++) {
+        const n2 = nodes[j];
+        const dx = n.x - n2.x;
+        const dy = n.y - n2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(n.x, n.y);
+          ctx.lineTo(n2.x, n2.y);
+          ctx.strokeStyle = "rgba(255,255,255,0.1)";
+          ctx.stroke();
+        }
+      }
     }
-    animate();
-  </script>
+    requestAnimationFrame(animate);
+  }
+
+  function initNodes() {
+    nodes.length = 0;
+    for (let i = 0; i < 60; i++) {
+      nodes.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: (Math.random() - 0.5) * 1.2
+      });
+    }
+  }
+
+  window.addEventListener("resize", () => {
+    resize();
+    initNodes();
+  });
+
+  resize();
+  initNodes();
+  animate();
+</script>
 </body>
 </html>
