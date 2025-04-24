@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>TON Wallet Connect | Gigi Labs</title>
+  <title>Connect TON Wallet | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
+      background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
       height: 100%;
-      background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
       color: white;
     }
 
@@ -21,8 +21,6 @@
       top: 0;
       left: 0;
       z-index: -1;
-      width: 100%;
-      height: 100%;
     }
 
     .container {
@@ -68,20 +66,13 @@
 
     #sign-btn {
       background: #00e0ff;
-      color: #000;
+      color: black;
     }
 
     #disconnect {
       background: #ff4444;
       color: white;
       display: none;
-    }
-
-    #status {
-      margin-top: 20px;
-      font-size: 16px;
-      color: #00ffcc;
-      animation: glow 1s ease-in-out infinite alternate;
     }
 
     footer {
@@ -91,11 +82,6 @@
       text-align: center;
       font-size: 14px;
       color: #aaa;
-    }
-
-    @keyframes glow {
-      from { text-shadow: 0 0 10px #00e0ff; }
-      to { text-shadow: 0 0 20px #00ffff; }
     }
   </style>
 </head>
@@ -112,7 +98,6 @@
   <div id="ton-connect"></div>
   <button id="sign-btn" disabled>Sign Transaction</button>
   <button id="disconnect">Disconnect</button>
-  <div id="status"></div>
   <footer>Powered by Gigi Labs</footer>
 </div>
 
@@ -136,7 +121,6 @@
 
   const signBtn = document.getElementById("sign-btn");
   const disconnectBtn = document.getElementById("disconnect");
-  const status = document.getElementById("status");
 
   connector.onStatusChange(wallet => {
     if (wallet) {
@@ -151,26 +135,22 @@
   disconnectBtn.onclick = () => connector.disconnect();
 
   signBtn.onclick = async () => {
-    try {
-      const tx = await connector.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [{
-          address: to,
-          amount: (parseFloat(amount) * 1e9).toString()
-        }]
-      });
+    const tx = await connector.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [{
+        address: to,
+        amount: (parseFloat(amount) * 1e9).toString()
+      }]
+    });
 
-      await fetch("http://34.203.188.151:5000/ton-webhook", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id, amount, to, tx })
-      });
+    await fetch("http://34.203.188.151:5000/ton-webhook", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, amount, to, tx })
+    });
 
-      new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      status.innerText = "Transaction signed & sent!";
-    } catch (e) {
-      alert("Error signing transaction.");
-    }
+    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
+    alert("Transaction signed & sent!");
   };
 
   document.getElementById("lang").addEventListener("change", e => {
@@ -181,9 +161,10 @@
 </script>
 
 <script>
-  const canvas = document.getElementById("bg");
-  const ctx = canvas.getContext("2d");
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
   let width, height;
+  let mouse = { x: null, y: null };
   const particles = [];
 
   function resizeCanvas() {
@@ -191,27 +172,38 @@
     height = canvas.height = window.innerHeight;
   }
 
-  function createParticle(x, y) {
+  function createParticle() {
     return {
-      x, y,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
-      radius: Math.random() * 2 + 1
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
+      radius: 2 + Math.random(),
     };
   }
 
-  function drawParticles() {
+  function initParticles() {
+    particles.length = 0;
+    for (let i = 0; i < 80; i++) {
+      particles.push(createParticle());
+    }
+  }
+
+  function animate() {
     ctx.clearRect(0, 0, width, height);
-    for (let i = 0; i < particles.length; i++) {
-      const p = particles[i];
+
+    particles.forEach((p, i) => {
       p.x += p.vx;
       p.y += p.vy;
 
+      if (p.x < 0 || p.x > width) p.vx *= -1;
+      if (p.y < 0 || p.y > height) p.vy *= -1;
+
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      ctx.fillStyle = "#00e0ff";
+      ctx.fillStyle = '#00e0ff';
       ctx.shadowBlur = 10;
-      ctx.shadowColor = "#00ffff";
+      ctx.shadowColor = '#00e0ff';
       ctx.fill();
 
       for (let j = i + 1; j < particles.length; j++) {
@@ -219,28 +211,36 @@
         const dx = p.x - p2.x;
         const dy = p.y - p2.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 80) {
+        if (dist < 100) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(p2.x, p2.y);
-          ctx.strokeStyle = "rgba(0,255,255,0.07)";
+          ctx.strokeStyle = 'rgba(0,255,255,0.08)';
           ctx.stroke();
         }
       }
-    }
-    requestAnimationFrame(drawParticles);
+    });
+
+    requestAnimationFrame(animate);
   }
 
-  canvas.addEventListener("pointermove", e => {
+  canvas.addEventListener("pointermove", (e) => {
     const rect = canvas.getBoundingClientRect();
-    particles.push(createParticle(e.clientX - rect.left, e.clientY - rect.top));
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+    particles.push({ x: mouse.x, y: mouse.y, vx: 0, vy: 0, radius: 2 });
     if (particles.length > 100) particles.shift();
   });
 
-  window.addEventListener("resize", resizeCanvas);
-  window.addEventListener("DOMContentLoaded", () => {
+  window.addEventListener('resize', () => {
     resizeCanvas();
-    drawParticles();
+    initParticles();
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    resizeCanvas();
+    initParticles();
+    animate();
   });
 </script>
 </body>
