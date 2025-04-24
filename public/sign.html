@@ -2,61 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>🔐 Gigi Wallet Signing (TON)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/@tonconnect/ui@latest"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gigi Wallet Signing - TON</title>
+  <link rel="icon" href="/favicon.ico" />
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: #0d0d0d;
-      color: white;
+      padding: 0;
+      background: #000;
       font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      color: white;
+      text-align: center;
+      height: 100%;
       overflow: hidden;
     }
     canvas {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       z-index: 0;
     }
-    .content {
+    .container {
+      position: relative;
       z-index: 2;
-      text-align: center;
+      padding-top: 80px;
     }
-    .disconnect-btn {
-      background: #ff4d4d;
-      color: white;
+    button {
+      background: #2f89fc;
       border: none;
-      padding: 12px 20px;
-      font-size: 16px;
       border-radius: 8px;
+      color: white;
+      padding: 14px 28px;
+      margin: 10px;
+      font-size: 16px;
       cursor: pointer;
-      margin-top: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    button:hover {
+      background: #4fa1ff;
     }
     #status {
       margin-top: 20px;
+      font-size: 16px;
     }
-    .powered {
-      margin-top: 40px;
+    #footer {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
       font-size: 14px;
-      opacity: 0.6;
+      color: #999;
+      animation: glow 2s infinite ease-in-out;
+    }
+    @keyframes glow {
+      0%, 100% { color: #00fff7; }
+      50% { color: #00c3ff; }
     }
   </style>
 </head>
 <body>
   <canvas id="bg"></canvas>
-  <div class="content">
-    <h1>🔐 Gigi Wallet Signing (TON)</h1>
-    <ton-connect id="ton-connect"></ton-connect>
-    <button class="disconnect-btn" onclick="disconnectWallet()">Disconnect</button>
-    <div id="status">Waiting for wallet connection...</div>
-    <div class="powered">✨ Powered by Gigi Labs</div>
+  <div class="container">
+    <h2>🔐 Gigi Wallet Signing (TON)</h2>
+    <div id="ton-connect"></div>
+    <button onclick="signTransaction()">📝 Sign Transaction</button>
+    <button onclick="disconnect()">❌ Disconnect</button>
+    <div id="status"></div>
   </div>
+  <div id="footer">⚡ Powered by Gigi Labs</div>
+
+  <audio id="success-sound" src="https://assets.mixkit.co/sfx/download/mixkit-game-bonus-reached-2065.wav"></audio>
+  <audio id="error-sound" src="https://assets.mixkit.co/sfx/download/mixkit-click-error-1110.wav"></audio>
 
   <script>
     const connector = new TON_CONNECT_UI.TonConnectUI({
@@ -64,53 +80,54 @@
       buttonRootId: "ton-connect"
     });
 
-    connector.onStatusChange(async walletInfo => {
-      if (walletInfo) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const user_id = urlParams.get("user_id");
-        const amount = urlParams.get("amount");
-        const to = urlParams.get("to");
-        const token = urlParams.get("token");
-        const tx_type = urlParams.get("tx_type") || "sell";
+    async function signTransaction() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const user_id = urlParams.get("user_id");
+      const amount = urlParams.get("amount");
+      const to = urlParams.get("to");
+      const token = urlParams.get("token");
+      const tx_type = urlParams.get("tx_type");
 
-        const transaction = {
-          valid_until: Math.floor(Date.now() / 1000) + 600,
+      try {
+        const connectedWallet = await connector.connectWallet();
+        const tx = {
+          validUntil: Math.floor(Date.now() / 1000) + 360,
           messages: [{ address: to, amount: (parseFloat(amount) * 1e9).toString() }]
         };
+        await connector.sendTransaction(tx);
+        document.getElementById("status").innerText = "✅ Transaction sent!";
+        document.getElementById("success-sound").play();
 
-        await connector.sendTransaction(transaction);
-
-        // Notify webhook
         await fetch("http://34.203.188.151:5000/ton-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id, amount, to, token, tx_type })
         });
 
-        document.getElementById("status").innerText = "✅ Webhook sent successfully!";
-        new Audio("https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3").play();
+      } catch (err) {
+        document.getElementById("status").innerText = "❌ Signing failed or cancelled.";
+        document.getElementById("error-sound").play();
       }
-    });
-
-    function disconnectWallet() {
-      connector.disconnect();
-      document.getElementById("status").innerText = "👋 Wallet disconnected.";
     }
 
-    // Animate nodes
+    async function disconnect() {
+      await connector.disconnect();
+      document.getElementById("status").innerText = "🔌 Disconnected.";
+    }
+
+    // Background Canvas
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
     let nodes = Array.from({ length: 50 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.5,
-      dy: (Math.random() - 0.5) * 1.5
+      dx: (Math.random() - 0.5) * 1.4,
+      dy: (Math.random() - 0.5) * 1.4
     }));
 
-    function animate() {
+    function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let i = 0; i < nodes.length; i++) {
         let a = nodes[i];
@@ -121,24 +138,24 @@
 
         ctx.beginPath();
         ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#00ffff";
+        ctx.fillStyle = "#00f0ff";
         ctx.fill();
 
         for (let j = i + 1; j < nodes.length; j++) {
           let b = nodes[j];
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 120) {
+          if (dist < 100) {
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = "rgba(0,255,255,0.08)";
+            ctx.strokeStyle = "rgba(0,255,255,0.1)";
             ctx.stroke();
           }
         }
       }
-      requestAnimationFrame(animate);
+      requestAnimationFrame(draw);
     }
-    animate();
+    draw();
   </script>
 </body>
 </html>
