@@ -3,18 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🟣 Gigi Solana Wallet Signing</title>
+  <title>Gigi Solana Wallet Signing</title>
   <style>
-    body {
+    body, html {
       margin: 0;
-      background: #0a0f23;
+      padding: 0;
+      height: 100%;
+      background: #0d0d0d;
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
       color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      text-align: center;
     }
     canvas {
       position: absolute;
@@ -24,144 +23,156 @@
     }
     .content {
       z-index: 2;
-      text-align: center;
+      position: relative;
+      top: 20%;
     }
     button {
-      padding: 14px 28px;
-      margin: 10px;
+      padding: 14px 30px;
+      margin: 12px;
       font-size: 16px;
-      background: linear-gradient(to right, #9c27b0, #7c4dff);
+      background: linear-gradient(135deg, #a4508b, #5f0a87);
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      transition: transform 0.2s ease-in-out;
     }
     button:hover {
-      transform: scale(1.05);
+      opacity: 0.9;
+    }
+    footer {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+      z-index: 2;
     }
     #status {
-      margin-top: 15px;
+      margin-top: 20px;
+      font-weight: bold;
     }
   </style>
-  <script src="https://unpkg.com/@solana/web3.js@1.73.2/lib/index.iife.js"></script>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div class="content">
-    <h2>🟣 Gigi Solana Wallet Signing</h2>
-    <button onclick="connectPhantom()">🔌 Connect Phantom</button>
-    <button onclick="signSolTx()">📝 Sign Transaction</button>
-    <div id="status"></div>
-  </div>
+<canvas id="canvas"></canvas>
+<div class="content">
+  <h2>🔐 Gigi Solana Wallet Signing</h2>
+  <button onclick="connectWallet()">🔌 Connect Wallet</button>
+  <button onclick="signTransaction()">📝 Sign Transaction</button>
+  <p id="status"></p>
+</div>
+<footer>⚡️ Powered by Gigi Labs</footer>
 
-  <script>
-    let provider, publicKey;
+<script type="module">
+  import {
+    Connection,
+    PublicKey,
+    clusterApiUrl,
+    Transaction,
+    SystemProgram,
+    sendAndConfirmTransaction
+  } from "https://cdn.jsdelivr.net/npm/@solana/web3.js/+esm";
 
-    function connectPhantom() {
-      if (window.solana && window.solana.isPhantom) {
-        window.solana.connect()
-          .then(res => {
-            provider = window.solana;
-            publicKey = res.publicKey.toString();
-            document.getElementById("status").innerText = "✅ Connected: " + publicKey;
-          })
-          .catch(() => {
-            document.getElementById("status").innerText = "❌ Connection rejected.";
-          });
-      } else {
-        document.getElementById("status").innerText = "❌ Phantom Wallet not detected.";
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const nodes = Array.from({ length: 60 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    dx: (Math.random() - 0.5) * 1.5,
+    dy: (Math.random() - 0.5) * 1.5
+  }));
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let a = 0; a < nodes.length; a++) {
+      const nodeA = nodes[a];
+      nodeA.x += nodeA.dx;
+      nodeA.y += nodeA.dy;
+
+      if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
+      if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      for (let b = a + 1; b < nodes.length; b++) {
+        const nodeB = nodes[b];
+        const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(nodeA.x, nodeA.y);
+          ctx.lineTo(nodeB.x, nodeB.y);
+          ctx.strokeStyle = "rgba(255,255,255,0.1)";
+          ctx.stroke();
+        }
       }
     }
+    requestAnimationFrame(animate);
+  }
+  animate();
 
-    async function signSolTx() {
-      const status = document.getElementById("status");
-      if (!publicKey) {
-        status.innerText = "⚠️ Please connect your wallet first.";
-        return;
-      }
+  let connectedWallet;
 
-      const params = new URLSearchParams(window.location.search);
-      const user_id = params.get("user_id");
-      const to = params.get("to");
-      const amount = params.get("amount");
-      const token = params.get("token") || "SOL";
+  async function connectWallet() {
+    try {
+      const provider = window.phantom?.solana;
+      if (!provider) throw "Phantom Wallet not found";
+      const resp = await provider.connect();
+      connectedWallet = resp.publicKey.toString();
+      document.getElementById("status").innerText = "✅ Wallet connected!";
+    } catch (err) {
+      document.getElementById("status").innerText = "❌ Wallet connection failed.";
+    }
+  }
 
-      const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
-      const fromPubKey = new solanaWeb3.PublicKey(publicKey);
-      const toPubKey = new solanaWeb3.PublicKey(to);
-      const transaction = new solanaWeb3.Transaction().add(
-        solanaWeb3.SystemProgram.transfer({
-          fromPubkey: fromPubKey,
-          toPubkey: toPubKey,
-          lamports: parseFloat(amount) * solanaWeb3.LAMPORTS_PER_SOL
+  async function signTransaction() {
+    if (!connectedWallet) {
+      document.getElementById("status").innerText = "⚠️ Connect wallet first.";
+      return;
+    }
+
+    const url = new URLSearchParams(window.location.search);
+    const amount = parseFloat(url.get("amount"));
+    const to = url.get("to");
+    const user_id = url.get("user_id");
+    const token = url.get("token");
+    const tx_type = url.get("tx_type") || "sell";
+
+    try {
+      const connection = new Connection(clusterApiUrl("mainnet-beta"));
+      const provider = window.phantom.solana;
+      const fromPubkey = provider.publicKey;
+      const toPubkey = new PublicKey(to);
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports: amount * 1e9
         })
       );
 
-      transaction.feePayer = fromPubKey;
-      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      const { signature } = await provider.signAndSendTransaction(transaction);
+      await connection.confirmTransaction(signature);
 
-      try {
-        const signedTx = await provider.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signedTx.serialize());
-        await connection.confirmTransaction(signature);
+      await fetch("http://34.203.188.151:5000/solana-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id, amount, to, token, tx_type })
+      });
 
-        // Notify webhook
-        await fetch("http://34.203.188.151:5000/solana-webhook", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, amount, to, token, from: publicKey, tx: signature })
-        });
-
-        status.innerText = "✅ Transaction signed & webhook invoked!";
-      } catch (err) {
-        status.innerText = "❌ Signing failed.";
-      }
+      document.getElementById("status").innerText = "✅ Transaction signed and webhook invoked!";
+    } catch (err) {
+      console.error(err);
+      document.getElementById("status").innerText = "❌ Transaction failed.";
     }
-
-    // Magical star background
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let nodes = Array.from({ length: 65 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5),
-      dy: (Math.random() - 0.5)
-    }));
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let a = 0; a < nodes.length; a++) {
-        let nodeA = nodes[a];
-        nodeA.x += nodeA.dx;
-        nodeA.y += nodeA.dy;
-
-        if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
-        if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#bb86fc";
-        ctx.fill();
-
-        for (let b = a + 1; b < nodes.length; b++) {
-          let nodeB = nodes[b];
-          const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
-          if (dist < 110) {
-            ctx.beginPath();
-            ctx.moveTo(nodeA.x, nodeA.y);
-            ctx.lineTo(nodeB.x, nodeB.y);
-            ctx.strokeStyle = "rgba(187,134,252,0.1)";
-            ctx.stroke();
-          }
-        }
-      }
-      requestAnimationFrame(animate);
-    }
-    animate();
-  </script>
+  }
+</script>
 </body>
 </html>
