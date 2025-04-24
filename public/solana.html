@@ -1,72 +1,20 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gigi Solana Signing</title>
-  <link rel="stylesheet" href="https://unpkg.com/@solana/wallet-adapter-react-ui/styles.css" />
-  <script type="module">
-    import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-    import {
-      ConnectionProvider,
-      WalletProvider
-    } from "@solana/wallet-adapter-react";
-    import {
-      WalletModalProvider,
-      WalletMultiButton
-    } from "@solana/wallet-adapter-react-ui";
-    import {
-      PhantomWalletAdapter,
-      SolflareWalletAdapter,
-      BackpackWalletAdapter
-    } from "@solana/wallet-adapter-wallets";import { clusterApiUrl } from "@solana/web3.js";
-import React, { useMemo } from "react";
-import ReactDOM from "react-dom";
-
-const App = () => {
-  const network = WalletAdapterNetwork.Mainnet;
-  const endpoint = clusterApiUrl(network);
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new BackpackWalletAdapter()
-    ],
-    []
-  );
-
-  return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <div class="wallet-ui">
-            <h2>🔐 Connect Solana Wallet</h2>
-            <WalletMultiButton />
-            <button id="sign-btn">📝 Sign Transaction</button>
-            <p id="status"></p>
-          </div>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
-  );
-};
-
-ReactDOM.render(<App />, document.body);
-
-  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🟣 Gigi Solana Wallet Signing</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #0f0f0f;
+      background: #0a0f23;
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       color: #fff;
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
     canvas {
       position: absolute;
@@ -74,64 +22,139 @@ ReactDOM.render(<App />, document.body);
       left: 0;
       z-index: 0;
     }
-    .wallet-ui {
+    .content {
       z-index: 2;
-      position: relative;
+      text-align: center;
     }
     button {
       padding: 14px 28px;
-      margin: 12px;
+      margin: 10px;
       font-size: 16px;
-      font-weight: bold;
-      background: linear-gradient(135deg, #a64bf4, #5f0ec4);
-      color: #fff;
+      background: linear-gradient(to right, #9c27b0, #7c4dff);
+      color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
       transition: transform 0.2s ease-in-out;
     }
     button:hover {
       transform: scale(1.05);
     }
     #status {
-      margin-top: 20px;
+      margin-top: 15px;
     }
   </style>
+  <script src="https://unpkg.com/@solana/web3.js@1.73.2/lib/index.iife.js"></script>
 </head>
 <body>
   <canvas id="canvas"></canvas>
+  <div class="content">
+    <h2>🟣 Gigi Solana Wallet Signing</h2>
+    <button onclick="connectPhantom()">🔌 Connect Phantom</button>
+    <button onclick="signSolTx()">📝 Sign Transaction</button>
+    <div id="status"></div>
+  </div>
+
   <script>
+    let provider, publicKey;
+
+    function connectPhantom() {
+      if (window.solana && window.solana.isPhantom) {
+        window.solana.connect()
+          .then(res => {
+            provider = window.solana;
+            publicKey = res.publicKey.toString();
+            document.getElementById("status").innerText = "✅ Connected: " + publicKey;
+          })
+          .catch(() => {
+            document.getElementById("status").innerText = "❌ Connection rejected.";
+          });
+      } else {
+        document.getElementById("status").innerText = "❌ Phantom Wallet not detected.";
+      }
+    }
+
+    async function signSolTx() {
+      const status = document.getElementById("status");
+      if (!publicKey) {
+        status.innerText = "⚠️ Please connect your wallet first.";
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const user_id = params.get("user_id");
+      const to = params.get("to");
+      const amount = params.get("amount");
+      const token = params.get("token") || "SOL";
+
+      const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
+      const fromPubKey = new solanaWeb3.PublicKey(publicKey);
+      const toPubKey = new solanaWeb3.PublicKey(to);
+      const transaction = new solanaWeb3.Transaction().add(
+        solanaWeb3.SystemProgram.transfer({
+          fromPubkey: fromPubKey,
+          toPubkey: toPubKey,
+          lamports: parseFloat(amount) * solanaWeb3.LAMPORTS_PER_SOL
+        })
+      );
+
+      transaction.feePayer = fromPubKey;
+      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+      try {
+        const signedTx = await provider.signTransaction(transaction);
+        const signature = await connection.sendRawTransaction(signedTx.serialize());
+        await connection.confirmTransaction(signature);
+
+        // Notify webhook
+        await fetch("http://34.203.188.151:5000/solana-webhook", {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id, amount, to, token, from: publicKey, tx: signature })
+        });
+
+        status.innerText = "✅ Transaction signed & webhook invoked!";
+      } catch (err) {
+        status.innerText = "❌ Signing failed.";
+      }
+    }
+
+    // Magical star background
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    let nodes = Array.from({ length: 60 }, () => ({
+
+    let nodes = Array.from({ length: 65 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.5,
-      dy: (Math.random() - 0.5) * 1.5
+      dx: (Math.random() - 0.5),
+      dy: (Math.random() - 0.5)
     }));
+
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let a = 0; a < nodes.length; a++) {
         let nodeA = nodes[a];
         nodeA.x += nodeA.dx;
         nodeA.y += nodeA.dy;
+
         if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
         if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
+
         ctx.beginPath();
         ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#a970ff";
+        ctx.fillStyle = "#bb86fc";
         ctx.fill();
+
         for (let b = a + 1; b < nodes.length; b++) {
           let nodeB = nodes[b];
           const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
-          if (dist < 100) {
+          if (dist < 110) {
             ctx.beginPath();
             ctx.moveTo(nodeA.x, nodeA.y);
             ctx.lineTo(nodeB.x, nodeB.y);
-            ctx.strokeStyle = "rgba(169,112,255,0.1)";
+            ctx.strokeStyle = "rgba(187,134,252,0.1)";
             ctx.stroke();
           }
         }
