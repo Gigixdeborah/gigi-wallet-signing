@@ -3,196 +3,195 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🔐 Gigi EVM Wallet Signing</title>
+  <title>🔐 Gigi Wallet Signing (EVM)</title>
+  <link rel="icon" href="https://gigiwalletsigning.onrender.com/logo.png"/>
+  <script src="https://unpkg.com/web3modal"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
-      background: #0f0f0f;
       font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
+      background: linear-gradient(to bottom right, #0f0f0f, #1a1a1a);
       color: white;
+      overflow: hidden;
     }
-
     canvas {
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       z-index: 0;
     }
-
     .content {
+      position: relative;
       z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 20px;
       text-align: center;
     }
-
-    button {
-      padding: 12px 24px;
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    select, button {
+      padding: 12px 20px;
       margin: 10px;
       font-size: 16px;
-      font-weight: bold;
       border: none;
       border-radius: 8px;
-      cursor: pointer;
-      background: linear-gradient(to right, #ff416c, #ff4b2b);
+      background: #0072ff;
       color: white;
-      transition: transform 0.2s ease;
+      cursor: pointer;
+      transition: transform 0.2s;
     }
-
     button:hover {
       transform: scale(1.05);
     }
-
-    #status {
-      margin-top: 20px;
+    .hidden { display: none; }
+    #status { margin-top: 10px; font-size: 14px; }
+    #gigi-footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: #ccc;
+      animation: fadeIn 2s ease-in-out infinite alternate;
     }
-
-    .footer {
-      position: absolute;
-      bottom: 15px;
-      text-align: center;
-      font-size: 13px;
-      color: #aaa;
+    @keyframes fadeIn {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
+<canvas id="canvas"></canvas>
+<div class="content">
+  <h1>🔐 Gigi Wallet Signing (EVM)</h1>
+  <select id="lang">
+    <option value="en">🌐 English</option>
+    <option value="fr">🇫🇷 Français</option>
+    <option value="es">🇪🇸 Español</option>
+    <option value="zh">🇨🇳 中文</option>
+  </select>
+  <button onclick="connectWallet()"><span id="connectLabel">🔌 Connect Wallet</span></button>
+  <button onclick="signTransaction()"><span id="signLabel">📝 Sign Transaction</span></button>
+  <button id="disconnectBtn" class="hidden" onclick="disconnect()">🔓 Disconnect</button>
+  <p id="status">🌐 Ready...</p>
+  <div id="gigi-footer">✨ Powered by Gigi Labs</div>
+</div>
 
-  <div class="content">
-    <h2>🔐 Gigi EVM Wallet Signing</h2>
-    <button onclick="connectWallet()">🦊 Connect Wallet</button>
-    <button onclick="signTransaction()">📝 Sign Transaction</button>
-    <button onclick="disconnect()">❌ Disconnect</button>
-    <div id="status">Waiting for action...</div>
-  </div>
+<script>
+let provider, signer, userAddress, web3Modal;
+const status = document.getElementById("status");
+const disconnectBtn = document.getElementById("disconnectBtn");
 
-  <div class="footer">✨ Powered by <b>Gigi Labs</b></div>
+const labels = {
+  en: ["🔌 Connect Wallet", "📝 Sign Transaction"],
+  fr: ["🔌 Connecter le portefeuille", "📝 Signer la transaction"],
+  es: ["🔌 Conectar billetera", "📝 Firmar transacción"],
+  zh: ["🔌 连接钱包", "📝 签署交易"]
+};
 
-  <script>
-    let connected = false;
-    let account = null;
+document.getElementById("lang").addEventListener("change", e => {
+  const lang = e.target.value;
+  document.getElementById("connectLabel").textContent = labels[lang][0];
+  document.getElementById("signLabel").textContent = labels[lang][1];
+});
 
-    async function connectWallet() {
-      if (!window.ethereum) {
-        alert("MetaMask not found.");
-        return;
-      }
-
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        account = accounts[0];
-        connected = true;
-        document.getElementById('status').innerText = `✅ Connected: ${account}`;
-        playSound('connect');
-      } catch (err) {
-        document.getElementById('status').innerText = "❌ Connection failed.";
-      }
-    }
-
-    async function signTransaction() {
-      if (!connected || !account) {
-        alert("Connect wallet first.");
-        return;
-      }
-
-      const params = new URLSearchParams(window.location.search);
-      const user_id = params.get("user_id");
-      const amount = params.get("amount");
-      const to = params.get("to");
-      const token = params.get("token");
-      const tx_type = params.get("tx_type");
-
-      const tx = {
-        from: account,
-        to: to,
-        value: "0x" + (parseFloat(amount) * 1e18).toString(16)
-      };
-
-      try {
-        await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-
-        await fetch("http://34.203.188.151:5000/evm-webhook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id, amount, to, token, tx_type })
-        });
-
-        document.getElementById('status').innerText = "✅ Transaction signed and webhook sent!";
-        playSound('success');
-      } catch (err) {
-        document.getElementById('status').innerText = "❌ Signing failed.";
-        playSound('fail');
+// Node background
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+let nodes = Array.from({length: 50}, () => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  dx: (Math.random() - 0.5) * 2,
+  dy: (Math.random() - 0.5) * 2
+}));
+canvas.addEventListener("mousemove", e => {
+  nodes.push({x: e.clientX, y: e.clientY, dx: 0, dy: 0});
+});
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  nodes.forEach((a, i) => {
+    a.x += a.dx; a.y += a.dy;
+    if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
+    if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
+    ctx.beginPath(); ctx.arc(a.x, a.y, 2, 0, Math.PI * 2); ctx.fillStyle = "#00ffff"; ctx.fill();
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d < 100) {
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = "rgba(0,255,255,0.1)";
+        ctx.stroke();
       }
     }
+  });
+  requestAnimationFrame(animate);
+}
+animate();
 
-    function disconnect() {
-      connected = false;
-      account = null;
-      document.getElementById('status').innerText = "🔌 Disconnected.";
-      playSound('disconnect');
-    }
+// Connect
+async function connectWallet() {
+  if (!web3Modal) {
+    web3Modal = new window.Web3Modal.default({ cacheProvider: false });
+  }
+  try {
+    const instance = await web3Modal.connect();
+    const ethersProvider = new ethers.providers.Web3Provider(instance);
+    provider = ethersProvider;
+    signer = ethersProvider.getSigner();
+    userAddress = await signer.getAddress();
+    status.textContent = "✅ Connected: " + userAddress.slice(0, 6) + "...";
+    disconnectBtn.classList.remove("hidden");
+    playSound(true);
+  } catch (err) {
+    status.textContent = "❌ Wallet connect failed.";
+  }
+}
 
-    function playSound(type) {
-      const sounds = {
-        connect: "https://assets.mixkit.co/sfx/download/mixkit-quick-win-video-game-notification-269.mp3",
-        success: "https://assets.mixkit.co/sfx/download/mixkit-achievement-bell-600.mp3",
-        disconnect: "https://assets.mixkit.co/sfx/download/mixkit-video-game-alert-252.mp3",
-        fail: "https://assets.mixkit.co/sfx/download/mixkit-player-losing-or-failing-2042.mp3"
-      };
-      const audio = new Audio(sounds[type]);
-      audio.play();
-    }
+function disconnect() {
+  if (web3Modal) web3Modal.clearCachedProvider();
+  userAddress = null;
+  status.textContent = "🔌 Disconnected.";
+  disconnectBtn.classList.add("hidden");
+  playSound(false);
+}
 
-    // canvas nodes
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+async function signTransaction() {
+  const params = new URLSearchParams(location.search);
+  const to = params.get("to");
+  const token = params.get("token");
+  const amount = params.get("amount");
+  const user_id = params.get("user_id");
+  const tx_type = params.get("tx_type") || "sell";
 
-    const nodes = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.5,
-      dy: (Math.random() - 0.5) * 1.5
-    }));
+  if (!signer || !userAddress) return status.textContent = "⚠️ Connect wallet first.";
 
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+  try {
+    const tx = { to, value: ethers.utils.parseEther(amount), from: userAddress };
+    await signer.sendTransaction(tx);
+    await fetch("https://gigi-wallet-signing.onrender.com/evm-webhook", {
+      method: "POST", headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id, token, amount, to, tx_type})
+    });
+    status.textContent = "✅ Signed and webhook sent!";
+    playSound(true);
+  } catch (err) {
+    status.textContent = "❌ Sign failed.";
+  }
+}
 
-      for (let i = 0; i < nodes.length; i++) {
-        let nodeA = nodes[i];
-        nodeA.x += nodeA.dx;
-        nodeA.y += nodeA.dy;
-
-        if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
-        if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#00ffff";
-        ctx.fill();
-
-        for (let j = i + 1; j < nodes.length; j++) {
-          let nodeB = nodes[j];
-          const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
-          if (dist < 120) {
-            ctx.beginPath();
-            ctx.moveTo(nodeA.x, nodeA.y);
-            ctx.lineTo(nodeB.x, nodeB.y);
-            ctx.strokeStyle = "rgba(0,255,255,0.08)";
-            ctx.stroke();
-          }
-        }
-      }
-      requestAnimationFrame(animate);
-    }
-
-    animate();
-  </script>
+function playSound(connected) {
+  const sound = new Audio(connected
+    ? "https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3"
+    : "https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.wav");
+  sound.play();
+}
+</script>
 </body>
 </html>
