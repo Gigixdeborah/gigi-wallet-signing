@@ -1,167 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>🔐 Gigi Wallet Signing (Solana)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔐 Gigi Solana Wallet Signing</title>
+  <link rel="icon" href="https://gigi-ton-connect.vercel.app/gigip2bot-logo.png" />
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: #0d0d0d;
-      color: white;
+      padding: 0;
+      height: 100%;
+      background: #0f0f0f;
       font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      overflow: hidden;
+      color: #fff;
+      text-align: center;
     }
     canvas {
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       z-index: 0;
     }
     .content {
       z-index: 2;
-      text-align: center;
+      position: relative;
+      max-width: 90%;
     }
-    button {
-      padding: 12px 24px;
+    h2 {
+      font-size: 1.8em;
+      margin-bottom: 1rem;
+    }
+    select, button {
+      padding: 12px 20px;
       margin: 10px;
       font-size: 16px;
-      border-radius: 6px;
+      font-weight: 600;
+      border-radius: 10px;
       border: none;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .connect-btn {
-      background: #8e44ad;
-      color: white;
+    button {
+      background: linear-gradient(135deg, #9c27b0, #6a1b9a);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-    .disconnect-btn {
-      background: #ff4d4d;
-      color: white;
+    button:hover {
+      transform: scale(1.05);
     }
-    .powered {
-      margin-top: 40px;
+    #disconnect {
+      display: none;
+      background: #333;
+      color: #eee;
+    }
+    #status {
+      margin-top: 20px;
       font-size: 14px;
-      opacity: 0.6;
+      line-height: 1.6;
+    }
+    .footer {
+      position: absolute;
+      bottom: 15px;
+      font-size: 14px;
+      color: #aaa;
+      animation: pulse 4s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
     }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
+  <canvas id="canvas"></canvas>
   <div class="content">
-    <h1>🔐 Gigi Wallet Signing (Solana)</h1>
-    <button class="connect-btn" onclick="connectWallet()">🔌 Connect Phantom</button>
-    <button class="disconnect-btn" onclick="disconnectWallet()">❌ Disconnect</button>
-    <div id="status">Waiting for wallet connection...</div>
-    <div class="powered">✨ Powered by Gigi Labs</div>
+    <h2 id="title">🔐 Connect your Solana Wallet</h2>
+    <select id="lang" onchange="changeLang()">
+      <option value="en">🇺🇸 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="zh">🇨🇳 中文</option>
+    </select>
+    <br>
+    <button onclick="connect()">🔌 Connect Wallet</button>
+    <button onclick="sign()">📝 Sign Transaction</button>
+    <button id="disconnect" onclick="disconnect()">❌ Disconnect</button>
+    <p id="status">...</p>
   </div>
+  <div class="footer">🔮 Powered by Gigi Labs</div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.93.4/lib/index.iife.js"></script>
   <script>
-    let provider;
-    let connected = false;
-
-    function getProvider() {
-      if ('solana' in window) return window.solana;
-      return null;
-    }
-
-    async function connectWallet() {
-      provider = getProvider();
-      if (!provider || !provider.isPhantom) {
-        document.getElementById("status").innerText = "⚠️ Phantom not detected.";
-        return;
-      }
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const user_id = urlParams.get("user_id");
-      const amount = urlParams.get("amount");
-      const to = urlParams.get("to");
-      const token = urlParams.get("token");
-      const tx_type = urlParams.get("tx_type") || "sell";
-
-      try {
-        const resp = await provider.connect();
-        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
-        const fromPubkey = new solanaWeb3.PublicKey(resp.publicKey.toString());
-        const toPubkey = new solanaWeb3.PublicKey(to);
-
-        const transaction = new solanaWeb3.Transaction().add(
-          solanaWeb3.SystemProgram.transfer({
-            fromPubkey,
-            toPubkey,
-            lamports: amount * 1e9 // for SOL
-          })
-        );
-
-        transaction.feePayer = fromPubkey;
-        transaction.recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
-        const signed = await provider.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(signature);
-
-        await fetch("http://34.203.188.151:5000/solana-webhook", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, amount, to, token, tx_type })
-        });
-
-        document.getElementById("status").innerText = "✅ Transaction signed & webhook sent!";
-        new Audio("https://assets.mixkit.co/sfx/preview/mixkit-confirmation-tone-2867.mp3").play();
-        connected = true;
-      } catch (err) {
-        console.error(err);
-        document.getElementById("status").innerText = "❌ Signing failed.";
-      }
-    }
-
-    function disconnectWallet() {
-      connected = false;
-      provider?.disconnect();
-      document.getElementById("status").innerText = "👋 Wallet disconnected.";
-    }
-
-    // Animate background
-    const canvas = document.getElementById("bg");
+    const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    let nodes = Array.from({ length: 60 }, () => ({
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    let nodes = Array.from({ length: 40 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5) * 1.5,
-      dy: (Math.random() - 0.5) * 1.5
+      dx: (Math.random() - 0.5) * 1.4,
+      dy: (Math.random() - 0.5) * 1.4
     }));
-
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let a of nodes) {
-        a.x += a.dx;
-        a.y += a.dy;
+      nodes.forEach((a, i) => {
+        a.x += a.dx; a.y += a.dy;
         if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
         if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
         ctx.beginPath();
         ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#a87eff";
+        ctx.fillStyle = "#ff69b4";
         ctx.fill();
-        for (let b of nodes) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const b = nodes[j];
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
           if (dist < 100) {
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = "rgba(255,255,255,0.05)";
+            ctx.strokeStyle = "rgba(255,105,180,0.08)";
             ctx.stroke();
           }
         }
-      }
+      });
       requestAnimationFrame(animate);
     }
     animate();
+
+    let provider = null;
+    let pubkey = null;
+    let lang = "en";
+
+    const texts = {
+      en: "🔐 Connect your Solana Wallet",
+      fr: "🔐 Connectez votre portefeuille Solana",
+      es: "🔐 Conecte su billetera Solana",
+      zh: "🔐 连接您的 Solana 钱包"
+    };
+
+    function changeLang() {
+      lang = document.getElementById("lang").value;
+      document.getElementById("title").innerText = texts[lang];
+    }
+
+    async function connect() {
+      provider = window.phantom?.solana;
+      if (!provider?.isPhantom) {
+        document.getElementById("status").innerText = "❌ Phantom not detected";
+        return;
+      }
+      try {
+        const resp = await provider.connect();
+        pubkey = resp.publicKey.toString();
+        document.getElementById("status").innerText = `✅ Connected: ${pubkey}`;
+        document.getElementById("disconnect").style.display = "inline-block";
+        playSound("connect");
+      } catch (err) {
+        document.getElementById("status").innerText = "❌ Connection failed";
+        playSound("error");
+      }
+    }
+
+    async function sign() {
+      if (!pubkey) return alert("Please connect wallet first.");
+      const params = new URLSearchParams(location.search);
+      const user_id = params.get("user_id");
+      const amount = params.get("amount");
+      const to = params.get("to");
+      const token = params.get("token");
+      const tx_type = params.get("tx_type") || "sell";
+
+      try {
+        const tx = new solanaWeb3.Transaction().add(
+          solanaWeb3.SystemProgram.transfer({
+            fromPubkey: new solanaWeb3.PublicKey(pubkey),
+            toPubkey: new solanaWeb3.PublicKey(to),
+            lamports: parseFloat(amount) * solanaWeb3.LAMPORTS_PER_SOL
+          })
+        );
+        tx.feePayer = new solanaWeb3.PublicKey(pubkey);
+        tx.recentBlockhash = (await new solanaWeb3.Connection("https://api.mainnet-beta.solana.com").getRecentBlockhash()).blockhash;
+        const signed = await provider.signTransaction(tx);
+        await fetch("http://34.203.188.151:5000/solana-webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id, amount, to, token, tx_type })
+        });
+        document.getElementById("status").innerText = "✅ Transaction signed & sent!";
+        playSound("success");
+      } catch (e) {
+        document.getElementById("status").innerText = "❌ Signing failed";
+        playSound("error");
+      }
+    }
+
+    function disconnect() {
+      provider?.disconnect();
+      pubkey = null;
+      document.getElementById("status").innerText = "👋 Disconnected";
+      document.getElementById("disconnect").style.display = "none";
+      playSound("disconnect");
+    }
+
+    function playSound(type) {
+      const audios = {
+        connect: "https://assets.mixkit.co/sfx/preview/mixkit-bonus-earned-in-video-game-2058.mp3",
+        success: "https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3",
+        error: "https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3",
+        disconnect: "https://assets.mixkit.co/sfx/preview/mixkit-game-level-completed-2059.mp3"
+      };
+      const a = new Audio(audios[type]);
+      a.volume = 0.6;
+      a.play();
+    }
   </script>
 </body>
 </html>
