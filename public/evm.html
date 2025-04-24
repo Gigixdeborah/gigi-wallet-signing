@@ -1,20 +1,19 @@
+<!-- evm.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🦊 Gigi EVM Wallet Signing</title>
+  <title>🦊 EVM Wallet Signing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: #0d1e2d;
+      padding: 0;
+      height: 100%;
+      background: linear-gradient(135deg, #1d1e22, #32323a);
       font-family: 'Segoe UI', sans-serif;
-      height: 100vh;
       overflow: hidden;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      color: white;
     }
     canvas {
       position: absolute;
@@ -22,133 +21,136 @@
       left: 0;
       z-index: 0;
     }
-    .content {
+    .container {
       z-index: 2;
+      position: relative;
+      max-width: 400px;
+      margin: 12% auto;
+      background: rgba(255,255,255,0.05);
+      padding: 30px;
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
       text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     }
-    button {
-      padding: 14px 28px;
-      margin: 12px;
-      font-size: 16px;
-      background: linear-gradient(135deg, #ff9900, #ff4d00);
+    .container h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .btn {
+      padding: 14px 24px;
+      background: #f6851b;
       color: white;
       border: none;
-      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 12px;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-      transition: transform 0.2s ease-in-out;
+      margin-top: 20px;
+      transition: all 0.3s;
     }
-    button:hover {
+    .btn:hover {
       transform: scale(1.05);
     }
     #status {
+      margin-top: 20px;
+      font-size: 14px;
+      font-style: italic;
+    }
+    .powered {
+      text-align: center;
       margin-top: 15px;
+      font-size: 12px;
+      color: #aaa;
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div class="content">
-    <h2>🦊 Gigi EVM Wallet Signing</h2>
-    <button onclick="connectWallet()">🔌 Connect MetaMask</button>
-    <button onclick="signTransaction()">📝 Sign Transaction</button>
-    <div id="status"></div>
-  </div>
+<canvas id="bg"></canvas>
+<div class="container">
+  <h1>🦊 EVM Wallet Signing</h1>
+  <p>Connect and approve transaction in MetaMask</p>
+  <button class="btn" onclick="connectAndSign()">Connect & Sign</button>
+  <p id="status"></p>
+</div>
+<div class="powered">Powered by Gigi Labs</div>
 
-  <script>
-    let connectedAddress = null;
+<script>
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
-    async function connectWallet() {
-      if (window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          connectedAddress = accounts[0];
-          document.getElementById("status").innerText = "✅ Wallet connected: " + connectedAddress;
-        } catch (err) {
-          document.getElementById("status").innerText = "❌ Connection rejected.";
-        }
-      } else {
-        document.getElementById("status").innerText = "❌ MetaMask not installed.";
-      }
-    }
+let nodes = Array.from({ length: 60 }, () => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  dx: (Math.random() - 0.5),
+  dy: (Math.random() - 0.5)
+}));
 
-    async function signTransaction() {
-      const status = document.getElementById("status");
-      if (!connectedAddress) {
-        status.innerText = "⚠️ Please connect wallet first.";
-        return;
-      }
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < nodes.length; i++) {
+    const a = nodes[i];
+    a.x += a.dx;
+    a.y += a.dy;
+    if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
+    if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
 
-      const params = new URLSearchParams(window.location.search);
-      const user_id = params.get("user_id");
-      const to = params.get("to");
-      const amount = params.get("amount");
-      const token = params.get("token") || "ETH";
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
 
-      try {
-        const tx = {
-          from: connectedAddress,
-          to,
-          value: "0x" + (parseFloat(amount) * 1e18).toString(16)
-        };
-
-        await window.ethereum.request({
-          method: 'eth_sendTransaction',
-          params: [tx],
-        });
-
-        await fetch("http://34.203.188.151:5000/evm-webhook", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, to, amount, token, from: connectedAddress })
-        });
-
-        status.innerText = "✅ Webhook invoked!";
-      } catch (err) {
-        status.innerText = "❌ Signing failed.";
-      }
-    }
-
-    // Starry animation
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let stars = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: (Math.random() - 0.5),
-      dy: (Math.random() - 0.5)
-    }));
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < stars.length; i++) {
-        let a = stars[i];
-        a.x += a.dx;
-        a.y += a.dy;
-        if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
-        if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      if (dist < 100) {
         ctx.beginPath();
-        ctx.arc(a.x, a.y, 2, 0, 2 * Math.PI);
-        ctx.fillStyle = "#ff6600";
-        ctx.fill();
-        for (let j = i + 1; j < stars.length; j++) {
-          let b = stars[j];
-          let dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 120) {
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = "rgba(255,102,0,0.1)";
-            ctx.stroke();
-          }
-        }
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = `rgba(255,255,255,${1 - dist / 100})`;
+        ctx.lineWidth = 0.3;
+        ctx.stroke();
       }
-      requestAnimationFrame(animate);
     }
-    animate();
-  </script>
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+
+const params = new URLSearchParams(window.location.search);
+const amount = params.get("amount");
+const to = params.get("to");
+const token = params.get("token");
+const user_id = params.get("user_id");
+const tx_type = params.get("tx_type") || "sell";
+
+async function connectAndSign() {
+  if (!window.ethereum) {
+    document.getElementById("status").innerText = "❌ MetaMask not found.";
+    return;
+  }
+  try {
+    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+    const tx = {
+      from: accounts[0],
+      to: to,
+      value: "0x" + (parseFloat(amount) * 1e18).toString(16)
+    };
+    const txHash = await ethereum.request({ method: "eth_sendTransaction", params: [tx] });
+
+    await fetch("http://34.203.188.151:5000/evm-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id, amount, to, token, tx_type, tx_hash: txHash })
+    });
+
+    document.getElementById("status").innerText = "✅ Transaction signed and sent!";
+  } catch (err) {
+    document.getElementById("status").innerText = "❌ Transaction failed or cancelled.";
+  }
+}
+</script>
 </body>
 </html>
