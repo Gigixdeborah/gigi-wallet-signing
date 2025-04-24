@@ -1,154 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gigi Wallet Signing - TON</title>
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background: #0f0f0f;
-        font-family: 'Segoe UI', sans-serif;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        text-align: center;
-      }
-      canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 0;
-      }
-      .content {
-        z-index: 2;
-        position: relative;
-      }
-      button {
-        padding: 14px 28px;
-        margin: 12px;
-        font-size: 16px;
-        font-weight: bold;
-        background: linear-gradient(135deg, #00c6ff, #0072ff);
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-        transition: transform 0.2s ease-in-out;
-      }
-      button:hover {
-        transform: scale(1.05);
-      }
-      #status {
-        margin-top: 20px;
-      }
-    </style>
-  </head>
-  <body>
-    <canvas id="canvas"></canvas>
-    <div class="content">
-      <h2>🔐 Gigi Wallet Signing - TON</h2>
-      <button onclick="connectWallet()">🔌 Connect Wallet</button>
-      <button onclick="signTransaction()">📝 Sign Transaction</button>
-      <p id="status"></p>
-    </div>
-    <script>
-      let connected = false;
-      async function connectWallet() {
-        if (window.TON) {
-          try {
-            await window.TON.connect();
-            connected = true;
-            document.getElementById("status").innerText = "✅ Wallet connected";
-          } catch (error) {
-            document.getElementById("status").innerText = "❌ Wallet connection failed.";
-          }
-        } else {
-          document.getElementById("status").innerText = "❌ TON wallet not detected.";
-        }
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔐 Gigi Wallet Signing</title>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #0b1f2e;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+    .content {
+      z-index: 2;
+      position: relative;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 25px;
+    }
+    button {
+      background: #00c6ff;
+      border: none;
+      padding: 15px 30px;
+      color: white;
+      font-size: 16px;
+      border-radius: 10px;
+      margin: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    #status {
+      margin-top: 15px;
+      color: #0f0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div class="content">
+    <h2>🔐 Gigi Wallet Signing</h2>
+    <div id="ton-connect"></div>
+    <button onclick="signTx()">📝 Sign Transaction</button>
+    <div id="status"></div>
+  </div>
 
-      async function signTransaction() {
-        if (!connected) {
-          document.getElementById("status").innerText = "⚠️ Please connect wallet first.";
-          return;
-        }
-        const urlParams = new URLSearchParams(window.location.search);
-        const user_id = urlParams.get("user_id");
-        const amount = urlParams.get("amount");
-        const to = urlParams.get("to");
-        const token = urlParams.get("token");
-        const tx_type = urlParams.get("tx_type") || "sell";
+  <script>
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://gigi-ton-connect-v2.onrender.com/tonconnect-manifest.json',
+      buttonRootId: 'ton-connect',
+    });
 
-        try {
-          const tx = {
-            to: to,
-            value: "0x" + (parseFloat(amount) * 1e18).toString(16)
-          };
-
-          await window.TON.sendTransaction(tx);
-
-          await fetch("http://34.203.188.151:5000/ton-webhook", {
-            method: "POST",
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id, amount, to, token, tx_type })
-          });
-
-          document.getElementById("status").innerText = "✅ Transaction signed and webhook sent!";
-        } catch (err) {
-          document.getElementById("status").innerText = "❌ Signing failed.";
-        }
+    async function signTx() {
+      const status = document.getElementById("status");
+      const connected = await tonConnectUI.connected;
+      if (!connected) {
+        status.innerText = "❌ Please connect your wallet first.";
+        return;
       }
 
-      // Canvas animation
-      const canvas = document.getElementById("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const account = tonConnectUI.account;
+      const user_id = new URLSearchParams(window.location.search).get("user_id");
+      const amount = new URLSearchParams(window.location.search).get("amount");
+      const to = new URLSearchParams(window.location.search).get("to");
 
-      let nodes = Array.from({ length: 60 }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        dx: (Math.random() - 0.5) * 1.5,
-        dy: (Math.random() - 0.5) * 1.5
-      }));
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: to,
+            amount: (parseFloat(amount) * 1e9).toFixed(0).toString(),
+          },
+        ],
+      };
 
-      function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (let a = 0; a < nodes.length; a++) {
-          let nodeA = nodes[a];
-          nodeA.x += nodeA.dx;
-          nodeA.y += nodeA.dy;
+      try {
+        await tonConnectUI.sendTransaction(transaction);
+        await fetch("http://34.203.188.151:5000/ton-webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id, amount, to, from: account.address }),
+        });
+        status.innerText = "✅ Webhook invoked";
+      } catch (err) {
+        status.innerText = "❌ Transaction failed";
+      }
+    }
 
-          if (nodeA.x < 0 || nodeA.x > canvas.width) nodeA.dx *= -1;
-          if (nodeA.y < 0 || nodeA.y > canvas.height) nodeA.dy *= -1;
+    // 🌌 Magical constellation effect
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    let dots = Array.from({ length: 50 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      dx: (Math.random() - 0.5),
+      dy: (Math.random() - 0.5)
+    }));
 
-          ctx.beginPath();
-          ctx.arc(nodeA.x, nodeA.y, 2, 0, Math.PI * 2);
-          ctx.fillStyle = "#00ffff";
-          ctx.fill();
-
-          for (let b = a + 1; b < nodes.length; b++) {
-            let nodeB = nodes[b];
-            const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
-            if (dist < 100) {
-              ctx.beginPath();
-              ctx.moveTo(nodeA.x, nodeA.y);
-              ctx.lineTo(nodeB.x, nodeB.y);
-              ctx.strokeStyle = "rgba(0,255,255,0.1)";
-              ctx.stroke();
-            }
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < dots.length; i++) {
+        let a = dots[i];
+        a.x += a.dx;
+        a.y += a.dy;
+        if (a.x < 0 || a.x > canvas.width) a.dx *= -1;
+        if (a.y < 0 || a.y > canvas.height) a.dy *= -1;
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 2, 0, 2 * Math.PI);
+        ctx.fillStyle = "#0ff";
+        ctx.fill();
+        for (let j = i + 1; j < dots.length; j++) {
+          let b = dots[j];
+          let dist = Math.hypot(a.x - b.x, a.y - b.y);
+          if (dist < 100) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = "rgba(0,255,255,0.1)";
+            ctx.stroke();
           }
         }
-        requestAnimationFrame(animate);
       }
-      animate();
-    </script>
-  </body>
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
 </html>
