@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Connect Solana Wallet | Gigi Labs</title>
+  <meta charset="UTF-8" />
+  <title>Solana Wallet | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://unpkg.com/@solana/web3.js@1.73.3/lib/index.iife.js"></script>
   <style>
     html, body {
-      margin: 0; padding: 0;
+      margin: 0;
+      padding: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
+      background: linear-gradient(135deg, #1f014a, #340073, #5e00a7);
       color: white;
       height: 100%;
       overflow: hidden;
@@ -34,8 +35,8 @@
 
     h1 {
       font-size: 24px;
-      color: #00e0ff;
-      text-shadow: 0 0 15px #00e0ff;
+      color: #a56fff;
+      text-shadow: 0 0 15px #a56fff;
       margin-bottom: 20px;
     }
 
@@ -44,9 +45,9 @@
       border-radius: 10px;
       font-size: 16px;
       margin-bottom: 20px;
-      background: #000000aa;
+      background: #1a0033;
       color: white;
-      border: 1px solid #00e0ff;
+      border: 1px solid #a56fff;
     }
 
     button {
@@ -56,11 +57,12 @@
       border: none;
       border-radius: 10px;
       cursor: pointer;
+      box-shadow: 0 0 10px #a56fff;
     }
 
-    #connect { background: #00e0ff; color: black; }
-    #sign { background: #00ff95; color: black; }
-    #disconnect { background: #ff4444; color: white; display: none; }
+    #connect { background: #a56fff; color: #000; }
+    #sign { background: #32ffb3; color: #000; }
+    #disconnect { background: #ff4444; color: #fff; display: none; }
 
     footer {
       position: absolute;
@@ -68,7 +70,7 @@
       width: 100%;
       text-align: center;
       font-size: 14px;
-      color: #aaa;
+      color: #ccc;
     }
   </style>
 </head>
@@ -94,7 +96,7 @@
   const amount = url.searchParams.get("amount");
   const to = url.searchParams.get("to");
 
-  let connectedWallet = null;
+  let wallet = null;
 
   const connectBtn = document.getElementById("connect");
   const signBtn = document.getElementById("sign");
@@ -107,7 +109,7 @@
 
     try {
       const resp = await window.solana.connect();
-      connectedWallet = resp.publicKey;
+      wallet = resp.publicKey;
       signBtn.disabled = false;
       disconnectBtn.style.display = "inline-block";
     } catch (err) {
@@ -116,27 +118,27 @@
   };
 
   disconnectBtn.onclick = () => {
-    connectedWallet = null;
+    wallet = null;
     signBtn.disabled = true;
     disconnectBtn.style.display = "none";
   };
 
   signBtn.onclick = async () => {
-    if (!connectedWallet) return alert("Wallet not connected.");
+    if (!wallet) return alert("Connect your wallet first.");
 
     const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"), "confirmed");
 
     const transaction = new solanaWeb3.Transaction().add(
       solanaWeb3.SystemProgram.transfer({
-        fromPubkey: connectedWallet,
+        fromPubkey: wallet,
         toPubkey: new solanaWeb3.PublicKey(to),
         lamports: Math.floor(parseFloat(amount) * solanaWeb3.LAMPORTS_PER_SOL),
       })
     );
 
-    transaction.feePayer = connectedWallet;
-    const latestBlockhash = await connection.getLatestBlockhash();
-    transaction.recentBlockhash = latestBlockhash.blockhash;
+    transaction.feePayer = wallet;
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
 
     try {
       const signed = await window.solana.signAndSendTransaction(transaction);
@@ -149,13 +151,13 @@
           user_id,
           amount,
           to,
-          wallet: connectedWallet.toString(),
+          wallet: wallet.toString(),
           signature: signed.signature
         })
       });
 
       new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("Transaction sent! Signature:\n" + signed.signature);
+      alert("Transaction sent!\n" + signed.signature);
     } catch (e) {
       alert("Transaction failed or cancelled.");
     }
@@ -227,7 +229,7 @@
           ctx.beginPath();
           ctx.moveTo(n.x, n.y);
           ctx.lineTo(n2.x, n2.y);
-          ctx.strokeStyle = 'rgba(0,255,255,0.07)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.05)';
           ctx.stroke();
         }
       }
