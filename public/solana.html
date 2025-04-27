@@ -1,208 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gigi Solana Connect</title>
-  <link rel="icon" type="image/png" href="/favicon-32x32.png" />
-  <link rel="manifest" href="/site.webmanifest" />
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: black;
-      font-family: 'Segoe UI', sans-serif;
-      overflow: hidden;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      text-align: center;
-    }
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 20px;
-    }
-    .input-box {
-      padding: 12px;
-      margin: 8px;
-      width: 90%;
-      max-width: 400px;
-      background: #111;
-      border: 1px solid #0ff;
-      border-radius: 8px;
-      color: white;
-    }
-    .btn {
-      padding: 12px 24px;
-      background: white;
-      color: black;
-      border: none;
-      font-weight: bold;
-      border-radius: 12px;
-      cursor: pointer;
-      margin-top: 16px;
-    }
-    .connect-button {
-      margin-bottom: 20px;
-    }
-    canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: -1;
-    }
-    .powered {
-      margin-top: 20px;
-      font-size: 14px;
-    }
-  </style>
-</head>
-<body>
-  <canvas id="nodeCanvas"></canvas>
-  <h1>Connect Your Solana Wallet</h1>
-  <div class="connect-button">
-    <wallet-multi-button></wallet-multi-button>
-  </div>
-  <input id="to" class="input-box" placeholder="Recipient Address" />
-  <input id="amount" class="input-box" placeholder="Amount (SOL)" />
-  <button class="btn" onclick="sign()">✨ Sign & Send</button>
-  <div class="powered">Powered by Gigi Labs ⚡</div>
-
-  <script type="module">
-    import {
-      ConnectionProvider,
-      WalletProvider
-    } from "https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-react@0.15.19/lib/index.esm.js";
-    import {
-      PhantomWalletAdapter
-    } from "https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-wallets@0.15.19/lib/phantomWalletAdapter.esm.js";
-    import {
-      WalletModalProvider,
-      WalletMultiButton
-    } from "https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-react-ui@0.9.17/lib/index.esm.js";
-    import {
-      clusterApiUrl,
-      Connection,
-      PublicKey,
-      SystemProgram,
-      Transaction
-    } from "https://cdn.jsdelivr.net/npm/@solana/web3.js@1.76.0/lib/index.iife.min.js";
-
-    customElements.define("wallet-multi-button", WalletMultiButton);
-
-    const wallet = new PhantomWalletAdapter();
-    const endpoint = clusterApiUrl('mainnet-beta');
-    const connection = new Connection(endpoint);
-
-    const query = new URLSearchParams(window.location.search);
-    const toParam = query.get("to");
-    const amountParam = query.get("amount");
-
-    if (toParam) document.getElementById("to").value = toParam;
-    if (amountParam) document.getElementById("amount").value = amountParam;
-
-    wallet.on('connect', () => {
-      console.log("🔌 Wallet connected:", wallet.publicKey.toString());
-      if (toParam && amountParam) {
-        setTimeout(() => sign(), 500);
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gigi Solana Connect</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: #000;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        min-height: 100vh;
+        overflow: hidden;
       }
-    });
-
-    async function sign() {
-      if (!wallet.connected) {
-        alert("Please connect your wallet first!");
-        return;
+      canvas {
+        position: absolute;
+        z-index: 0;
       }
-
-      const to = document.getElementById("to").value.trim();
-      const amount = parseFloat(document.getElementById("amount").value.trim());
-      if (!to || isNaN(amount)) {
-        alert("Recipient and amount required!");
-        return;
+      .container {
+        z-index: 1;
+        text-align: center;
+        padding: 2rem;
       }
-
-      const lamports = Math.floor(amount * 1e9);
-      const tx = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: wallet.publicKey,
-          toPubkey: new PublicKey(to),
-          lamports
-        })
-      );
-
-      try {
-        const { blockhash } = await connection.getLatestBlockhash();
-        tx.recentBlockhash = blockhash;
-        tx.feePayer = wallet.publicKey;
-
-        const signed = await wallet.signTransaction(tx);
-        const sig = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(sig);
-        alert("✅ Transaction Sent: " + sig);
-      } catch (err) {
-        console.error("❌ Signing failed:", err);
-        alert("❌ Signing failed");
+      input {
+        width: 300px;
+        padding: 12px;
+        margin: 10px 0;
+        border-radius: 10px;
+        border: none;
+        background-color: #111;
+        color: #0ff;
+        outline: none;
+        font-size: 1rem;
       }
-    }
-  </script>
+      button {
+        background: white;
+        color: black;
+        padding: 12px 25px;
+        border-radius: 16px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      button:hover {
+        background: #0ff;
+        color: black;
+      }
+      #connect-button {
+        margin-bottom: 20px;
+        background: #7c3aed;
+        color: white;
+        font-weight: 600;
+      }
+      .footer {
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        color: #aaa;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+  </head>
+  <body>
+    <canvas id="bg"></canvas>
+    <div class="container">
+      <h1>Connect Your Solana Wallet</h1>
+      <button id="connect-button">🔮 Connect Wallet</button>
+      <br />
+      <input type="text" id="recipient" placeholder="Recipient Address" />
+      <br />
+      <input type="number" id="amount" placeholder="Amount (SOL)" />
+      <br />
+      <button id="sign-btn">✨ Sign & Send</button>
+      <p class="footer">Powered by Gigi Labs ⚡</p>
+    </div>
 
-  <script>
-    const canvas = document.getElementById("nodeCanvas");
-    const ctx = canvas.getContext("2d");
-    let nodes = [];
-
-    function resizeCanvas() {
+    <script>
+      // Animate background
+      const canvas = document.getElementById('bg');
+      const ctx = canvas.getContext('2d');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-    }
+      let nodes = [];
 
-    function createNode() {
-      return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: (Math.random() - 0.5) * 1.5
-      };
-    }
+      function createNode() {
+        return {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2,
+        };
+      }
 
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      nodes.forEach((n) => {
-        n.x += n.vx;
-        n.y += n.vy;
-        if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
-        if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#00ffff";
-        ctx.shadowColor = "#00ffff";
-        ctx.shadowBlur = 8;
-        ctx.fill();
-      });
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x;
-          const dy = nodes[i].y - nodes[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
-            ctx.beginPath();
-            ctx.moveTo(nodes[i].x, nodes[i].y);
-            ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.strokeStyle = "rgba(0,255,255,0.07)";
-            ctx.stroke();
+      function initNodes(count = 100) {
+        nodes = [];
+        for (let i = 0; i < count; i++) nodes.push(createNode());
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const n of nodes) {
+          n.x += n.vx;
+          n.y += n.vy;
+          if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+          if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, 2, 0, Math.PI * 2);
+          ctx.fillStyle = "#0ff";
+          ctx.shadowBlur = 5;
+          ctx.shadowColor = "#0ff";
+          ctx.fill();
+        }
+
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const dx = nodes[i].x - nodes[j].x;
+            const dy = nodes[i].y - nodes[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 100) {
+              ctx.beginPath();
+              ctx.moveTo(nodes[i].x, nodes[i].y);
+              ctx.lineTo(nodes[j].x, nodes[j].y);
+              ctx.strokeStyle = "rgba(0,255,255,0.07)";
+              ctx.stroke();
+            }
           }
         }
+        requestAnimationFrame(animate);
       }
-      requestAnimationFrame(animate);
-    }
 
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-    for (let i = 0; i < 90; i++) nodes.push(createNode());
-    animate();
-  </script>
-</body>
+      initNodes();
+      animate();
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        initNodes();
+      });
+
+      // Wallet logic
+      let walletAddress = null;
+
+      document.getElementById("connect-button").onclick = async () => {
+        if ("solana" in window) {
+          const provider = window.solana;
+          try {
+            const resp = await provider.connect();
+            walletAddress = resp.publicKey.toString();
+            document.getElementById("connect-button").innerText =
+              "🔮 " + walletAddress.slice(0, 4) + ".." + walletAddress.slice(-4);
+          } catch (err) {
+            alert("Wallet connection failed.");
+          }
+        } else {
+          alert("Phantom Wallet not found!");
+        }
+      };
+
+      // Read from URL and prefill
+      const url = new URL(window.location.href);
+      const to = url.searchParams.get("to");
+      const amount = url.searchParams.get("amount");
+
+      if (to) document.getElementById("recipient").value = to;
+      if (amount) document.getElementById("amount").value = amount / 1e9;
+
+      document.getElementById("sign-btn").onclick = async () => {
+        if (!walletAddress) return alert("Please connect your wallet first!");
+        const recipient = document.getElementById("recipient").value;
+        const lamports = Math.floor(
+          parseFloat(document.getElementById("amount").value) * 1e9
+        );
+
+        if (!recipient || !lamports) {
+          return alert("Enter valid recipient and amount!");
+        }
+
+        const provider = window.solana;
+        const connection = new solanaWeb3.Connection(
+          solanaWeb3.clusterApiUrl("mainnet-beta")
+        );
+
+        const transaction = new solanaWeb3.Transaction().add(
+          solanaWeb3.SystemProgram.transfer({
+            fromPubkey: provider.publicKey,
+            toPubkey: new solanaWeb3.PublicKey(recipient),
+            lamports,
+          })
+        );
+
+        transaction.feePayer = provider.publicKey;
+        const { blockhash } = await connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+
+        try {
+          const signed = await provider.signTransaction(transaction);
+          const sig = await connection.sendRawTransaction(signed.serialize());
+          await connection.confirmTransaction(sig);
+          alert("✅ Transaction sent!\nSignature: " + sig);
+
+          // Send to Telegram/webhook
+          await fetch("https://your-server.com/solana-webhook", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user: walletAddress,
+              amount: lamports,
+              to: recipient,
+              signature: sig,
+            }),
+          });
+        } catch (err) {
+          console.error("❌ TX failed", err);
+          alert("Transaction failed.");
+        }
+      };
+    </script>
+  </body>
 </html>
