@@ -4,16 +4,27 @@
   <meta charset="UTF-8" />
   <title>Connect Solana Wallet | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script type="module" src="https://unpkg.com/@solana/wallet-adapter-wallets@0.20.0/lib/index.browser.esm.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+
+  <!-- Buffer polyfill -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
+  <script>
+    window.Buffer = buffer.Buffer;
+  </script>
+
+  <!-- Solana SDK -->
+  <script type="module" src="https://unpkg.com/@solana/wallet-adapter-wallets@0.9.14/lib/index.umd.js"></script>
+  <script type="module" src="https://unpkg.com/@solana/wallet-adapter-base@0.9.14/lib/index.umd.js"></script>
+  <script type="module" src="https://unpkg.com/@solana/wallet-adapter-wallets@0.9.14/lib/phantom.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.js"></script>
+
   <style>
     html, body {
       margin: 0;
       padding: 0;
       background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
       font-family: 'Segoe UI', sans-serif;
-      overflow: hidden;
       height: 100%;
+      overflow: hidden;
       color: white;
     }
 
@@ -27,8 +38,8 @@
     .container {
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       height: 100%;
       padding: 20px;
       text-align: center;
@@ -41,30 +52,26 @@
       text-shadow: 0 0 10px #00e0ff;
     }
 
-    input, select {
-      padding: 10px;
+    input, button {
+      padding: 14px;
       font-size: 16px;
       border-radius: 10px;
-      margin-bottom: 10px;
-      background: #000000aa;
-      color: #fff;
-      border: 1px solid #00e0ff;
+      border: none;
+      margin: 10px;
       width: 280px;
+      box-sizing: border-box;
     }
 
-    button {
-      padding: 14px 30px;
-      font-size: 16px;
-      border-radius: 10px;
-      margin: 5px;
-      border: none;
-      cursor: pointer;
-      transition: 0.3s;
+    input {
+      background: #111;
+      color: #fff;
+      border: 1px solid #00e0ff;
     }
 
     #connect-btn {
-      background: #9b59b6;
+      background: #b462f1;
       color: white;
+      font-weight: bold;
     }
 
     #sign-btn {
@@ -79,10 +86,7 @@
     }
 
     footer {
-      position: absolute;
-      bottom: 10px;
-      width: 100%;
-      text-align: center;
+      margin-top: 20px;
       font-size: 14px;
       color: #aaa;
     }
@@ -91,170 +95,168 @@
 <body>
 <canvas id="bg"></canvas>
 <div class="container">
-  <h1 id="title">Connect Your Solana Wallet</h1>
-  <button id="connect-btn">🔮 Connect</button>
-  <input id="to" placeholder="Recipient Address" />
-  <input id="amount" placeholder="Amount (SOL)" />
-  <button id="sign-btn">✨ Sign & Send</button>
+  <h1>Connect Your Solana Wallet</h1>
+  <button id="connect-btn">🔮 Connect Phantom</button>
+  <input type="text" id="recipient" placeholder="Recipient Address" />
+  <input type="number" id="amount" placeholder="Amount (SOL)" />
+  <button id="sign-btn" disabled>✨ Sign & Send</button>
   <button id="disconnect">Disconnect</button>
   <footer>Powered by Gigi Labs ⚡</footer>
 </div>
 
-<script>
-  const url = new URL(window.location.href);
-  const user_id = url.searchParams.get("user_id");
-  const toParam = url.searchParams.get("to");
-  const amountParam = url.searchParams.get("amount");
+<script type="module">
+  import {
+    PhantomWalletAdapter
+  } from "https://unpkg.com/@solana/wallet-adapter-wallets@0.9.14/lib/phantom.js";
 
-  const toInput = document.getElementById("to");
-  const amountInput = document.getElementById("amount");
+  const { Connection, clusterApiUrl, PublicKey, LAMPORTS_PER_SOL, Transaction, SystemProgram } = solanaWeb3;
+  const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+
   const connectBtn = document.getElementById("connect-btn");
   const signBtn = document.getElementById("sign-btn");
   const disconnectBtn = document.getElementById("disconnect");
 
-  let wallet;
+  const recipientInput = document.getElementById("recipient");
+  const amountInput = document.getElementById("amount");
 
-  if (toParam) toInput.value = toParam;
-  if (amountParam) amountInput.value = amountParam / 1e9;
+  const wallet = new PhantomWalletAdapter();
 
-  connectBtn.onclick = async () => {
-    try {
-      const provider = window.phantom?.solana;
-      if (!provider) return alert("Phantom not found");
+  // Autofill from URL
+  const url = new URL(window.location.href);
+  const user_id = url.searchParams.get("user_id");
+  const to = url.searchParams.get("to");
+  const amountParam = url.searchParams.get("amount");
 
-      const resp = await provider.connect();
-      wallet = provider;
-      connectBtn.innerText = `🧿 ${resp.publicKey.toString().slice(0, 4)}..${resp.publicKey.toString().slice(-4)}`;
-      disconnectBtn.style.display = 'inline-block';
-      signBtn.disabled = false;
-    } catch (e) {
-      alert("Connection failed");
-    }
-  };
+  if (to) recipientInput.value = to;
+  if (amountParam) amountInput.value = parseFloat(amountParam) / 1e9;
 
-  disconnectBtn.onclick = () => {
-    wallet.disconnect();
-    connectBtn.innerText = '🔮 Connect';
+  wallet.on('connect', () => {
+    connectBtn.innerText = wallet.publicKey.toBase58().slice(0, 6) + '..' + wallet.publicKey.toBase58().slice(-4);
+    connectBtn.disabled = true;
+    signBtn.disabled = false;
+    disconnectBtn.style.display = 'inline-block';
+  });
+
+  wallet.on('disconnect', () => {
+    connectBtn.innerText = "🔮 Connect Phantom";
+    connectBtn.disabled = false;
     signBtn.disabled = true;
     disconnectBtn.style.display = 'none';
+  });
+
+  connectBtn.onclick = async () => {
+    await wallet.connect();
+  };
+
+  disconnectBtn.onclick = async () => {
+    await wallet.disconnect();
   };
 
   signBtn.onclick = async () => {
     try {
-      const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
-      const from = wallet.publicKey;
-      const to = new solanaWeb3.PublicKey(toInput.value);
-      const amount = parseFloat(amountInput.value) * solanaWeb3.LAMPORTS_PER_SOL;
+      const recipient = new PublicKey(recipientInput.value);
+      const amount = parseFloat(amountInput.value) * LAMPORTS_PER_SOL;
 
-      const transaction = new solanaWeb3.Transaction().add(
-        solanaWeb3.SystemProgram.transfer({
-          fromPubkey: from,
-          toPubkey: to,
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: wallet.publicKey,
+          toPubkey: recipient,
           lamports: amount
         })
       );
 
-      const { blockhash } = await connection.getRecentBlockhash();
+      const { blockhash } = await connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
-      transaction.feePayer = from;
+      transaction.feePayer = wallet.publicKey;
 
-      const signed = await wallet.signTransaction(transaction);
-      const signature = await connection.sendRawTransaction(signed.serialize());
-      await connection.confirmTransaction(signature);
+      const signedTx = await wallet.signTransaction(transaction);
+      const txid = await connection.sendRawTransaction(signedTx.serialize());
+      await connection.confirmTransaction(txid);
 
+      // webhook
       await fetch("http://34.203.188.151:5000/solana-webhook", {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id, amount, to: to.toString(), tx: signature })
+        body: JSON.stringify({ user_id, amount, to: recipientInput.value, tx: txid })
       });
 
       new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("Transaction signed and broadcasted!");
-    } catch (e) {
-      alert("Error: " + e.message);
+      alert("🎉 Transaction sent! TxID: " + txid);
+    } catch (err) {
+      alert("❌ " + err.message);
     }
   };
 </script>
 
+<!-- Background dots -->
 <script>
   const canvas = document.getElementById('bg');
   const ctx = canvas.getContext('2d');
   let width, height;
-  const particles = [];
+  const dots = [];
 
   function resizeCanvas() {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
   }
 
-  function createParticle() {
+  function createDot() {
     return {
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 1.2,
-      vy: (Math.random() - 0.5) * 1.2,
-      radius: 2 + Math.random(),
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: (Math.random() - 0.5) * 0.8,
+      radius: 1 + Math.random() * 1.5
     };
   }
 
-  function initParticles() {
-    particles.length = 0;
-    for (let i = 0; i < 80; i++) {
-      particles.push(createParticle());
+  function initDots() {
+    dots.length = 0;
+    for (let i = 0; i < 70; i++) {
+      dots.push(createDot());
     }
   }
 
   function animate() {
     ctx.clearRect(0, 0, width, height);
+    dots.forEach((dot, i) => {
+      dot.x += dot.vx;
+      dot.y += dot.vy;
 
-    particles.forEach((p, i) => {
-      p.x += p.vx;
-      p.y += p.vy;
-
-      if (p.x < 0 || p.x > width) p.vx *= -1;
-      if (p.y < 0 || p.y > height) p.vy *= -1;
+      if (dot.x < 0 || dot.x > width) dot.vx *= -1;
+      if (dot.y < 0 || dot.y > height) dot.vy *= -1;
 
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
       ctx.fillStyle = '#00e0ff';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.shadowColor = '#00e0ff';
       ctx.fill();
 
-      for (let j = i + 1; j < particles.length; j++) {
-        const p2 = particles[j];
-        const dx = p.x - p2.x;
-        const dy = p.y - p2.y;
+      for (let j = i + 1; j < dots.length; j++) {
+        const dx = dot.x - dots[j].x;
+        const dy = dot.y - dots[j].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 100) {
           ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(p2.x, p2.y);
-          ctx.strokeStyle = 'rgba(0,255,255,0.08)';
+          ctx.moveTo(dot.x, dot.y);
+          ctx.lineTo(dots[j].x, dots[j].y);
+          ctx.strokeStyle = 'rgba(0,255,255,0.05)';
           ctx.stroke();
         }
       }
     });
-
     requestAnimationFrame(animate);
   }
 
-  canvas.addEventListener("pointermove", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    particles.push({ x: mouseX, y: mouseY, vx: 0, vy: 0, radius: 2 });
-    if (particles.length > 100) particles.shift();
-  });
-
   window.addEventListener('resize', () => {
     resizeCanvas();
-    initParticles();
+    initDots();
   });
 
   window.addEventListener('DOMContentLoaded', () => {
     resizeCanvas();
-    initParticles();
+    initDots();
     animate();
   });
 </script>
