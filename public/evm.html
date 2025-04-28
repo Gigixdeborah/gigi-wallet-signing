@@ -1,43 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Connect EVM Wallet | Gigi Labs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/@walletconnect/web3-provider"></script>
-  <script src="https://unpkg.com/web3modal"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Gigi Labs | Connect EVM Wallet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/@walletconnect/modal@2.4.2/dist/index.umd.js"></script>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
       font-family: 'Segoe UI', sans-serif;
       background: radial-gradient(ellipse at top, #0f0c29, #302b63, #24243e);
       color: white;
       display: flex;
-      justify-content: center;
-      align-items: center;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       text-align: center;
+    }
+    h1 {
+      font-size: 24px;
+      color: #00e0ff;
+      margin-bottom: 20px;
     }
     button {
-      padding: 14px 32px;
-      font-size: 16px;
+      padding: 12px 30px;
       margin: 10px;
+      font-size: 16px;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: 0.3s;
     }
-    #connect { background: #00e0ff; color: #000; }
-    #sign { background: #00ff95; color: #000; display: none; }
-    #disconnect { background: #ff4444; color: #fff; display: none; }
-    .footer {
+    #connectBtn { background-color: #00e0ff; color: #000; }
+    #signBtn { background-color: #00ff95; color: #000; display: none; }
+    #disconnectBtn { background-color: #ff4444; color: white; display: none; }
+    footer {
       position: absolute;
       bottom: 10px;
-      width: 100%;
-      text-align: center;
       font-size: 14px;
       color: #aaa;
     }
@@ -46,10 +45,9 @@
 <body>
 
 <script>
-  const isTelegramBrowser = () => navigator.userAgent.toLowerCase().includes("telegram");
-  if (isTelegramBrowser()) {
-    const open = confirm("Telegram’s browser blocks MetaMask.\nOpen in Chrome?");
-    if (open) {
+  if (navigator.userAgent.toLowerCase().includes("telegram")) {
+    const go = confirm("Telegram's browser can't connect wallets.\nOpen in Chrome?");
+    if (go) {
       const url = encodeURIComponent(window.location.href);
       window.location.href = `https://t.me/share/url?url=${url}`;
     }
@@ -57,85 +55,95 @@
 </script>
 
 <h1>Connect Your EVM Wallet</h1>
-<button id="connect">Connect Wallet</button>
-<button id="sign">Sign Transaction</button>
-<button id="disconnect">Disconnect</button>
-<div class="footer">✨ Powered by Gigi Labs</div>
+<button id="connectBtn">Connect Wallet</button>
+<button id="signBtn">Sign Transaction</button>
+<button id="disconnectBtn">Disconnect</button>
+<footer>✨ Powered by Gigi Labs</footer>
 
-<script>
-  const query = new URLSearchParams(window.location.search);
-  const user_id = query.get("user_id");
-  const amount = query.get("amount");
-  const to = query.get("to");
+<script type="module">
+  import {
+    EthereumProvider,
+    EthereumClient,
+    modalConnectors,
+    walletConnectProvider
+  } from "https://unpkg.com/@web3modal/ethereum@2.4.2";
 
-  let currentAccount = null;
-  let web3Modal;
-  let provider;
+  import { Web3Modal } from "https://unpkg.com/@web3modal/html@2.4.2";
 
-  async function init() {
-    const providerOptions = {
-      walletconnect: {
-        package: window.WalletConnectProvider.default,
-        options: {
-          infuraId: "1a81cf7a582e4ebfb768bce6a7ec1e55"
-        }
-      }
-    };
+  import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
-    web3Modal = new window.Web3Modal.default({
-      cacheProvider: false,
-      providerOptions
-    });
+  const projectId = "4c483f64603635192755f2324df4ec2";
+  const chains = [{ chainId: 1, name: 'Ethereum Mainnet' }];
 
-    document.getElementById("connect").onclick = onConnect;
-    document.getElementById("disconnect").onclick = onDisconnect;
-    document.getElementById("sign").onclick = onSign;
-  }
+  const metadata = {
+    name: "GigiP2Bot",
+    description: "Gigi EVM Wallet Signer",
+    url: "https://gigi-wallet-signing.onrender.com",
+    icons: ["https://gigi-wallet-signing.onrender.com/favicon.ico"]
+  };
 
-  async function onConnect() {
+  const ethereumClient = new EthereumClient(
+    new EthereumProvider({
+      projectId,
+      metadata,
+      chains
+    }),
+    chains
+  );
+
+  const web3Modal = new Web3Modal({
+    projectId,
+    themeVariables: {
+      "--w3m-accent": "#00e0ff",
+      "--w3m-background": "#0f0c29",
+      "--w3m-logo-image-url": "https://gigi-wallet-signing.onrender.com/gigip2bot-logo.png"
+    }
+  }, ethereumClient);
+
+  const user_id = new URLSearchParams(window.location.search).get("user_id");
+  const amount = new URLSearchParams(window.location.search).get("amount");
+  const to = new URLSearchParams(window.location.search).get("to");
+
+  let provider = null;
+  let signer = null;
+
+  document.getElementById("connectBtn").onclick = async () => {
     try {
-      provider = await web3Modal.connect();
-      const ethersProvider = new ethers.providers.Web3Provider(provider);
-      const accounts = await ethersProvider.listAccounts();
-      currentAccount = accounts[0];
-      document.getElementById("sign").style.display = "inline-block";
-      document.getElementById("disconnect").style.display = "inline-block";
+      await web3Modal.openModal();
+      await ethereumClient.provider.connect();
+      provider = new ethers.providers.Web3Provider(ethereumClient.provider);
+      signer = provider.getSigner();
+      document.getElementById("signBtn").style.display = "inline-block";
+      document.getElementById("disconnectBtn").style.display = "inline-block";
     } catch (err) {
-      alert("Connection failed");
+      alert("❌ Connection failed.");
     }
-  }
+  };
 
-  async function onDisconnect() {
-    if (provider && provider.disconnect) {
-      await provider.disconnect();
-    }
-    web3Modal.clearCachedProvider();
-    currentAccount = null;
-    document.getElementById("sign").style.display = "none";
-    document.getElementById("disconnect").style.display = "none";
-  }
+  document.getElementById("disconnectBtn").onclick = () => {
+    ethereumClient.provider.disconnect();
+    provider = null;
+    signer = null;
+    document.getElementById("signBtn").style.display = "none";
+    document.getElementById("disconnectBtn").style.display = "none";
+  };
 
-  async function onSign() {
-    if (!window.ethereum || !currentAccount) return alert("Wallet not connected");
-
-    const txParams = {
-      from: currentAccount,
-      to: to,
-      value: ethers.utils.parseEther(amount)._hex
-    };
-
+  document.getElementById("signBtn").onclick = async () => {
     try {
-      const txHash = await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [txParams]
-      });
+      const wallet = await signer.getAddress();
+      const tx = {
+        to,
+        value: ethers.utils.parseEther(amount)
+      };
+      const txResponse = await signer.sendTransaction(tx);
+      const txHash = txResponse.hash;
 
       await fetch("http://34.203.188.151:5000/evm-webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id,
-          wallet: currentAccount,
+          wallet,
           to,
           amount,
           tx_type: "buy",
@@ -145,13 +153,12 @@
       });
 
       new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("✅ Transaction sent!\nTX Hash:\n" + txHash);
+      alert("✅ Transaction sent!\n" + txHash);
     } catch (err) {
-      alert("❌ Transaction failed or cancelled.");
+      alert("❌ Transaction cancelled or failed.");
     }
-  }
-
-  window.addEventListener("load", init);
+  };
 </script>
+
 </body>
 </html>
