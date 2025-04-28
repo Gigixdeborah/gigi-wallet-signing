@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Connect EVM Wallet | Gigi Labs</title>
+  <title>Gigi Labs | Connect EVM Wallet</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3modal@2.8.0/dist/index.umd.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3modal@2.8.0/dist/index.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
@@ -21,14 +21,12 @@
       text-align: center;
       overflow: hidden;
     }
-
     h1 {
       font-size: 28px;
       color: #00e0ff;
       margin-bottom: 30px;
       text-shadow: 0 0 15px #00e0ff;
     }
-
     button {
       padding: 14px 36px;
       font-size: 18px;
@@ -38,18 +36,15 @@
       margin: 10px;
       transition: 0.3s ease-in-out;
     }
-
     #connectBtn { background: #00e0ff; color: #000; }
     #signBtn { background: #00ff95; color: #000; display: none; }
     #disconnectBtn { background: #ff4444; color: #fff; display: none; }
-
     footer {
       position: absolute;
       bottom: 10px;
       font-size: 14px;
       color: #aaa;
     }
-
     canvas {
       position: fixed;
       top: 0;
@@ -71,14 +66,13 @@
 </script>
 
 <canvas id="bg"></canvas>
-
 <h1>Connect Your EVM Wallet</h1>
 <button id="connectBtn">🚀 Connect Wallet</button>
 <button id="signBtn">✅ Sign Transaction</button>
 <button id="disconnectBtn">❌ Disconnect</button>
 <footer>✨ Powered by Gigi Labs</footer>
 
-<script type="text/javascript">
+<script>
   const { EthereumProvider, Web3Modal } = window["@walletconnect/web3modal"];
   const { ethers } = window.ethers;
 
@@ -86,7 +80,6 @@
   const user_id = query.get("user_id");
   const amount = query.get("amount");
   const to = query.get("to");
-
   const projectId = "4c483f64603635192755f2324df4ec2";
 
   const metadata = {
@@ -97,17 +90,7 @@
   };
 
   const provider = new EthereumProvider({ projectId, metadata });
-
-  const modal = new Web3Modal({
-    projectId,
-    themeMode: "dark",
-    themeVariables: {
-      "--w3m-accent": "#00e0ff",
-      "--w3m-font-family": "Segoe UI, sans-serif"
-    },
-    explorerRecommendedWalletIds: "NONE",
-    standaloneChains: ["eip155:1"]
-  });
+  const modal = new Web3Modal({ projectId });
 
   let signer, address;
 
@@ -163,6 +146,7 @@
   const ctx = canvas.getContext("2d");
   let width, height;
   const dots = [];
+  let mouseX = -1000, mouseY = -1000;
 
   function resizeCanvas() {
     width = canvas.width = window.innerWidth;
@@ -173,8 +157,8 @@
     return {
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.7,
-      vy: (Math.random() - 0.5) * 0.7,
+      vx: (Math.random() - 0.5) * 1,
+      vy: (Math.random() - 0.5) * 1,
       radius: 1 + Math.random() * 2
     };
   }
@@ -197,23 +181,41 @@
       ctx.fillStyle = "#00e0ff";
       ctx.fill();
 
+      // draw lines to nearby dots
       for (let j = i + 1; j < dots.length; j++) {
         const other = dots[j];
         const dx = dot.x - other.x;
         const dy = dot.y - other.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 100) {
+        if (dist < 120) {
           ctx.beginPath();
           ctx.moveTo(dot.x, dot.y);
           ctx.lineTo(other.x, other.y);
-          ctx.strokeStyle = "rgba(0,255,255,0.08)";
+          ctx.strokeStyle = "rgba(0,255,255,0.07)";
           ctx.stroke();
         }
       }
-    });
 
+      // connect to mouse/touch
+      const mdx = dot.x - mouseX;
+      const mdy = dot.y - mouseY;
+      const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+      if (mdist < 150) {
+        ctx.beginPath();
+        ctx.moveTo(dot.x, dot.y);
+        ctx.lineTo(mouseX, mouseY);
+        ctx.strokeStyle = "rgba(0,255,255,0.1)";
+        ctx.stroke();
+      }
+    });
     requestAnimationFrame(animate);
   }
+
+  canvas.addEventListener("pointermove", e => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+  });
 
   window.addEventListener("resize", () => {
     resizeCanvas();
