@@ -3,127 +3,226 @@
 <head>
   <meta charset="UTF-8" />
   <title>Connect EVM Wallet | Gigi Labs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3modal@2.8.0/dist/index.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/web3modal@1.9.12/dist/index.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%;
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
+      color: white;
       font-family: 'Segoe UI', sans-serif;
-      background: radial-gradient(ellipse at top, #0f0c29, #302b63, #24243e);
-      color: white; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
     }
-    h1 { font-size: 24px; color: #00e0ff; margin-bottom: 20px; text-shadow: 0 0 10px #00e0ff; }
+
+    h1 {
+      font-size: 28px;
+      color: #00e0ff;
+      margin-bottom: 30px;
+      text-shadow: 0 0 15px #00e0ff;
+    }
+
     button {
-      padding: 14px 30px; font-size: 16px;
-      margin: 10px; border: none; border-radius: 10px;
-      cursor: pointer; transition: 0.3s;
+      padding: 14px 36px;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin: 10px;
+      transition: 0.3s ease-in-out;
     }
+
     #connectBtn { background: #00e0ff; color: #000; }
     #signBtn { background: #00ff95; color: #000; display: none; }
     #disconnectBtn { background: #ff4444; color: #fff; display: none; }
-    footer { position: absolute; bottom: 10px; font-size: 14px; color: #aaa; }
+
+    footer {
+      position: absolute;
+      bottom: 10px;
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
   </style>
 </head>
 <body>
 
 <script>
   if (navigator.userAgent.toLowerCase().includes("telegram")) {
-    const url = encodeURIComponent(window.location.href);
-    const open = confirm("Telegram browser blocks wallet extensions.\nOpen in Chrome?");
-    if (open) window.location.href = `https://t.me/share/url?url=${url}`;
+    const open = confirm("Telegram blocks wallet connections.\nOpen in Chrome?");
+    if (open) {
+      const url = encodeURIComponent(window.location.href);
+      window.location.href = `https://t.me/share/url?url=${url}`;
+    }
   }
 </script>
 
+<canvas id="bg"></canvas>
+
 <h1>Connect Your EVM Wallet</h1>
-<button id="connectBtn">Connect Wallet</button>
-<button id="signBtn">Sign Transaction</button>
-<button id="disconnectBtn">Disconnect</button>
+<button id="connectBtn">🚀 Connect Wallet</button>
+<button id="signBtn">✅ Sign Transaction</button>
+<button id="disconnectBtn">❌ Disconnect</button>
 <footer>✨ Powered by Gigi Labs</footer>
 
-<script>
-  const user_id = new URLSearchParams(location.search).get("user_id");
-  const amount = new URLSearchParams(location.search).get("amount");
-  const to = new URLSearchParams(location.search).get("to");
+<script type="text/javascript">
+  const { EthereumProvider, Web3Modal } = window["@walletconnect/web3modal"];
+  const { ethers } = window.ethers;
 
-  let web3Modal, provider, web3, selectedAccount;
+  const query = new URLSearchParams(window.location.search);
+  const user_id = query.get("user_id");
+  const amount = query.get("amount");
+  const to = query.get("to");
 
-  const providerOptions = {
-    walletconnect: {
-      package: window.WalletConnectProvider.default,
-      options: {
-        infuraId: "1a81cf7a582e4ebfb768bce6a7ec1e55"
-      }
-    }
+  const projectId = "4c483f64603635192755f2324df4ec2";
+
+  const metadata = {
+    name: "Gigi Labs",
+    description: "GigiP2Bot Web3 Wallet Connect",
+    url: "https://gigi-wallet-signing.onrender.com",
+    icons: ["https://gigi-wallet-signing.onrender.com/favicon.ico"]
   };
 
-  web3Modal = new window.Web3Modal.default({
-    cacheProvider: false,
-    providerOptions
+  const provider = new EthereumProvider({ projectId, metadata });
+
+  const modal = new Web3Modal({
+    projectId,
+    themeMode: "dark",
+    themeVariables: {
+      "--w3m-accent": "#00e0ff",
+      "--w3m-font-family": "Segoe UI, sans-serif"
+    },
+    explorerRecommendedWalletIds: "NONE",
+    standaloneChains: ["eip155:1"]
   });
 
-  async function connectWallet() {
-    try {
-      provider = await web3Modal.connect();
-      web3 = new Web3(provider);
-      const accounts = await web3.eth.getAccounts();
-      selectedAccount = accounts[0];
-      document.getElementById("signBtn").style.display = "inline-block";
-      document.getElementById("disconnectBtn").style.display = "inline-block";
-    } catch (err) {
-      alert("❌ Connection failed.");
-    }
-  }
+  let signer, address;
 
-  async function disconnectWallet() {
-    if (provider && provider.close) await provider.close();
-    await web3Modal.clearCachedProvider();
-    provider = null;
-    selectedAccount = null;
+  document.getElementById("connectBtn").onclick = async () => {
+    await modal.openModal();
+    await provider.connect();
+    const web3Provider = new ethers.providers.Web3Provider(provider);
+    signer = web3Provider.getSigner();
+    address = await signer.getAddress();
+    document.getElementById("signBtn").style.display = "inline-block";
+    document.getElementById("disconnectBtn").style.display = "inline-block";
+  };
+
+  document.getElementById("disconnectBtn").onclick = async () => {
+    await provider.disconnect();
     document.getElementById("signBtn").style.display = "none";
     document.getElementById("disconnectBtn").style.display = "none";
-  }
+  };
 
-  async function signTransaction() {
-    if (!selectedAccount) return alert("Wallet not connected.");
-
-    const valueInWei = web3.utils.toWei(amount, "ether");
-    const tx = {
-      from: selectedAccount,
-      to: to,
-      value: valueInWei
-    };
-
+  document.getElementById("signBtn").onclick = async () => {
     try {
-      const txHash = await web3.eth.sendTransaction(tx);
+      const tx = {
+        to: to,
+        value: ethers.utils.parseEther(amount)
+      };
+      const response = await signer.sendTransaction(tx);
+      const hash = response.hash;
 
       await fetch("http://34.203.188.151:5000/evm-webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id,
-          wallet: selectedAccount,
+          wallet: address,
           to,
           amount,
           tx_type: "buy",
           token: "ETH",
-          signed_tx: txHash.transactionHash
+          signed_tx: hash
         })
       });
 
       new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("✅ Transaction Sent!\n" + txHash.transactionHash);
-    } catch (err) {
-      alert("❌ Transaction failed or rejected.");
+      alert("✅ Transaction sent!\nTX Hash: " + hash);
+    } catch (e) {
+      alert("❌ Transaction failed or cancelled.");
     }
+  };
+</script>
+
+<script>
+  const canvas = document.getElementById("bg");
+  const ctx = canvas.getContext("2d");
+  let width, height;
+  const dots = [];
+
+  function resizeCanvas() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
   }
 
-  document.getElementById("connectBtn").onclick = connectWallet;
-  document.getElementById("disconnectBtn").onclick = disconnectWallet;
-  document.getElementById("signBtn").onclick = signTransaction;
+  function createDot() {
+    return {
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.7,
+      vy: (Math.random() - 0.5) * 0.7,
+      radius: 1 + Math.random() * 2
+    };
+  }
+
+  function initDots() {
+    for (let i = 0; i < 80; i++) dots.push(createDot());
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+    dots.forEach((dot, i) => {
+      dot.x += dot.vx;
+      dot.y += dot.vy;
+
+      if (dot.x < 0 || dot.x > width) dot.vx *= -1;
+      if (dot.y < 0 || dot.y > height) dot.vy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#00e0ff";
+      ctx.fill();
+
+      for (let j = i + 1; j < dots.length; j++) {
+        const other = dots[j];
+        const dx = dot.x - other.x;
+        const dy = dot.y - other.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(dot.x, dot.y);
+          ctx.lineTo(other.x, other.y);
+          ctx.strokeStyle = "rgba(0,255,255,0.08)";
+          ctx.stroke();
+        }
+      }
+    });
+
+    requestAnimationFrame(animate);
+  }
+
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    animate();
+  });
+
+  resizeCanvas();
+  initDots();
+  animate();
 </script>
 
 </body>
