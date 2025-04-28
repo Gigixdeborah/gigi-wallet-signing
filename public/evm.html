@@ -1,56 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Gigi Labs | Connect EVM Wallet</title>
+  <meta charset="UTF-8" />
+  <title>Connect EVM Wallet | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/@walletconnect/modal@2.4.2/dist/index.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3modal@1.9.12/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
-    body {
-      margin: 0;
+    html, body {
+      margin: 0; padding: 0; height: 100%;
       font-family: 'Segoe UI', sans-serif;
       background: radial-gradient(ellipse at top, #0f0c29, #302b63, #24243e);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      text-align: center;
+      color: white; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
     }
-    h1 {
-      font-size: 24px;
-      color: #00e0ff;
-      margin-bottom: 20px;
-    }
+    h1 { font-size: 24px; color: #00e0ff; margin-bottom: 20px; text-shadow: 0 0 10px #00e0ff; }
     button {
-      padding: 12px 30px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+      padding: 14px 30px; font-size: 16px;
+      margin: 10px; border: none; border-radius: 10px;
+      cursor: pointer; transition: 0.3s;
     }
-    #connectBtn { background-color: #00e0ff; color: #000; }
-    #signBtn { background-color: #00ff95; color: #000; display: none; }
-    #disconnectBtn { background-color: #ff4444; color: white; display: none; }
-    footer {
-      position: absolute;
-      bottom: 10px;
-      font-size: 14px;
-      color: #aaa;
-    }
+    #connectBtn { background: #00e0ff; color: #000; }
+    #signBtn { background: #00ff95; color: #000; display: none; }
+    #disconnectBtn { background: #ff4444; color: #fff; display: none; }
+    footer { position: absolute; bottom: 10px; font-size: 14px; color: #aaa; }
   </style>
 </head>
 <body>
 
 <script>
   if (navigator.userAgent.toLowerCase().includes("telegram")) {
-    const go = confirm("Telegram's browser can't connect wallets.\nOpen in Chrome?");
-    if (go) {
-      const url = encodeURIComponent(window.location.href);
-      window.location.href = `https://t.me/share/url?url=${url}`;
-    }
+    const url = encodeURIComponent(window.location.href);
+    const open = confirm("Telegram browser blocks wallet extensions.\nOpen in Chrome?");
+    if (open) window.location.href = `https://t.me/share/url?url=${url}`;
   }
 </script>
 
@@ -60,104 +44,86 @@
 <button id="disconnectBtn">Disconnect</button>
 <footer>✨ Powered by Gigi Labs</footer>
 
-<script type="module">
-  import {
-    EthereumProvider,
-    EthereumClient,
-    modalConnectors,
-    walletConnectProvider
-  } from "https://unpkg.com/@web3modal/ethereum@2.4.2";
+<script>
+  const user_id = new URLSearchParams(location.search).get("user_id");
+  const amount = new URLSearchParams(location.search).get("amount");
+  const to = new URLSearchParams(location.search).get("to");
 
-  import { Web3Modal } from "https://unpkg.com/@web3modal/html@2.4.2";
+  let web3Modal, provider, web3, selectedAccount;
 
-  import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
-
-  const projectId = "4c483f64603635192755f2324df4ec2";
-  const chains = [{ chainId: 1, name: 'Ethereum Mainnet' }];
-
-  const metadata = {
-    name: "GigiP2Bot",
-    description: "Gigi EVM Wallet Signer",
-    url: "https://gigi-wallet-signing.onrender.com",
-    icons: ["https://gigi-wallet-signing.onrender.com/favicon.ico"]
+  const providerOptions = {
+    walletconnect: {
+      package: window.WalletConnectProvider.default,
+      options: {
+        infuraId: "1a81cf7a582e4ebfb768bce6a7ec1e55"
+      }
+    }
   };
 
-  const ethereumClient = new EthereumClient(
-    new EthereumProvider({
-      projectId,
-      metadata,
-      chains
-    }),
-    chains
-  );
+  web3Modal = new window.Web3Modal.default({
+    cacheProvider: false,
+    providerOptions
+  });
 
-  const web3Modal = new Web3Modal({
-    projectId,
-    themeVariables: {
-      "--w3m-accent": "#00e0ff",
-      "--w3m-background": "#0f0c29",
-      "--w3m-logo-image-url": "https://gigi-wallet-signing.onrender.com/gigip2bot-logo.png"
-    }
-  }, ethereumClient);
-
-  const user_id = new URLSearchParams(window.location.search).get("user_id");
-  const amount = new URLSearchParams(window.location.search).get("amount");
-  const to = new URLSearchParams(window.location.search).get("to");
-
-  let provider = null;
-  let signer = null;
-
-  document.getElementById("connectBtn").onclick = async () => {
+  async function connectWallet() {
     try {
-      await web3Modal.openModal();
-      await ethereumClient.provider.connect();
-      provider = new ethers.providers.Web3Provider(ethereumClient.provider);
-      signer = provider.getSigner();
+      provider = await web3Modal.connect();
+      web3 = new Web3(provider);
+      const accounts = await web3.eth.getAccounts();
+      selectedAccount = accounts[0];
       document.getElementById("signBtn").style.display = "inline-block";
       document.getElementById("disconnectBtn").style.display = "inline-block";
     } catch (err) {
       alert("❌ Connection failed.");
     }
-  };
+  }
 
-  document.getElementById("disconnectBtn").onclick = () => {
-    ethereumClient.provider.disconnect();
+  async function disconnectWallet() {
+    if (provider && provider.close) await provider.close();
+    await web3Modal.clearCachedProvider();
     provider = null;
-    signer = null;
+    selectedAccount = null;
     document.getElementById("signBtn").style.display = "none";
     document.getElementById("disconnectBtn").style.display = "none";
-  };
+  }
 
-  document.getElementById("signBtn").onclick = async () => {
+  async function signTransaction() {
+    if (!selectedAccount) return alert("Wallet not connected.");
+
+    const valueInWei = web3.utils.toWei(amount, "ether");
+    const tx = {
+      from: selectedAccount,
+      to: to,
+      value: valueInWei
+    };
+
     try {
-      const wallet = await signer.getAddress();
-      const tx = {
-        to,
-        value: ethers.utils.parseEther(amount)
-      };
-      const txResponse = await signer.sendTransaction(tx);
-      const txHash = txResponse.hash;
+      const txHash = await web3.eth.sendTransaction(tx);
 
       await fetch("http://34.203.188.151:5000/evm-webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id,
-          wallet,
+          wallet: selectedAccount,
           to,
           amount,
           tx_type: "buy",
           token: "ETH",
-          signed_tx: txHash
+          signed_tx: txHash.transactionHash
         })
       });
 
       new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("✅ Transaction sent!\n" + txHash);
+      alert("✅ Transaction Sent!\n" + txHash.transactionHash);
     } catch (err) {
-      alert("❌ Transaction cancelled or failed.");
+      alert("❌ Transaction failed or rejected.");
     }
-  };
+  }
+
+  document.getElementById("connectBtn").onclick = connectWallet;
+  document.getElementById("disconnectBtn").onclick = disconnectWallet;
+  document.getElementById("signBtn").onclick = signTransaction;
 </script>
 
 </body>
