@@ -2,71 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Gigi Labs | Connect EVM Wallet</title>
+  <title>Connect EVM Wallet | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/@walletconnect/web3modal@2.8.0/dist/index.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3modal@2.8.0/dist/index.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
-      color: white;
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
       font-family: 'Segoe UI', sans-serif;
-      height: 100vh;
+      background: radial-gradient(ellipse at top, #0f0c29, #302b63, #24243e);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      overflow: hidden;
+      color: white;
     }
-    h1 {
-      font-size: 28px;
-      color: #00e0ff;
-      margin-bottom: 30px;
-      text-shadow: 0 0 15px #00e0ff;
-    }
+    h1 { font-size: 28px; color: #00e0ff; margin-bottom: 24px; }
+    #walletInfo { font-size: 14px; margin-top: 10px; opacity: 0.85; }
     button {
-      padding: 14px 36px;
-      font-size: 18px;
-      border: none;
-      border-radius: 12px;
+      padding: 14px 30px; font-size: 16px;
+      margin: 10px; border: none; border-radius: 10px;
       cursor: pointer;
-      margin: 10px;
-      transition: 0.3s ease-in-out;
     }
     #connectBtn { background: #00e0ff; color: #000; }
     #signBtn { background: #00ff95; color: #000; display: none; }
-    #disconnectBtn { background: #ff4444; color: #fff; display: none; }
-    footer {
-      position: absolute;
-      bottom: 10px;
-      font-size: 14px;
-      color: #aaa;
-    }
+    #disconnectBtn { background: #ff4444; color: white; display: none; }
     canvas {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
       z-index: -1;
+    }
+    footer {
+      position: absolute; bottom: 10px; font-size: 14px; color: #aaa;
     }
   </style>
 </head>
 <body>
 
-<script>
-  if (navigator.userAgent.toLowerCase().includes("telegram")) {
-    const open = confirm("Telegram blocks wallet connections.\nOpen in Chrome?");
-    if (open) {
-      const url = encodeURIComponent(window.location.href);
-      window.location.href = `https://t.me/share/url?url=${url}`;
-    }
-  }
-</script>
-
 <canvas id="bg"></canvas>
 <h1>Connect Your EVM Wallet</h1>
+<div id="walletInfo"></div>
 <button id="connectBtn">🚀 Connect Wallet</button>
 <button id="signBtn">✅ Sign Transaction</button>
 <button id="disconnectBtn">❌ Disconnect</button>
@@ -76,15 +55,14 @@
   const { EthereumProvider, Web3Modal } = window["@walletconnect/web3modal"];
   const { ethers } = window.ethers;
 
-  const query = new URLSearchParams(window.location.search);
-  const user_id = query.get("user_id");
-  const amount = query.get("amount");
-  const to = query.get("to");
-  const projectId = "4c483f64603635192755f2324df4ec2";
+  const user_id = new URLSearchParams(location.search).get("user_id");
+  const amount = new URLSearchParams(location.search).get("amount");
+  const to = new URLSearchParams(location.search).get("to");
 
+  const projectId = "4c483f64603635192755f2324df4ec2";
   const metadata = {
     name: "Gigi Labs",
-    description: "GigiP2Bot Web3 Wallet Connect",
+    description: "Wallet Connect for GigiP2Bot",
     url: "https://gigi-wallet-signing.onrender.com",
     icons: ["https://gigi-wallet-signing.onrender.com/favicon.ico"]
   };
@@ -95,46 +73,66 @@
   let signer, address;
 
   document.getElementById("connectBtn").onclick = async () => {
-    await modal.openModal();
-    await provider.connect();
-    const web3Provider = new ethers.providers.Web3Provider(provider);
-    signer = web3Provider.getSigner();
-    address = await signer.getAddress();
-    document.getElementById("signBtn").style.display = "inline-block";
-    document.getElementById("disconnectBtn").style.display = "inline-block";
+    try {
+      await modal.openModal();
+      await provider.connect();
+      const web3Provider = new ethers.providers.Web3Provider(provider);
+      signer = web3Provider.getSigner();
+      address = await signer.getAddress();
+
+      const balance = await web3Provider.getBalance(address);
+      const eth = ethers.utils.formatEther(balance);
+
+      document.getElementById("walletInfo").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | Balance: ${parseFloat(eth).toFixed(4)} ETH`;
+
+      document.getElementById("signBtn").style.display = "inline-block";
+      document.getElementById("disconnectBtn").style.display = "inline-block";
+    } catch (err) {
+      alert("❌ Connection cancelled or failed.");
+    }
   };
 
   document.getElementById("disconnectBtn").onclick = async () => {
     await provider.disconnect();
     document.getElementById("signBtn").style.display = "none";
     document.getElementById("disconnectBtn").style.display = "none";
+    document.getElementById("walletInfo").innerText = "";
   };
 
   document.getElementById("signBtn").onclick = async () => {
+    if (!signer || !address) return alert("❌ Please connect your wallet first.");
     try {
-      const tx = {
-        to: to,
-        value: ethers.utils.parseEther(amount)
-      };
+      const tx = { to: to, value: ethers.utils.parseEther(amount) };
       const response = await signer.sendTransaction(tx);
       const hash = response.hash;
 
       await fetch("http://34.203.188.151:5000/evm-webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id,
-          wallet: address,
-          to,
-          amount,
-          tx_type: "buy",
-          token: "ETH",
-          signed_tx: hash
-        })
+        body: JSON.stringify({ user_id, wallet: address, to, amount, tx_type: "buy", token: "ETH", signed_tx: hash })
+      });
+
+      const updatedBalance = await signer.getBalance();
+      const eth = ethers.utils.formatEther(updatedBalance);
+      document.getElementById("walletInfo").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | Balance: ${parseFloat(eth).toFixed(4)} ETH`;
+
+      new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
+      alert("✅ Transaction sent! TX Hash: " + hash);
+    } catch (e) {
+      alert("❌ Transaction failed or cancelled.");
+    }
+  };
+      const response = await signer.sendTransaction(tx);
+      const hash = response.hash;
+
+      await fetch("http://34.203.188.151:5000/evm-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id, wallet: address, to, amount, tx_type: "buy", token: "ETH", signed_tx: hash })
       });
 
       new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("✅ Transaction sent!\nTX Hash: " + hash);
+      alert("✅ Transaction sent! TX Hash: " + hash);
     } catch (e) {
       alert("❌ Transaction failed or cancelled.");
     }
@@ -146,7 +144,7 @@
   const ctx = canvas.getContext("2d");
   let width, height;
   const dots = [];
-  let mouseX = -1000, mouseY = -1000;
+  let pointer = { x: -1000, y: -1000 };
 
   function resizeCanvas() {
     width = canvas.width = window.innerWidth;
@@ -164,7 +162,7 @@
   }
 
   function initDots() {
-    for (let i = 0; i < 80; i++) dots.push(createDot());
+    for (let i = 0; i < 100; i++) dots.push(createDot());
   }
 
   function animate() {
@@ -172,39 +170,34 @@
     dots.forEach((dot, i) => {
       dot.x += dot.vx;
       dot.y += dot.vy;
-
       if (dot.x < 0 || dot.x > width) dot.vx *= -1;
       if (dot.y < 0 || dot.y > height) dot.vy *= -1;
-
       ctx.beginPath();
       ctx.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
       ctx.fillStyle = "#00e0ff";
       ctx.fill();
 
-      // draw lines to nearby dots
       for (let j = i + 1; j < dots.length; j++) {
-        const other = dots[j];
-        const dx = dot.x - other.x;
-        const dy = dot.y - other.y;
+        const dx = dot.x - dots[j].x;
+        const dy = dot.y - dots[j].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 120) {
           ctx.beginPath();
           ctx.moveTo(dot.x, dot.y);
-          ctx.lineTo(other.x, other.y);
+          ctx.lineTo(dots[j].x, dots[j].y);
           ctx.strokeStyle = "rgba(0,255,255,0.07)";
           ctx.stroke();
         }
       }
 
-      // connect to mouse/touch
-      const mdx = dot.x - mouseX;
-      const mdy = dot.y - mouseY;
-      const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-      if (mdist < 150) {
+      const dx = dot.x - pointer.x;
+      const dy = dot.y - pointer.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 140) {
         ctx.beginPath();
         ctx.moveTo(dot.x, dot.y);
-        ctx.lineTo(mouseX, mouseY);
-        ctx.strokeStyle = "rgba(0,255,255,0.1)";
+        ctx.lineTo(pointer.x, pointer.y);
+        ctx.strokeStyle = "rgba(0,255,255,0.15)";
         ctx.stroke();
       }
     });
@@ -212,14 +205,13 @@
   }
 
   canvas.addEventListener("pointermove", e => {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = e.clientX - rect.left;
-    mouseY = e.clientY - rect.top;
+    pointer.x = e.clientX;
+    pointer.y = e.clientY;
   });
 
-  window.addEventListener("resize", () => {
-    resizeCanvas();
-    animate();
+  canvas.addEventListener("touchmove", e => {
+    pointer.x = e.touches[0].clientX;
+    pointer.y = e.touches[0].clientY;
   });
 
   resizeCanvas();
