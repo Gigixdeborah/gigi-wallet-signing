@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Connect EVM Wallet | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3modal@2.8.0/dist/index.umd.min.js"></script>
+  <script src="https://unpkg.com/@web3modal/standalone@2.9.2/dist/index.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
@@ -13,7 +13,6 @@
       --bg: #121212;
       --text: #ffffff;
     }
-
     html, body {
       margin: 0; padding: 0;
       height: 100%; width: 100%;
@@ -26,19 +25,16 @@
       justify-content: center;
       text-align: center;
     }
-
     h1 {
       font-size: 28px;
       color: var(--primary);
       margin-bottom: 20px;
     }
-
     #walletInfo {
       font-size: 14px;
       margin-top: 10px;
       color: #ccc;
     }
-
     button {
       padding: 14px 28px;
       font-size: 16px;
@@ -48,34 +44,13 @@
       cursor: pointer;
       transition: 0.3s ease-in-out;
     }
-
-    #connectBtn {
-      background-color: var(--primary);
-      color: #000;
-    }
-
-    #signBtn {
-      background-color: var(--accent);
-      color: #000;
-      display: none;
-    }
-
-    #disconnectBtn {
-      background-color: #ff4444;
-      color: #fff;
-      display: none;
-    }
-
-    #copyAddr {
-      cursor: pointer;
-      margin-left: 8px;
-    }
-
+    #connectBtn { background-color: var(--primary); color: #000; }
+    #signBtn { background-color: var(--accent); color: #000; display: none; }
+    #disconnectBtn { background-color: #ff4444; color: #fff; display: none; }
+    #copyAddr { cursor: pointer; margin-left: 8px; }
     footer {
-      position: absolute;
-      bottom: 12px;
-      font-size: 14px;
-      color: #777;
+      position: absolute; bottom: 12px;
+      font-size: 14px; color: #777;
     }
   </style>
 </head>
@@ -92,35 +67,28 @@
 <footer>✨ Powered by Gigi Labs</footer>
 
 <script>
-  const { EthereumProvider, Web3Modal } = window["@walletconnect/web3modal"];
   const { ethers } = window.ethers;
+  const projectId = "4c483f64603635192755f2324df4ec2";
+
+  const web3Modal = new window.Web3Modal.StandaloneWeb3Modal({
+    projectId,
+    walletConnectVersion: 2
+  });
+
+  let signer, provider, address;
 
   const user_id = new URLSearchParams(location.search).get("user_id");
   const amount = new URLSearchParams(location.search).get("amount");
   const to = new URLSearchParams(location.search).get("to");
 
-  const projectId = "4c483f64603635192755f2324df4ec2";
-  const metadata = {
-    name: "Gigi Labs",
-    description: "Wallet Connect for GigiP2Bot",
-    url: "https://gigi-wallet-signing.onrender.com",
-    icons: ["https://gigi-wallet-signing.onrender.com/favicon.ico"]
-  };
-
-  const provider = new EthereumProvider({ projectId, metadata });
-  const modal = new Web3Modal({ projectId });
-
-  let signer, address;
-
   document.getElementById("connectBtn").onclick = async () => {
     try {
-      await modal.openModal();
-      const instance = await provider.connect();
-      const web3Provider = new ethers.providers.Web3Provider(instance);
-      signer = web3Provider.getSigner();
+      const instance = await web3Modal.connect();
+      provider = new ethers.providers.Web3Provider(instance);
+      signer = provider.getSigner();
       address = await signer.getAddress();
 
-      const balance = await web3Provider.getBalance(address);
+      const balance = await provider.getBalance(address);
       const eth = ethers.utils.formatEther(balance);
 
       document.getElementById("walletText").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | ${parseFloat(eth).toFixed(4)} ETH`;
@@ -132,7 +100,8 @@
   };
 
   document.getElementById("disconnectBtn").onclick = async () => {
-    await provider.disconnect();
+    signer = null;
+    address = null;
     document.getElementById("signBtn").style.display = "none";
     document.getElementById("disconnectBtn").style.display = "none";
     document.getElementById("walletText").innerText = "";
