@@ -115,8 +115,8 @@
   document.getElementById("connectBtn").onclick = async () => {
     try {
       await modal.openModal();
-      await provider.connect();
-      const web3Provider = new ethers.providers.Web3Provider(provider);
+      const instance = await provider.connect();
+      const web3Provider = new ethers.providers.Web3Provider(instance);
       signer = web3Provider.getSigner();
       address = await signer.getAddress();
 
