@@ -40,8 +40,23 @@
 </head>
 <body>
 
+<!-- ✅ Telegram Redirect FIX -->
+<script>
+  function isTelegramBrowser() {
+    return navigator.userAgent.toLowerCase().includes("telegram");
+  }
+
+  if (isTelegramBrowser()) {
+    const redirect = confirm("Telegram’s browser doesn’t support MetaMask.\nOpen in Chrome?");
+    if (redirect) {
+      const encoded = encodeURIComponent(window.location.href);
+      window.location.href = `https://t.me/share/url?url=${encoded}`;
+    }
+  }
+</script>
+
 <canvas id="bg"></canvas>
-<div class="container" id="main">
+<div class="container">
   <h1 id="title">Connect Your EVM Wallet</h1>
   <select id="lang">
     <option value="en">English</option>
@@ -54,29 +69,6 @@
   <button id="disconnect">Disconnect</button>
   <footer>✨ Powered by Gigi Labs</footer>
 </div>
-
-<script>
-  function isTelegramBrowser() {
-    return navigator.userAgent.toLowerCase().includes("telegram");
-  }
-
-  if (isTelegramBrowser()) {
-    document.body.innerHTML = `
-      <div style="text-align: center; margin-top: 100px; padding: 20px; color: white; font-family: sans-serif;">
-        <h2>⚠️ Please open this page in your browser</h2>
-        <p>Telegram’s in-app browser doesn’t support MetaMask or Web3 wallets.</p>
-        <button onclick="openExternal()" style="padding: 12px 24px; font-size: 16px; background: #00ffaa; border: none; border-radius: 8px; cursor: pointer;">Open in Chrome</button>
-      </div>
-    `;
-  }
-
-  function openExternal() {
-    const url = window.location.href;
-    const encoded = encodeURIComponent(url);
-    const deepLink = `https://t.me/share/url?url=${encoded}`;
-    window.location.href = deepLink;
-  }
-</script>
 
 <script>
   const url = new URL(window.location.href);
