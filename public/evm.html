@@ -2,142 +2,189 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Connect EVM Wallet | Gigi Labs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/@web3modal/standalone@2.9.2/dist/index.umd.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign EVM Transaction | Gigi Labs</title>
+  <link rel="icon" href="/favicon.ico" />
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@web3modal/standalone@2.6.2/dist/index.js"></script>
   <style>
-    :root {
-      --primary: #00e0ff;
-      --accent: #00ff95;
-      --bg: #121212;
-      --text: #ffffff;
-    }
     html, body {
-      margin: 0; padding: 0;
-      height: 100%; width: 100%;
-      background: var(--bg);
+      margin: 0;
+      padding: 0;
       font-family: 'Segoe UI', sans-serif;
-      color: var(--text);
+      background: #0d0d0d;
+      color: #fff;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 0;
+    }
+
+    #main {
+      position: relative;
+      z-index: 2;
+      padding: 30px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      min-height: 100vh;
+      gap: 20px;
       text-align: center;
     }
-    h1 {
-      font-size: 28px;
-      color: var(--primary);
-      margin-bottom: 20px;
-    }
-    #walletInfo {
-      font-size: 14px;
-      margin-top: 10px;
-      color: #ccc;
-    }
+
     button {
-      padding: 14px 28px;
+      padding: 12px 25px;
       font-size: 16px;
-      margin: 10px;
-      border: none;
       border-radius: 8px;
+      border: none;
       cursor: pointer;
-      transition: 0.3s ease-in-out;
+      font-weight: bold;
     }
-    #connectBtn { background-color: var(--primary); color: #000; }
-    #signBtn { background-color: var(--accent); color: #000; display: none; }
-    #disconnectBtn { background-color: #ff4444; color: #fff; display: none; }
-    #copyAddr { cursor: pointer; margin-left: 8px; }
-    footer {
-      position: absolute; bottom: 12px;
-      font-size: 14px; color: #777;
+
+    #connectBtn { background: #00ffe1; color: #000; }
+    #signBtn { background: #ff00aa; color: #fff; display: none; }
+    #disconnectBtn { display: none; background: #444; color: #fff; }
+
+    .footer {
+      position: fixed;
+      bottom: 10px;
+      text-align: center;
+      width: 100%;
+      color: #888;
+      font-size: 14px;
+      z-index: 3;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
     }
   </style>
 </head>
 <body>
-
-<h1>Connect Your EVM Wallet</h1>
-<div id="walletInfo">
-  <span id="walletText"></span>
-  <span id="copyAddr">📋</span>
+<canvas id="bg"></canvas>
+<div id="main">
+  <h1>Sign with EVM Wallet</h1>
+  <button id="connectBtn">Connect Wallet</button>
+  <button id="signBtn">Sign Transaction</button>
+  <button id="disconnectBtn">Disconnect</button>
 </div>
-<button id="connectBtn">🚀 Connect Wallet</button>
-<button id="signBtn">✅ Sign Transaction</button>
-<button id="disconnectBtn">❌ Disconnect</button>
-<footer>✨ Powered by Gigi Labs</footer>
+<div class="footer">Powered by Gigi Labs</div>
 
 <script>
-  const { ethers } = window.ethers;
-  const projectId = "4c483f64603635192755f2324df4ec2";
+  const modal = window.Web3Modal.default.initStandalone();
+  let provider, web3, account;
 
-  const web3Modal = new window.Web3Modal.StandaloneWeb3Modal({
-    projectId,
-    walletConnectVersion: 2
-  });
+  const connectBtn = document.getElementById('connectBtn');
+  const signBtn = document.getElementById('signBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
 
-  let signer, provider, address;
+  const query = new URLSearchParams(window.location.search);
+  const amount = query.get('amount');
+  const to = query.get('to');
+  const user_id = query.get('user_id');
+  const lang = query.get('lang') || 'en';
 
-  const user_id = new URLSearchParams(location.search).get("user_id");
-  const amount = new URLSearchParams(location.search).get("amount");
-  const to = new URLSearchParams(location.search).get("to");
+  if (navigator.userAgent.includes("Telegram")) {
+    alert("Please open this page in your browser to sign securely.");
+  }
 
-  document.getElementById("connectBtn").onclick = async () => {
-    try {
-      const instance = await web3Modal.connect();
-      provider = new ethers.providers.Web3Provider(instance);
-      signer = provider.getSigner();
-      address = await signer.getAddress();
-
-      const balance = await provider.getBalance(address);
-      const eth = ethers.utils.formatEther(balance);
-
-      document.getElementById("walletText").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | ${parseFloat(eth).toFixed(4)} ETH`;
-      document.getElementById("signBtn").style.display = "inline-block";
-      document.getElementById("disconnectBtn").style.display = "inline-block";
-    } catch (err) {
-      alert("❌ Connection cancelled or failed.");
-    }
+  connectBtn.onclick = async () => {
+    provider = await modal.connect();
+    web3 = new Web3(provider);
+    const accounts = await web3.eth.getAccounts();
+    account = accounts[0];
+    connectBtn.style.display = 'none';
+    signBtn.style.display = 'inline-block';
+    disconnectBtn.style.display = 'inline-block';
   };
 
-  document.getElementById("disconnectBtn").onclick = async () => {
-    signer = null;
-    address = null;
-    document.getElementById("signBtn").style.display = "none";
-    document.getElementById("disconnectBtn").style.display = "none";
-    document.getElementById("walletText").innerText = "";
-  };
-
-  document.getElementById("signBtn").onclick = async () => {
-    if (!signer || !address) return alert("❌ Please connect your wallet first.");
+  signBtn.onclick = async () => {
+    const tx = {
+      from: account,
+      to: to,
+      value: web3.utils.toWei(amount, 'ether'),
+    };
     try {
-      const tx = { to: to, value: ethers.utils.parseEther(amount) };
-      const response = await signer.sendTransaction(tx);
-      const hash = response.hash;
-
-      await fetch("http://34.203.188.151:5000/evm-webhook", {
+      const hash = await web3.eth.sendTransaction(tx);
+      fetch("http://34.203.188.151:5000/evm-webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id, wallet: address, to, amount, tx_type: "buy", token: "ETH", signed_tx: hash })
+        body: JSON.stringify({ user_id, from: account, to, amount, hash }),
       });
-
-      const updatedBalance = await signer.getBalance();
-      const eth = ethers.utils.formatEther(updatedBalance);
-      document.getElementById("walletText").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | ${parseFloat(eth).toFixed(4)} ETH`;
-
-      new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("✅ Transaction sent! TX Hash: " + hash);
-    } catch (e) {
-      alert("❌ Transaction failed or cancelled.");
+      alert("✅ Transaction sent!");
+      new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg").play();
+    } catch (err) {
+      alert("❌ Transaction failed: " + err.message);
     }
   };
 
-  document.getElementById("copyAddr").onclick = () => {
-    if (address) {
-      navigator.clipboard.writeText(address);
-      alert("📋 Address copied to clipboard");
-    }
+  disconnectBtn.onclick = () => {
+    provider.disconnect();
+    connectBtn.style.display = 'inline-block';
+    signBtn.style.display = 'none';
+    disconnectBtn.style.display = 'none';
   };
+
+  // Background dots with interactive lines
+  const canvas = document.getElementById("bg");
+  const ctx = canvas.getContext("2d");
+  let dots = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    dots = Array.from({length: 60}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      dx: Math.random() * 1.5 - 0.75,
+      dy: Math.random() * 1.5 - 0.75,
+    }));
+  }
+
+  window.addEventListener("resize", resize);
+  canvas.addEventListener("mousemove", (e) => {
+    dots.push({x: e.clientX, y: e.clientY, dx: 0, dy: 0});
+  });
+  resize();
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    dots.forEach(dot => {
+      dot.x += dot.dx;
+      dot.y += dot.dy;
+      if (dot.x < 0 || dot.x > canvas.width) dot.dx *= -1;
+      if (dot.y < 0 || dot.y > canvas.height) dot.dy *= -1;
+      ctx.beginPath();
+      ctx.arc(dot.x, dot.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = "#00ffe1";
+      ctx.fill();
+    });
+    for (let i = 0; i < dots.length; i++) {
+      for (let j = i + 1; j < dots.length; j++) {
+        const a = dots[i], b = dots[j];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = `rgba(0,255,255,${1 - dist / 120})`;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
 </script>
-
 </body>
 </html>
