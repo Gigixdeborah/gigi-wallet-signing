@@ -3,82 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Solana Wallet Connect | Gigi Labs</title>
-  <link rel="icon" href="/favicon.ico">
+  <title>Solana Wallet Sign | Gigi Labs</title>
   <style>
-    html, body {
-      margin: 0; padding: 0;
-      background: #000; color: #fff;
+    body {
+      background: #000;
+      margin: 0;
+      color: white;
       font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       overflow: hidden;
-    }
-    canvas {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: -1;
-    }
-    .container {
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      min-height: 100vh; text-align: center; padding: 1rem;
-    }
-    .connect-btn {
-      background: #00ffaa;
-      color: #000; font-size: 1rem;
-      padding: 14px 28px;
-      border: none; border-radius: 8px;
-      cursor: pointer; transition: 0.3s ease;
-    }
-    .connect-btn:hover { background: #00ddaa; }
-    .modal {
-      display: none;
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      justify-content: center; align-items: center;
-    }
-    .modal-content {
-      background: #111; border-radius: 12px;
-      padding: 1.5rem; width: 90%; max-width: 300px;
-    }
-    .wallet-option {
-      background: #222; padding: 1rem;
-      border-radius: 8px; margin: 0.5rem 0;
-      cursor: pointer; transition: background 0.3s;
       text-align: center;
     }
-    .wallet-option:hover { background: #333; }
-    .footer {
-      position: absolute; bottom: 15px; width: 100%;
-      text-align: center; font-size: 0.9rem; color: #aaa;
+    button {
+      padding: 14px 28px;
+      font-size: 16px;
+      background: #00ffaa;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
     }
-    .footer span { color: #fff; font-weight: bold; }
-    .lang-switcher {
-      position: absolute; top: 10px; right: 10px;
-      background: #111; padding: 6px 12px;
-      border-radius: 8px; font-size: 0.8rem;
+    button:hover {
+      background: #00ddaa;
+    }
+    .footer {
+      position: absolute;
+      bottom: 15px;
+      color: #aaa;
+    }
+    .footer span {
+      color: #fff;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <canvas id="bgCanvas"></canvas>
-  <div class="lang-switcher" id="lang">🌐 EN</div>
-
-  <div class="container">
-    <h1>Solana Wallet Connect</h1>
-    <button class="connect-btn" onclick="showModal()">Connect Wallet & Sign</button>
-  </div>
-
-  <div id="walletModal" class="modal">
-    <div class="modal-content">
-      <h3>Connect Wallet</h3>
-      <div class="wallet-option" onclick="connectWallet('phantom')">Phantom</div>
-      <div class="wallet-option" onclick="connectWallet('solflare')">Solflare</div>
-      <div class="wallet-option" onclick="connectWallet('backpack')">Backpack</div>
-      <div class="wallet-option" onclick="hideModal()">Cancel</div>
-    </div>
-  </div>
-
+  <h1>Solana Wallet Connect</h1>
+  <button onclick="connectAndSign()">Connect Wallet & Sign</button>
   <div class="footer">✨ Powered by <span>Gigi Labs</span></div>
 
   <script type="module">
@@ -86,149 +51,68 @@
       Connection,
       Transaction,
       SystemProgram,
+      PublicKey,
       clusterApiUrl
     } from "https://cdn.skypack.dev/@solana/web3.js";
 
-    let provider = null;
-    let publicKey = null;
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token") || "SOL";
-    const to = params.get("to") || "7PHKcmNaPu9nF6qS3YRmHxg9UDPPaKAGPr5oXKFxv2Vm";
-    const user_id = params.get("user_id") || "000000";
-    const amount = parseFloat(params.get("amount") || "0.001");
+    async function connectAndSign() {
+      const params = new URLSearchParams(window.location.search);
+      const toAddress = params.get("to");
+      const amount = parseInt(params.get("amount") || "0");
+      const user_id = params.get("user_id") || "unknown";
 
-    const lang = params.get("lang") || "en";
-    const langEl = document.getElementById("lang");
-    const langs = { en: "🌐 EN", fr: "🇫🇷 FR", es: "🇪🇸 ES", zh: "🇨🇳 中文" };
-    langEl.innerText = langs[lang] || langs.en;
+      if (!toAddress || amount <= 0) {
+        alert("Missing or invalid 'to' or 'amount' in URL.");
+        return;
+      }
 
-    window.showModal = () => document.getElementById('walletModal').style.display = 'flex';
-    window.hideModal = () => document.getElementById('walletModal').style.display = 'none';
-
-    window.connectWallet = async (type) => {
       try {
-        if (type === 'phantom' && window.solana?.isPhantom) {
-          provider = window.solana;
-          await provider.connect();
-        } else if (type === 'solflare' && window.solflare?.isSolflare) {
-          provider = window.solflare;
-          await provider.connect();
-        } else if (type === 'backpack' && window.backpack?.isBackpack) {
-          provider = window.backpack;
-          await provider.connect();
-        } else {
-          alert(`${type} not installed`);
+        const provider = window.solana;
+        if (!provider || !provider.isPhantom) {
+          alert("Phantom wallet not found.");
           return;
         }
 
-        publicKey = provider.publicKey.toString();
-        hideModal();
-        document.querySelector(".connect-btn").innerText = `Connected: ${publicKey.slice(0,4)}...${publicKey.slice(-4)}`;
-        signTransaction();
-      } catch (err) {
-        alert("Connection error: " + err.message);
-      }
-    }
+        const resp = await provider.connect();
+        const publicKey = resp.publicKey;
+        const toPubkey = new PublicKey(toAddress);
+        const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
 
-    async function signTransaction() {
-      try {
-        const conn = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
-        const blockhash = await conn.getLatestBlockhash();
+        const { blockhash } = await connection.getLatestBlockhash();
 
-        const tx = new Transaction({
-          recentBlockhash: blockhash.blockhash,
-          feePayer: provider.publicKey
+        const transaction = new Transaction({
+          recentBlockhash: blockhash,
+          feePayer: publicKey,
         });
 
-        tx.add(SystemProgram.transfer({
-          fromPubkey: provider.publicKey,
-          toPubkey: new window.solanaWeb3.PublicKey(to),
-          lamports: Math.floor(amount * 1e9)
+        transaction.add(SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: toPubkey,
+          lamports: amount
         }));
 
-        const signedTx = await provider.signTransaction(tx);
-        const rawTx = signedTx.serialize().toString("base64");
+        const signed = await provider.signTransaction(transaction);
+        const signedTx = signed.serialize().toString('base64');
 
         await fetch("/solana-webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_id,
-            wallet: publicKey,
-            signed_tx: rawTx,
-            token,
-            amount
+            wallet: publicKey.toString(),
+            to: toAddress,
+            token: "SOL",
+            amount,
+            signed_tx: signedTx
           })
         });
 
-        alert("✅ Transaction signed & sent to Gigi Bot!");
+        alert("✅ Transaction signed and sent to webhook!");
       } catch (err) {
-        alert("❌ Signing failed: " + err.message);
+        console.error(err);
+        alert("❌ Error occurred. Check console.");
       }
     }
-  </script>
-
-  <script>
-    const canvas = document.getElementById('bgCanvas');
-    const ctx = canvas.getContext('2d');
-    let nodes = [];
-
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-
-    function createNodes() {
-      nodes = [];
-      for (let i = 0; i < 70; i++) {
-        nodes.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5),
-          vy: (Math.random() - 0.5),
-          radius: 2
-        });
-      }
-    }
-
-    function drawNodes() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let n of nodes) {
-        n.x += n.vx;
-        n.y += n.vy;
-        if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
-        if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.radius, 0, 2 * Math.PI);
-        ctx.fillStyle = '#00ffaa';
-        ctx.fill();
-      }
-
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x;
-          const dy = nodes[i].y - nodes[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            ctx.beginPath();
-            ctx.moveTo(nodes[i].x, nodes[i].y);
-            ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.strokeStyle = 'rgba(0,255,170,0.1)';
-            ctx.stroke();
-          }
-        }
-      }
-    }
-
-    function animate() {
-      drawNodes();
-      requestAnimationFrame(animate);
-    }
-
-    window.addEventListener('resize', resize);
-    resize();
-    createNodes();
-    animate();
   </script>
 </body>
 </html>
