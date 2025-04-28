@@ -8,76 +8,40 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: 'Segoe UI', sans-serif;
-      background: radial-gradient(ellipse at top, #0f0c29, #302b63, #24243e);
-      color: white;
-      overflow: hidden;
+      margin: 0; padding: 0;
+      height: 100%; background: radial-gradient(ellipse at top, #0f0c29, #302b63, #24243e);
+      font-family: 'Segoe UI', sans-serif; color: white; overflow: hidden;
     }
-
     canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: -1;
+      position: fixed; top: 0; left: 0; z-index: -1;
     }
-
     .container {
-      text-align: center;
-      padding: 40px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      text-align: center; padding: 40px 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       height: 100%;
     }
-
-    h1 {
-      font-size: 24px;
-      color: #00e0ff;
-      margin-bottom: 20px;
-      text-shadow: 0 0 15px #00e0ff;
-    }
-
+    h1 { font-size: 24px; color: #00e0ff; margin-bottom: 20px; text-shadow: 0 0 15px #00e0ff; }
     select {
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 8px;
-      background: #000000aa;
-      color: #fff;
-      margin-bottom: 20px;
-      border: 1px solid #00e0ff;
+      padding: 10px; font-size: 16px; border-radius: 8px; margin-bottom: 20px;
+      background: #000000aa; color: #fff; border: 1px solid #00e0ff;
     }
-
     button {
-      padding: 14px 32px;
-      font-size: 16px;
-      margin: 10px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: 0.3s;
+      padding: 14px 32px; font-size: 16px; margin: 10px;
+      border: none; border-radius: 10px; cursor: pointer; transition: 0.3s;
     }
-
     #connect { background: #00e0ff; color: #000; }
     #sign { background: #00ff95; color: #000; }
     #disconnect { background: #ff4444; color: #fff; display: none; }
-
     footer {
-      position: absolute;
-      bottom: 10px;
-      width: 100%;
-      text-align: center;
-      font-size: 14px;
-      color: #aaa;
+      position: absolute; bottom: 10px; width: 100%;
+      text-align: center; font-size: 14px; color: #aaa;
     }
   </style>
 </head>
 <body>
+
 <canvas id="bg"></canvas>
-<div class="container">
+<div class="container" id="main">
   <h1 id="title">Connect Your EVM Wallet</h1>
   <select id="lang">
     <option value="en">English</option>
@@ -88,8 +52,31 @@
   <button id="connect">Connect Wallet</button>
   <button id="sign" disabled>Sign Transaction</button>
   <button id="disconnect">Disconnect</button>
-  <footer>Powered by Gigi Labs</footer>
+  <footer>✨ Powered by Gigi Labs</footer>
 </div>
+
+<script>
+  function isTelegramBrowser() {
+    return navigator.userAgent.toLowerCase().includes("telegram");
+  }
+
+  if (isTelegramBrowser()) {
+    document.body.innerHTML = `
+      <div style="text-align: center; margin-top: 100px; padding: 20px; color: white; font-family: sans-serif;">
+        <h2>⚠️ Please open this page in your browser</h2>
+        <p>Telegram’s in-app browser doesn’t support MetaMask or Web3 wallets.</p>
+        <button onclick="openExternal()" style="padding: 12px 24px; font-size: 16px; background: #00ffaa; border: none; border-radius: 8px; cursor: pointer;">Open in Chrome</button>
+      </div>
+    `;
+  }
+
+  function openExternal() {
+    const url = window.location.href;
+    const encoded = encodeURIComponent(url);
+    const deepLink = `https://t.me/share/url?url=${encoded}`;
+    window.location.href = deepLink;
+  }
+</script>
 
 <script>
   const url = new URL(window.location.href);
@@ -140,11 +127,11 @@
       await fetch("http://34.203.188.151:5000/evm-webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id, amount, to, txHash })
+        body: JSON.stringify({ user_id, wallet: currentAccount, to, amount, tx_type: "buy", token: "ETH", signed_tx: txHash })
       });
 
       new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("Transaction sent! TX Hash:\n" + txHash);
+      alert("✅ Transaction sent!\nTX Hash:\n" + txHash);
     } catch (err) {
       alert("Transaction failed or cancelled.");
     }
@@ -196,8 +183,7 @@
   function animate() {
     ctx.clearRect(0, 0, width, height);
     nodes.forEach((n, i) => {
-      n.x += n.vx;
-      n.y += n.vy;
+      n.x += n.vx; n.y += n.vy;
       if (n.x < 0 || n.x > width) n.vx *= -1;
       if (n.y < 0 || n.y > height) n.vy *= -1;
 
