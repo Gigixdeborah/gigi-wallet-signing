@@ -45,7 +45,10 @@
 
 <canvas id="bg"></canvas>
 <h1>Connect Your EVM Wallet</h1>
-<div id="walletInfo"></div>
+<div id="walletInfo">
+  <span id="walletText"></span>
+  <span id="copyAddr" style="cursor:pointer; margin-left: 10px;">📋</span>
+</div>
 <button id="connectBtn">🚀 Connect Wallet</button>
 <button id="signBtn">✅ Sign Transaction</button>
 <button id="disconnectBtn">❌ Disconnect</button>
@@ -83,8 +86,7 @@
       const balance = await web3Provider.getBalance(address);
       const eth = ethers.utils.formatEther(balance);
 
-      document.getElementById("walletInfo").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | Balance: ${parseFloat(eth).toFixed(4)} ETH`;
-
+      document.getElementById("walletText").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | Balance: ${parseFloat(eth).toFixed(4)} ETH`;
       document.getElementById("signBtn").style.display = "inline-block";
       document.getElementById("disconnectBtn").style.display = "inline-block";
     } catch (err) {
@@ -96,7 +98,7 @@
     await provider.disconnect();
     document.getElementById("signBtn").style.display = "none";
     document.getElementById("disconnectBtn").style.display = "none";
-    document.getElementById("walletInfo").innerText = "";
+    document.getElementById("walletText").innerText = "";
   };
 
   document.getElementById("signBtn").onclick = async () => {
@@ -114,7 +116,7 @@
 
       const updatedBalance = await signer.getBalance();
       const eth = ethers.utils.formatEther(updatedBalance);
-      document.getElementById("walletInfo").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | Balance: ${parseFloat(eth).toFixed(4)} ETH`;
+      document.getElementById("walletText").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | Balance: ${parseFloat(eth).toFixed(4)} ETH`;
 
       new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
       alert("✅ Transaction sent! TX Hash: " + hash);
@@ -122,19 +124,11 @@
       alert("❌ Transaction failed or cancelled.");
     }
   };
-      const response = await signer.sendTransaction(tx);
-      const hash = response.hash;
 
-      await fetch("http://34.203.188.151:5000/evm-webhook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id, wallet: address, to, amount, tx_type: "buy", token: "ETH", signed_tx: hash })
-      });
-
-      new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
-      alert("✅ Transaction sent! TX Hash: " + hash);
-    } catch (e) {
-      alert("❌ Transaction failed or cancelled.");
+  document.getElementById("copyAddr").onclick = () => {
+    if (address) {
+      navigator.clipboard.writeText(address);
+      alert("📋 Address copied to clipboard");
     }
   };
 </script>
