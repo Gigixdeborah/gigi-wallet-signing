@@ -1,189 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sign EVM Transaction | Gigi Labs</title>
-  <link rel="icon" href="/favicon.ico" />
-  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <script src="https://unpkg.com/@web3modal/html@2.6.2/dist/web3modal.umd.js"></script>
+  <meta charset="UTF-8">
+  <title>Gigi Wallet Connect</title>
+  <script src="https://unpkg.com/@web3modal/html"></script>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #0d0d0d;
-      color: #fff;
-      overflow: hidden;
-      touch-action: manipulation;
-    }
-
-    canvas {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      z-index: 0;
-    }
-
-    #main {
-      position: relative;
-      z-index: 2;
-      padding: 30px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      gap: 20px;
+    body {
+      font-family: Arial, sans-serif;
       text-align: center;
+      padding: 50px;
+      background: #f4f4f4;
     }
-
+    h1 {
+      font-size: 32px;
+    }
     button {
-      padding: 12px 25px;
+      padding: 12px 24px;
       font-size: 16px;
-      border-radius: 8px;
-      border: none;
       cursor: pointer;
-      font-weight: bold;
-    }
-
-    #connectBtn { background: #00ffe1; color: #000; }
-    #signBtn { background: #ff00aa; color: #fff; display: none; }
-    #disconnectBtn { display: none; background: #444; color: #fff; }
-
-    .footer {
-      position: fixed;
-      bottom: 10px;
-      text-align: center;
-      width: 100%;
-      color: #888;
-      font-size: 14px;
-      z-index: 3;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { opacity: 0.6; }
-      50% { opacity: 1; }
-      100% { opacity: 0.6; }
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
-<div id="main">
-  <h1>Sign with EVM Wallet</h1>
-  <button id="connectBtn">Connect Wallet</button>
-  <button id="signBtn">Sign Transaction</button>
-  <button id="disconnectBtn">Disconnect</button>
-</div>
-<div class="footer">Powered by Gigi Labs</div>
 
-<script>
-  const modal = window.web3modal;
+  <h1>🚀 Gigi Wallet Connect</h1>
+  <button id="connectButton">Connect Wallet</button>
 
-  let provider, web3, account;
+  <script>
+    const projectId = '4c483f646033635192755f2324df4ec2';
 
-  const connectBtn = document.getElementById('connectBtn');
-  const signBtn = document.getElementById('signBtn');
-  const disconnectBtn = document.getElementById('disconnectBtn');
-
-  const query = new URLSearchParams(window.location.search);
-  const amount = query.get('amount');
-  const to = query.get('to');
-  const user_id = query.get('user_id');
-
-  if (navigator.userAgent.includes("Telegram")) {
-    alert("Please open this page in your browser to sign securely.");
-  }
-
-  connectBtn.onclick = async () => {
-    provider = await modal.connect();
-    web3 = new Web3(provider);
-    const accounts = await web3.eth.getAccounts();
-    account = accounts[0];
-    connectBtn.style.display = 'none';
-    signBtn.style.display = 'inline-block';
-    disconnectBtn.style.display = 'inline-block';
-  };
-
-  signBtn.onclick = async () => {
-    const tx = {
-      from: account,
-      to: to,
-      value: web3.utils.toWei(amount, 'ether'),
+    const metadata = {
+      name: "GigiP2Bot",
+      description: "Connect your wallet to GigiP2Bot",
+      url: "https://gigip2bot.com",
+      icons: ["https://gigip2bot.com/logo.png"]
     };
-    try {
-      const hash = await web3.eth.sendTransaction(tx);
-      fetch("http://34.203.188.151:5000/evm-webhook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id, from: account, to, amount, hash }),
-      });
-      alert("✅ Transaction sent!");
-      new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg").play();
-    } catch (err) {
-      alert("❌ Transaction failed: " + err.message);
-    }
-  };
 
-  disconnectBtn.onclick = () => {
-    provider.disconnect();
-    connectBtn.style.display = 'inline-block';
-    signBtn.style.display = 'none';
-    disconnectBtn.style.display = 'none';
-  };
-
-  const canvas = document.getElementById("bg");
-  const ctx = canvas.getContext("2d");
-  let dots = [];
-
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    dots = Array.from({length: 60}, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      dx: Math.random() * 1.5 - 0.75,
-      dy: Math.random() * 1.5 - 0.75,
-    }));
-  }
-
-  window.addEventListener("resize", resize);
-  canvas.addEventListener("mousemove", (e) => {
-    dots.push({x: e.clientX, y: e.clientY, dx: 0, dy: 0});
-  });
-  resize();
-
-  function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    dots.forEach(dot => {
-      dot.x += dot.dx;
-      dot.y += dot.dy;
-      if (dot.x < 0 || dot.x > canvas.width) dot.dx *= -1;
-      if (dot.y < 0 || dot.y > canvas.height) dot.dy *= -1;
-      ctx.beginPath();
-      ctx.arc(dot.x, dot.y, 2, 0, Math.PI * 2);
-      ctx.fillStyle = "#00ffe1";
-      ctx.fill();
+    const modal = new window.Web3Modal({
+      projectId,
+      themeMode: 'light',
+      themeVariables: {
+        '--w3m-accent-color': '#4CAF50'
+      },
+      metadata
     });
-    for (let i = 0; i < dots.length; i++) {
-      for (let j = i + 1; j < dots.length; j++) {
-        const a = dots[i], b = dots[j];
-        const dist = Math.hypot(a.x - b.x, a.y - b.y);
-        if (dist < 120) {
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = `rgba(0,255,255,${1 - dist / 120})`;
-          ctx.stroke();
-        }
+
+    document.getElementById('connectButton').addEventListener('click', async () => {
+      try {
+        const provider = await modal.connect();
+        const accounts = await provider.request({ method: 'eth_accounts' });
+        alert(`Connected wallet: ${accounts[0]}`);
+        console.log('Accounts:', accounts);
+      } catch (error) {
+        console.error('Connection error', error);
+        alert('Connection failed');
       }
-    }
-    requestAnimationFrame(animate);
-  }
-  animate();
-</script>
+    });
+  </script>
+
 </body>
 </html>
