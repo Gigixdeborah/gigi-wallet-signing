@@ -9,7 +9,7 @@ app = Flask(__name__)
 TRANSACTION_FILE = "transactions.json"
 USERS_FILE = "users.json"
 
-TELEGRAM_TOKEN = "7093436536:AAETxpza2gu6AkK6X9iHwuB__kBqj4uuKRM"
+TELEGRAM_TOKEN = ""
 NOTIFY_CHAT_ID = "6253242226"
 
 def notify_telegram(message):
