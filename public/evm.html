@@ -8,16 +8,14 @@
     html, body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; height: 100%; overflow: hidden; background: radial-gradient(circle, #0f0c29, #302b63, #24243e); color: #fff; }
     canvas { position: fixed; top: 0; left: 0; z-index: -1; }
     .container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; padding: 20px; }
-    h1 { font-size: 28px; margin-bottom: 20px; text-shadow: 0 0 15px #00e0ff; animation: glow 2s infinite alternate; }
-    @keyframes glow { from { text-shadow: 0 0 10px #00e0ff; } to { text-shadow: 0 0 30px #00ffcc, 0 0 50px #00ffcc; } }
+    h1 { font-size: 28px; margin-bottom: 20px; text-shadow: 0 0 15px #00e0ff; }
     select, button { padding: 12px 24px; margin: 5px; border-radius: 12px; border: none; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
     select { background: rgba(0,0,0,0.6); color: #fff; border: 1px solid #00e0ff; }
     button:hover { transform: scale(1.1); }
     #connect-btn { background: linear-gradient(45deg, #00e0ff, #00ff88); color: black; }
     #sign-btn { background: linear-gradient(45deg, #ff9900, #ff4444); color: black; display: none; }
     #disconnect { background: #555; color: white; display: none; }
-    footer { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 14px; color: #aaa; animation: pulse 2s infinite alternate; }
-    @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
+    footer { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 14px; color: #aaa; }
   </style>
 </head>
 <body>
@@ -36,7 +34,9 @@
   <footer>✨ Powered by Gigi Labs ✨</footer>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+<!-- ✅ Load stable ethers.js version -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+
 <script>
 const translations = { en: { title: "⚡ Connect Your EVM Wallet", connect: "Connect Wallet", sign: "Sign Message" }, fr: { title: "⚡ Connectez votre portefeuille EVM", connect: "Connecter le portefeuille", sign: "Signer le message" }, es: { title: "⚡ Conecta tu billetera EVM", connect: "Conectar billetera", sign: "Firmar mensaje" }, zh: { title: "⚡ 连接您的EVM钱包", connect: "连接钱包", sign: "签署消息" }, };
 
