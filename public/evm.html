@@ -5,72 +5,19 @@
   <title>⚡ EVM Wallet Connect | Gigi Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    html, body {
-      margin: 0; padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      height: 100%;
-      overflow: hidden;
-      background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
-      color: #fff;
-    }
-    canvas {
-      position: fixed; top: 0; left: 0; z-index: -1;
-    }
-    .container {
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      height: 100%; text-align: center; padding: 20px;
-    }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 20px;
-      text-shadow: 0 0 15px #00e0ff;
-      animation: glow 2s infinite alternate;
-    }
-    @keyframes glow {
-      from { text-shadow: 0 0 10px #00e0ff; }
-      to { text-shadow: 0 0 30px #00ffcc, 0 0 50px #00ffcc; }
-    }
-    select, button {
-      padding: 12px 24px;
-      margin: 5px;
-      border-radius: 12px;
-      border: none;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    select {
-      background: rgba(0,0,0,0.6);
-      color: #fff;
-      border: 1px solid #00e0ff;
-    }
-    button:hover {
-      transform: scale(1.1);
-    }
-    #connect-btn {
-      background: linear-gradient(45deg, #00e0ff, #00ff88);
-      color: black;
-    }
-    #sign-btn {
-      background: linear-gradient(45deg, #ff9900, #ff4444);
-      color: black;
-      display: none;
-    }
-    #disconnect {
-      background: #555;
-      color: white;
-      display: none;
-    }
-    footer {
-      position: absolute; bottom: 10px; width: 100%;
-      text-align: center; font-size: 14px; color: #aaa;
-      animation: pulse 2s infinite alternate;
-    }
-    @keyframes pulse {
-      from { opacity: 0.6; }
-      to { opacity: 1; }
-    }
+    html, body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; height: 100%; overflow: hidden; background: radial-gradient(circle, #0f0c29, #302b63, #24243e); color: #fff; }
+    canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+    .container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; padding: 20px; }
+    h1 { font-size: 28px; margin-bottom: 20px; text-shadow: 0 0 15px #00e0ff; animation: glow 2s infinite alternate; }
+    @keyframes glow { from { text-shadow: 0 0 10px #00e0ff; } to { text-shadow: 0 0 30px #00ffcc, 0 0 50px #00ffcc; } }
+    select, button { padding: 12px 24px; margin: 5px; border-radius: 12px; border: none; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
+    select { background: rgba(0,0,0,0.6); color: #fff; border: 1px solid #00e0ff; }
+    button:hover { transform: scale(1.1); }
+    #connect-btn { background: linear-gradient(45deg, #00e0ff, #00ff88); color: black; }
+    #sign-btn { background: linear-gradient(45deg, #ff9900, #ff4444); color: black; display: none; }
+    #disconnect { background: #555; color: white; display: none; }
+    footer { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 14px; color: #aaa; animation: pulse 2s infinite alternate; }
+    @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
   </style>
 </head>
 <body>
@@ -91,12 +38,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
 <script>
-const translations = {
-  en: { title: "⚡ Connect Your EVM Wallet", connect: "Connect Wallet", sign: "Sign Message" },
-  fr: { title: "⚡ Connectez votre portefeuille EVM", connect: "Connecter le portefeuille", sign: "Signer le message" },
-  es: { title: "⚡ Conecta tu billetera EVM", connect: "Conectar billetera", sign: "Firmar mensaje" },
-  zh: { title: "⚡ 连接您的EVM钱包", connect: "连接钱包", sign: "签署消息" },
-};
+const translations = { en: { title: "⚡ Connect Your EVM Wallet", connect: "Connect Wallet", sign: "Sign Message" }, fr: { title: "⚡ Connectez votre portefeuille EVM", connect: "Connecter le portefeuille", sign: "Signer le message" }, es: { title: "⚡ Conecta tu billetera EVM", connect: "Conectar billetera", sign: "Firmar mensaje" }, zh: { title: "⚡ 连接您的EVM钱包", connect: "连接钱包", sign: "签署消息" }, };
 
 let provider, signer, userAddress;
 const url = new URL(window.location.href);
@@ -107,16 +49,16 @@ const disconnectBtn = document.getElementById("disconnect");
 const statusTitle = document.getElementById("title");
 
 if (navigator.userAgent.includes('Telegram')) {
-  alert('⚠️ Please open this page in your external browser (not Telegram) to connect MetaMask.');
+  alert('⚠️ Please open this page in an external browser (not Telegram) to connect MetaMask.');
 }
 
 connectBtn.onclick = async () => {
   if (!window.ethereum) {
-    alert('⚠️ Please install MetaMask or another EVM wallet.');
+    alert('⚠️ No EVM wallet detected.\nPlease install MetaMask, Rabby, or Trust.');
     return;
   }
   try {
-    provider = new ethers.providers.Web3Provider(window.ethereum);
+    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
     await provider.send("eth_requestAccounts", []);
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
@@ -130,15 +72,20 @@ connectBtn.onclick = async () => {
       body: JSON.stringify({ user_id, address: userAddress, event: 'connect' })
     });
   } catch (err) {
-    console.error(err);
-    alert('❌ Wallet connection failed.');
+    console.error("❌ Wallet connection error:", err);
+    alert('❌ Wallet connection failed.\n\n' + (err.message || err));
   }
 };
 
 signBtn.onclick = async () => {
+  if (!signer || !userAddress) {
+    alert('⚠️ Please connect your wallet first.');
+    return;
+  }
   try {
     const message = "Sign this message to confirm connection with Gigi Labs ✨";
     const signature = await signer.signMessage(message);
+
     await fetch("http://34.203.188.151:5000/evm-webhook", {
       method: "POST",
       headers: { 'Content-Type': 'application/json' },
@@ -146,8 +93,8 @@ signBtn.onclick = async () => {
     });
     alert("✅ Message signed & webhook sent!");
   } catch (err) {
-    console.error(err);
-    alert("❌ Signing failed.");
+    console.error("❌ Signing error:", err);
+    alert("❌ Signing failed.\n\n" + (err.message || err));
   }
 };
 
