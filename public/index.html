@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🌐 Gigi Multi-Wallet Connect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      height: 100vh; background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
+      color: white; text-align: center;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+      text-shadow: 0 0 15px #00e0ff;
+    }
+    .wallet-btn {
+      padding: 15px 30px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .ton { background: linear-gradient(45deg, #00e0ff, #00ff88); color: black; }
+    .evm { background: linear-gradient(45deg, #ff9900, #ff4444); color: black; }
+    .solana { background: linear-gradient(45deg, #6a00ff, #9c27b0); color: white; }
+    .wallet-btn:hover { transform: scale(1.1); }
+    footer {
+      position: absolute; bottom: 10px;
+      font-size: 14px; color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌐 Gigi Multi-Wallet Connect</h1>
+  <button class="wallet-btn ton" onclick="location.href='sign.html'">Connect TON Wallet</button>
+  <button class="wallet-btn evm" onclick="location.href='evm.html'">Connect EVM Wallet</button>
+  <button class="wallet-btn solana" onclick="location.href='solana.html'">Connect Solana Wallet</button>
+  <footer>✨ Powered by Gigi Labs ✨</footer>
+</body>
+</html>
