@@ -1,129 +1,247 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Connect Solana Wallet | Gigi Labs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-wallets@0.15.19/lib/index.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-base@0.11.17/lib/index.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-react-ui@0.17.3/lib/index.umd.min.js"></script>
-
+  <meta charset="UTF-8" />
+  <title>Connect TON Wallet | Gigi Labs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: #fff;
+      overflow: hidden;
+      height: 100%;
+      color: white;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+
+    .container {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      flex-direction: column;
+      height: 100%;
+      padding: 20px;
       text-align: center;
     }
 
     h1 {
+      font-size: 24px;
       margin-bottom: 20px;
-      font-size: 28px;
+      color: #00e0ff;
       text-shadow: 0 0 10px #00e0ff;
     }
 
-    button {
-      background: #00e0ff;
-      border: none;
-      padding: 12px 24px;
+    select {
+      padding: 10px;
       font-size: 16px;
-      border-radius: 30px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      background: #000000aa;
+      color: #fff;
+      border: 1px solid #00e0ff;
+    }
+
+    #ton-connect {
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 14px 30px;
+      font-size: 16px;
+      border-radius: 10px;
+      margin: 5px;
+      border: none;
       cursor: pointer;
-      margin: 10px;
-      transition: background 0.3s;
+      transition: 0.3s;
     }
 
-    button:hover {
-      background: #00bfff;
+    #sign-btn {
+      background: #00e0ff;
+      color: black;
     }
 
-    #status {
-      margin-top: 20px;
-      font-size: 14px;
-      word-wrap: break-word;
-      max-width: 90%;
+    #disconnect {
+      background: #ff4444;
+      color: white;
+      display: none;
     }
 
     footer {
       position: absolute;
       bottom: 10px;
-      font-size: 12px;
+      width: 100%;
+      text-align: center;
+      font-size: 14px;
       color: #aaa;
     }
   </style>
 </head>
 <body>
-  <h1>🔐 Connect Your Solana Wallet</h1>
-  <button id="connect">Connect Wallet</button>
-  <button id="sign" disabled>Sign Transaction</button>
-  <div id="status">Waiting for wallet connection...</div>
-
+<canvas id="bg"></canvas>
+<div class="container">
+  <h1 id="title">Connect Your TON Wallet</h1>
+  <select id="lang">
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="es">Español</option>
+    <option value="zh">中文</option>
+  </select>
+  <div id="ton-connect"></div>
+  <button id="sign-btn" disabled>Sign Transaction</button>
+  <button id="disconnect">Disconnect</button>
   <footer>Powered by Gigi Labs</footer>
+</div>
 
-  <script>
-    let provider;
-    let publicKey;
+<script>
+  const translations = {
+    en: { title: "Connect Your TON Wallet", sign: "Sign Transaction" },
+    fr: { title: "Connectez votre portefeuille TON", sign: "Signer la transaction" },
+    es: { title: "Conecta tu billetera TON", sign: "Firmar transacción" },
+    zh: { title: "连接您的TON钱包", sign: "签署交易" },
+  };
 
-    const connectBtn = document.getElementById('connect');
-    const signBtn = document.getElementById('sign');
-    const statusEl = document.getElementById('status');
+  const url = new URL(window.location.href);
+  const user_id = url.searchParams.get("user_id");
+  const amount = url.searchParams.get("amount");
+  const to = url.searchParams.get("to");
 
-    window.onload = async () => {
-      if (window.solana && window.solana.isPhantom) {
-        provider = window.solana;
-        statusEl.innerText = '✅ Phantom Wallet detected.';
-      } else {
-        statusEl.innerText = '⚠️ No Phantom Wallet detected. Please install Phantom.';
-      }
+  const connector = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json",
+    buttonRootId: "ton-connect"
+  });
+
+  const signBtn = document.getElementById("sign-btn");
+  const disconnectBtn = document.getElementById("disconnect");
+
+  connector.onStatusChange(wallet => {
+    if (wallet) {
+      signBtn.disabled = false;
+      disconnectBtn.style.display = 'inline-block';
+    } else {
+      signBtn.disabled = true;
+      disconnectBtn.style.display = 'none';
+    }
+  });
+
+  disconnectBtn.onclick = () => connector.disconnect();
+
+  signBtn.onclick = async () => {
+    const tx = await connector.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [{
+        address: to,
+        amount: (parseFloat(amount) * 1e9).toString()
+      }]
+    });
+
+    await fetch("http://34.203.188.151:5000/ton-webhook", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, amount, to, tx })
+    });
+
+    new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-bonus-reached-2065.mp3").play();
+    alert("Transaction signed & sent!");
+  };
+
+  document.getElementById("lang").addEventListener("change", e => {
+    const lang = e.target.value;
+    document.getElementById("title").innerText = translations[lang].title;
+    signBtn.innerText = translations[lang].sign;
+  });
+</script>
+
+<script>
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  let width, height;
+  let mouse = { x: null, y: null };
+  const particles = [];
+
+  function resizeCanvas() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  }
+
+  function createParticle() {
+    return {
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
+      radius: 2 + Math.random(),
     };
+  }
 
-    connectBtn.onclick = async () => {
-      try {
-        const res = await provider.connect();
-        publicKey = res.publicKey.toString();
-        statusEl.innerText = `✅ Connected: ${publicKey}`;
-        signBtn.disabled = false;
-      } catch (err) {
-        statusEl.innerText = `❌ Connection failed: ${err.message}`;
+  function initParticles() {
+    particles.length = 0;
+    for (let i = 0; i < 80; i++) {
+      particles.push(createParticle());
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+
+    particles.forEach((p, i) => {
+      p.x += p.vx;
+      p.y += p.vy;
+
+      if (p.x < 0 || p.x > width) p.vx *= -1;
+      if (p.y < 0 || p.y > height) p.vy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#00e0ff';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#00e0ff';
+      ctx.fill();
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const p2 = particles[j];
+        const dx = p.x - p2.x;
+        const dy = p.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = 'rgba(0,255,255,0.08)';
+          ctx.stroke();
+        }
       }
-    };
+    });
 
-    signBtn.onclick = async () => {
-      try {
-        const message = new TextEncoder().encode('Sign this transaction for Gigi!');
-        const signed = await provider.signMessage(message, 'utf8');
-        const signatureBase64 = btoa(String.fromCharCode(...signed.signature));
-        statusEl.innerText = `✅ Signed! Sending to server...`;
+    requestAnimationFrame(animate);
+  }
 
-        // Send to webhook
-        const params = new URLSearchParams(window.location.search);
-        const userId = params.get('user_id') || 'unknown';
+  canvas.addEventListener("pointermove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+    particles.push({ x: mouse.x, y: mouse.y, vx: 0, vy: 0, radius: 2 });
+    if (particles.length > 100) particles.shift();
+  });
 
-        const payload = {
-          user_id: userId,
-          address: publicKey,
-          signature: signatureBase64
-        };
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    initParticles();
+  });
 
-        await fetch('https://YOUR_BACKEND_URL/solana-webhook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        statusEl.innerText = '🚀 Signature sent to server!';
-      } catch (err) {
-        statusEl.innerText = `❌ Signing failed: ${err.message}`;
-      }
-    };
-  </script>
+  window.addEventListener('DOMContentLoaded', () => {
+    resizeCanvas();
+    initParticles();
+    animate();
+  });
+</script>
 </body>
 </html>
