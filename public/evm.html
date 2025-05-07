@@ -1,155 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>⚡ EVM Wallet Connect | Gigi Labs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>EVM Connect</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+  <script src="config.js"></script>
   <style>
-    html, body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; height: 100%; overflow: hidden; background: radial-gradient(circle, #0f0c29, #302b63, #24243e); color: #fff; }
-    canvas { position: fixed; top: 0; left: 0; z-index: -1; }
-    .container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; padding: 20px; }
-    h1 { font-size: 28px; margin-bottom: 20px; text-shadow: 0 0 15px #00e0ff; }
-    select, button { padding: 12px 24px; margin: 5px; border-radius: 12px; border: none; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
-    select { background: rgba(0,0,0,0.6); color: #fff; border: 1px solid #00e0ff; }
-    button:hover { transform: scale(1.1); }
-    #connect-btn { background: linear-gradient(45deg, #00e0ff, #00ff88); color: black; }
-    #sign-btn { background: linear-gradient(45deg, #ff9900, #ff4444); color: black; display: none; }
-    #disconnect { background: #555; color: white; display: none; }
-    footer { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 14px; color: #aaa; }
+    body { background: #0b0b0b; color: #fff; font-family: Arial; text-align: center; }
+    button, select { margin: 10px; padding: 10px; }
   </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
-<div class="container">
-  <h1 id="title">⚡ Connect Your EVM Wallet</h1>
-  <select id="lang">
-    <option value="en">English</option>
-    <option value="fr">Français</option>
-    <option value="es">Español</option>
-    <option value="zh">中文</option>
-  </select>
+  <h1>Connect MetaMask</h1>
   <button id="connect-btn">Connect Wallet</button>
-  <button id="sign-btn">Sign Message</button>
-  <button id="disconnect">Disconnect</button>
-  <footer>✨ Powered by Gigi Labs ✨</footer>
-</div>
-
-<!-- ✅ Load stable ethers.js version -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-
-<script>
-const translations = { en: { title: "⚡ Connect Your EVM Wallet", connect: "Connect Wallet", sign: "Sign Message" }, fr: { title: "⚡ Connectez votre portefeuille EVM", connect: "Connecter le portefeuille", sign: "Signer le message" }, es: { title: "⚡ Conecta tu billetera EVM", connect: "Conectar billetera", sign: "Firmar mensaje" }, zh: { title: "⚡ 连接您的EVM钱包", connect: "连接钱包", sign: "签署消息" }, };
-
-let provider, signer, userAddress;
-const url = new URL(window.location.href);
-const user_id = url.searchParams.get("user_id") || "unknown";
-const connectBtn = document.getElementById("connect-btn");
-const signBtn = document.getElementById("sign-btn");
-const disconnectBtn = document.getElementById("disconnect");
-const statusTitle = document.getElementById("title");
-
-if (navigator.userAgent.includes('Telegram')) {
-  alert('⚠️ Please open this page in an external browser (not Telegram) to connect MetaMask.');
-}
-
-connectBtn.onclick = async () => {
-  if (!window.ethereum) {
-    alert('⚠️ No EVM wallet detected.\nPlease install MetaMask, Rabby, or Trust.');
-    return;
-  }
-  try {
-    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-    userAddress = await signer.getAddress();
-    statusTitle.textContent = `✅ Connected: ${userAddress.substring(0,6)}...${userAddress.slice(-4)}`;
-    signBtn.style.display = "inline-block";
-    disconnectBtn.style.display = "inline-block";
-
-    await fetch("http://34.203.188.151:5000/evm-webhook", {
-      method: "POST",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id, address: userAddress, event: 'connect' })
-    });
-  } catch (err) {
-    console.error("❌ Wallet connection error:", err);
-    alert('❌ Wallet connection failed.\n\n' + (err.message || err));
-  }
-};
-
-signBtn.onclick = async () => {
-  if (!signer || !userAddress) {
-    alert('⚠️ Please connect your wallet first.');
-    return;
-  }
-  try {
-    const message = "Sign this message to confirm connection with Gigi Labs ✨";
-    const signature = await signer.signMessage(message);
-
-    await fetch("http://34.203.188.151:5000/evm-webhook", {
-      method: "POST",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id, address: userAddress, signature })
-    });
-    alert("✅ Message signed & webhook sent!");
-  } catch (err) {
-    console.error("❌ Signing error:", err);
-    alert("❌ Signing failed.\n\n" + (err.message || err));
-  }
-};
-
-disconnectBtn.onclick = () => {
-  provider = signer = userAddress = null;
-  statusTitle.textContent = translations[document.getElementById("lang").value].title;
-  signBtn.style.display = "none";
-  disconnectBtn.style.display = "none";
-};
-
-document.getElementById("lang").addEventListener("change", e => {
-  const lang = e.target.value;
-  statusTitle.textContent = translations[lang].title;
-  connectBtn.textContent = translations[lang].connect;
-  signBtn.textContent = translations[lang].sign;
-});
-</script>
-
-<script>
-const canvas = document.getElementById('bg');
-const ctx = canvas.getContext('2d');
-let width, height;
-const stars = [];
-function resizeCanvas() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
-function createStar() { return { x: Math.random() * width, y: Math.random() * height, vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, radius: Math.random() * 1.5 }; }
-function initStars() { stars.length = 0; for (let i = 0; i < 120; i++) stars.push(createStar()); }
-function animate() {
-  ctx.clearRect(0, 0, width, height);
-  stars.forEach((s, i) => {
-    s.x += s.vx; s.y += s.vy;
-    if (s.x < 0 || s.x > width) s.vx *= -1;
-    if (s.y < 0 || s.y > height) s.vy *= -1;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-    ctx.fillStyle = '#00e0ff';
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#00e0ff';
-    ctx.fill();
-    for (let j = i + 1; j < stars.length; j++) {
-      const s2 = stars[j];
-      const dx = s.x - s2.x, dy = s.y - s2.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 100) {
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(s2.x, s2.y);
-        ctx.strokeStyle = 'rgba(0,255,255,0.05)';
-        ctx.stroke();
+  <button id="disconnect-btn" hidden>Disconnect</button>
+  <select id="lang">
+    <option>English</option><option>Français</option><option>Español</option><option>中文</option>
+  </select>
+  <div id="status"></div>
+  <script>
+    let web3, accounts;
+    document.getElementById('connect-btn').onclick = async () => {
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        document.getElementById('disconnect-btn').hidden = false;
+        fetch(window.APP_CONFIG.EVM_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-KEY': window.APP_CONFIG.API_KEY }, body: JSON.stringify({ publicKey: accounts[0], amount: 1, recipient: 'recipientAddress', signature: 'signedTx' }) })
+        .then(() => status.innerText = '✅ Transaction Sent!').catch(() => status.innerText = '❌ Failed!');
       }
-    }
-  });
-  requestAnimationFrame(animate);
-}
-window.addEventListener('resize', () => { resizeCanvas(); initStars(); });
-window.addEventListener('DOMContentLoaded', () => { resizeCanvas(); initStars(); animate(); });
-</script>
+    };
+    document.getElementById('disconnect-btn').onclick = () => { accounts = []; status.innerText = 'Disconnected'; document.getElementById('disconnect-btn').hidden = true; };
+  </script>
 </body>
 </html>
