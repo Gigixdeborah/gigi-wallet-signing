@@ -1,195 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Solana Connect - Gigi Labs</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/favicon.ico">
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0f2c;
-            color: white;
-            overflow: hidden;
-        }
-        canvas {
-            position: absolute;
-            top: 0; left: 0;
-        }
-        .container {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-        }
-        h1 { margin-bottom: 10px; }
-        button {
-            padding: 12px 24px;
-            margin: 10px;
-            background: #512da8;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        button:hover { background: #673ab7; }
-        select {
-            margin: 10px;
-            padding: 8px;
-            border-radius: 8px;
-        }
-        footer {
-            position: absolute;
-            bottom: 10px;
-            font-size: 12px;
-            opacity: 0.7;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 0.7; }
-            50% { opacity: 1; }
-            100% { opacity: 0.7; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Solana Connect - Gigi Labs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0f2c; color: white;
+      overflow: hidden;
+    }
+    canvas { position: absolute; top: 0; left: 0; }
+    .container {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; height: 100%;
+    }
+    h1 { margin-bottom: 10px; }
+    button, select {
+      padding: 12px 24px; margin: 10px;
+      background: #512da8; border: none;
+      border-radius: 8px; color: white;
+      font-size: 16px; cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover { background: #673ab7; }
+    footer {
+      position: absolute; bottom: 10px;
+      font-size: 12px; opacity: 0.7;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; }
+    }
+  </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
 <div class="container">
-    <h1 id="title">Connect Your Solana Wallet</h1>
-    <select id="language">
-        <option value="en">English</option>
-        <option value="fr">Français</option>
-        <option value="es">Español</option>
-        <option value="zh">中文</option>
-    </select>
-    <button id="connectBtn">Connect Phantom</button>
-    <button id="disconnectBtn" style="display:none;">Disconnect</button>
-    <footer>🚀 Powered by Gigi Labs</footer>
+  <h1 id="title">Connect Your Solana Wallet</h1>
+  <select id="language">
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="es">Español</option>
+    <option value="zh">中文</option>
+  </select>
+  <button id="connectBtn">Connect Wallet</button>
+  <button id="signBtn" style="display:none;">Sign Transaction</button>
+  <button id="disconnectBtn" style="display:none;">Disconnect</button>
+  <footer>🚀 Powered by Gigi Labs</footer>
 </div>
 
 <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
 <script>
-    const canvas = document.getElementById('bg');
-    const ctx = canvas.getContext('2d');
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-    let dots = Array.from({ length: 100 }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 1,
-        vy: (Math.random() - 0.5) * 1
-    }));
-
-    function animate() {
-        ctx.clearRect(0, 0, width, height);
-        dots.forEach(dot => {
-            dot.x += dot.vx;
-            dot.y += dot.vy;
-            if (dot.x < 0 || dot.x > width) dot.vx *= -1;
-            if (dot.y < 0 || dot.y > height) dot.vy *= -1;
-            ctx.beginPath();
-            ctx.arc(dot.x, dot.y, 2, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            ctx.fill();
-        });
-        dots.forEach(dot1 => {
-            dots.forEach(dot2 => {
-                const dist = Math.hypot(dot1.x - dot2.x, dot1.y - dot2.y);
-                if (dist < 120) {
-                    ctx.beginPath();
-                    ctx.moveTo(dot1.x, dot1.y);
-                    ctx.lineTo(dot2.x, dot2.y);
-                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                    ctx.stroke();
-                }
-            });
-        });
-        requestAnimationFrame(animate);
-    }
-    animate();
-
-    window.addEventListener('resize', () => {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  let width = window.innerWidth, height = window.innerHeight;
+  canvas.width = width; canvas.height = height;
+  let dots = Array.from({length:100},()=>({
+    x:Math.random()*width, y:Math.random()*height,
+    vx:(Math.random()-0.5)*1, vy:(Math.random()-0.5)*1
+  }));
+  function animate() {
+    ctx.clearRect(0,0,width,height);
+    dots.forEach(dot=>{
+      dot.x+=dot.vx; dot.y+=dot.vy;
+      if(dot.x<0||dot.x>width)dot.vx*=-1;
+      if(dot.y<0||dot.y>height)dot.vy*=-1;
+      ctx.beginPath(); ctx.arc(dot.x,dot.y,2,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fill();
     });
-
-    document.addEventListener('pointermove', e => {
-        dots.push({ x: e.clientX, y: e.clientY, vx: (Math.random() - 0.5) * 1, vy: (Math.random() - 0.5) * 1 });
-        if (dots.length > 100) dots.shift();
-    });
-
-    const languageTexts = {
-        en: "Connect Your Solana Wallet",
-        fr: "Connectez Votre Portefeuille Solana",
-        es: "Conecta Tu Billetera Solana",
-        zh: "连接您的 Solana 钱包"
-    };
-
-    document.getElementById('language').addEventListener('change', e => {
-        document.getElementById('title').innerText = languageTexts[e.target.value];
-    });
-
-    const connectBtn = document.getElementById('connectBtn');
-    const disconnectBtn = document.getElementById('disconnectBtn');
-    let provider;
-
-    async function connectWallet() {
-        try {
-            provider = window.solana;
-            if (!provider || !provider.isPhantom) {
-                alert('Please install Phantom Wallet!');
-                return;
-            }
-            const resp = await provider.connect();
-            const publicKey = resp.publicKey.toString();
-            alert(`✅ Connected: ${publicKey}`);
-
-            const message = 'Sign to confirm transaction with Gigi Labs';
-            const encodedMessage = new TextEncoder().encode(message);
-            const signed = await provider.signMessage(encodedMessage, 'utf8');
-            console.log('Signature:', signed);
-
-            await fetch('/solana-webhook', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ publicKey, signature: signed.signature })
-            });
-
-            alert('✅ Signed and sent to server!');
-            connectBtn.style.display = 'none';
-            disconnectBtn.style.display = 'inline-block';
-        } catch (err) {
-            console.error(err);
-            alert('❌ Error: ' + err.message);
+    dots.forEach(dot1=>{
+      dots.forEach(dot2=>{
+        const dist=Math.hypot(dot1.x-dot2.x,dot1.y-dot2.y);
+        if(dist<120){
+          ctx.beginPath(); ctx.moveTo(dot1.x,dot1.y);
+          ctx.lineTo(dot2.x,dot2.y);
+          ctx.strokeStyle='rgba(255,255,255,0.1)';
+          ctx.stroke();
         }
-    }
+      });
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+  window.addEventListener('resize',()=>{
+    width=window.innerWidth; height=window.innerHeight;
+    canvas.width=width; canvas.height=height;
+  });
+  document.addEventListener('pointermove',e=>{
+    dots.push({x:e.clientX,y:e.clientY,vx:(Math.random()-0.5)*1,vy:(Math.random()-0.5)*1});
+    if(dots.length>100)dots.shift();
+  });
 
-    async function disconnectWallet() {
-        try {
-            await provider.disconnect();
-            connectBtn.style.display = 'inline-block';
-            disconnectBtn.style.display = 'none';
-            alert('🔌 Disconnected!');
-        } catch (err) {
-            console.error(err);
-            alert('❌ Error: ' + err.message);
-        }
-    }
+  const languageTexts={
+    en:"Connect Your Solana Wallet", fr:"Connectez Votre Portefeuille Solana",
+    es:"Conecta Tu Billetera Solana", zh:"连接您的 Solana 钱包"
+  };
+  document.getElementById('language').addEventListener('change',e=>{
+    document.getElementById('title').innerText=languageTexts[e.target.value];
+  });
 
-    connectBtn.addEventListener('click', connectWallet);
-    disconnectBtn.addEventListener('click', disconnectWallet);
+  const connectBtn=document.getElementById('connectBtn');
+  const signBtn=document.getElementById('signBtn');
+  const disconnectBtn=document.getElementById('disconnectBtn');
+  let provider;
+
+  if(navigator.userAgent.includes('Telegram')){
+    alert('⚠️ Please open this page in an external browser for wallet connection.');
+  }
+
+  async function connectWallet(){
+    provider=window.solana;
+    if(!provider||!provider.isPhantom){
+      alert('Please install Phantom Wallet or open in supported wallet modal!');
+      return;
+    }
+    const resp=await provider.connect();
+    window.publicKey=resp.publicKey.toString();
+    alert(`✅ Connected: ${window.publicKey}`);
+    connectBtn.style.display='none';
+    signBtn.style.display='inline-block';
+    disconnectBtn.style.display='inline-block';
+  }
+
+  async function signTransaction(){
+    try{
+      const connection=new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'));
+      const tx=new solanaWeb3.Transaction();
+      tx.feePayer=new solanaWeb3.PublicKey(window.publicKey);
+      tx.recentBlockhash=(await connection.getRecentBlockhash()).blockhash;
+      alert('🖊 Please approve the signature in your wallet');
+      const signedTx=await provider.signTransaction(tx);
+      const raw=JSON.stringify(signedTx);
+      await fetch('/solana-webhook',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({publicKey:window.publicKey,rawTx:raw})
+      });
+      alert('✅ Transaction signed and sent to server!');
+    }catch(err){
+      console.error(err); alert('❌ Error: '+err.message);
+    }
+  }
+
+  async function disconnectWallet(){
+    await provider.disconnect();
+    connectBtn.style.display='inline-block';
+    signBtn.style.display='none';
+    disconnectBtn.style.display='none';
+    alert('🔌 Disconnected!');
+  }
+
+  connectBtn.addEventListener('click',connectWallet);
+  signBtn.addEventListener('click',signTransaction);
+  disconnectBtn.addEventListener('click',disconnectWallet);
 </script>
 </body>
 </html>
