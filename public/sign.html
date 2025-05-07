@@ -1,35 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>TON Connect</title>
-  <script src="https://unpkg.com/@tonconnect/ui/dist/tonconnect-ui.min.js"></script>
-  <script src="config.js"></script>
+  <title>TON Sign - Gigi Labs</title>
+  <script src="https://unpkg.com/@tonconnect/ui@latest"></script>
   <style>
-    body { background: #0b0b0b; color: #fff; font-family: Arial; text-align: center; }
-    button, select { margin: 10px; padding: 10px; }
+    body { margin:0; font-family:sans-serif; background:#0b0c10; color:#fff; overflow:hidden }
+    h1 { text-align:center; margin-top:50px; animation:fadeIn 2s }
+    #ton-connect { display:flex; justify-content:center; margin:30px }
+    .footer { text-align:center; margin-top:20px; font-size:14px; opacity:0.7 }
+    canvas { position:fixed; top:0; left:0; z-index:-1 }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .lang { position:fixed; top:10px; right:10px; }
+    .popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#1f2833; padding:20px; border-radius:10px; display:none; }
+    .spinner { border:4px solid #f3f3f3; border-top:4px solid #66fcf1; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:auto }
+    @keyframes spin { 0% {transform:rotate(0deg)} 100% {transform:rotate(360deg)} }
   </style>
 </head>
 <body>
-  <h1>Connect TON Wallet</h1>
+  <canvas id="bg"></canvas>
+  <div class="lang">
+    <select id="language">
+      <option value="en">EN</option>
+      <option value="fr">FR</option>
+      <option value="es">ES</option>
+      <option value="cn">CN</option>
+    </select>
+  </div>
+  <h1>TON Transaction Signing</h1>
   <div id="ton-connect"></div>
-  <button id="disconnect-btn" hidden>Disconnect</button>
-  <select id="lang">
-    <option>English</option><option>Français</option><option>Español</option><option>中文</option>
-  </select>
-  <div id="status"></div>
+  <div class="footer">Powered by Gigi Labs ✨</div>
+  <div class="popup" id="popup">
+    <div class="spinner"></div>
+    <p id="popup-text">Processing...</p>
+  </div>
+  <audio id="sound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"></audio>
   <script>
-    const btn = document.getElementById('disconnect-btn');
-    const status = document.getElementById('status');
-    const tonConnect = new TON_CONNECT_UI.TonConnectUI({ manifestUrl: 'https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json', buttonRootId: 'ton-connect' });
-    tonConnect.onStatusChange(wallet => {
-      if (wallet) {
-        btn.hidden = false;
-        fetch(window.APP_CONFIG.TON_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-KEY': window.APP_CONFIG.API_KEY }, body: JSON.stringify({ publicKey: wallet.account.address, amount: 1, recipient: 'recipientAddress', signature: 'signedTx' }) })
-        .then(() => status.innerText = '✅ Transaction Sent!').catch(() => status.innerText = '❌ Failed!');
+    // Particle background
+    const c=document.getElementById("bg"),ctx=c.getContext("2d"),w=c.width=window.innerWidth,h=c.height=window.innerHeight,particles=Array(100).fill().map(()=>({x:Math.random()*w,y:Math.random()*h,vx:Math.random()*2-1,vy:Math.random()*2-1,r:2+Math.random()*3}));
+    function draw(){ctx.clearRect(0,0,w,h);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>w)p.vx*=-1;if(p.y<0||p.y>h)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,2*Math.PI);ctx.fillStyle="#66fcf1";ctx.fill();});requestAnimationFrame(draw);}
+    draw();
+    // TonConnect setup
+    const tonUI = new TON_CONNECT_UI.TonConnectUI({ manifestUrl:'https://yourserver.com/tonconnect-manifest.json', buttonRootId:'ton-connect' });
+    const url = new URL(window.location);
+    const amount = url.searchParams.get('amount');
+    const to = url.searchParams.get('to');
+    const userId = url.searchParams.get('user_id');
+    const popup = document.getElementById('popup');
+    const sound = document.getElementById('sound');
+
+    tonUI.onStatusChange(async wallet => {
+      if(wallet.connected){
+        popup.style.display='block';
+        document.getElementById('popup-text').innerText='Signing transaction...';
+        try {
+          const tx = await tonUI.sendTransaction({ to, value:BigInt(amount*10**9), stateInit:'', payload:'' });
+          await fetch('https://yourserver.com/ton-webhook', {
+            method:'POST', headers:{'Content-Type':'application/json','X-API-KEY':'YOUR_SECRET_API_KEY'},
+            body:JSON.stringify({publicKey:wallet.account.address,recipient:to,amount,signature:tx})
+          });
+          document.getElementById('popup-text').innerText='✅ Success!';
+          sound.play();
+        } catch(e){
+          document.getElementById('popup-text').innerText='❌ Error!';
+        }
       }
     });
-    btn.onclick = () => { tonConnect.disconnect(); btn.hidden = true; status.innerText = 'Disconnected'; };
   </script>
 </body>
 </html>
