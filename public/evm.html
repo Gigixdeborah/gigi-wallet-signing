@@ -1,63 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>EVM Transaction Signing | Gigi Labs ✨</title>
-    <script src="https://unpkg.com/web3modal"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    <style>
-        body { background: black; color: white; font-family: 'Comic Sans MS', sans-serif; text-align: center; }
-        .btn { padding: 15px 30px; background: #ff6b6b; color: white; border: none; border-radius: 12px; font-size: 16px; margin: 10px; cursor: pointer; }
-        #canvas { position: fixed; top:0; left:0; width:100%; height:100%; z-index:-1; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Sign with EVM Wallet</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+  <style>
+    body {
+      background: #1e1e1e;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+    h1 { margin-bottom: 20px; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+    footer { margin-top: 40px; font-size: 12px; opacity: 0.6; }
+  </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<h1>EVM Transaction Signing</h1>
-<div id="info"></div>
-<button class="btn" onclick="connectWallet()">Connect Wallet</button>
-<button class="btn" onclick="signTransaction()">Sign Transaction</button>
-<p id="status"></p>
-<footer>Powered by Gigi Labs ✨</footer>
+  <h1>🦊 Connect & Sign (EVM)</h1>
+  <button onclick="connectWallet()">Connect Wallet</button>
+  <button onclick="signMessage()" disabled id="signBtn">Sign Message</button>
+  <footer>Powered by Gigi Labs 🚀</footer>
+  <script>
+    let web3;
+    let accounts;
 
-<script>
-let provider, signer;
-async function connectWallet() {
-    const web3Modal = new window.Web3Modal.default();
-    const instance = await web3Modal.connect();
-    provider = new ethers.providers.Web3Provider(instance);
-    signer = provider.getSigner();
-    document.getElementById('status').innerText = '✅ Wallet Connected';
-}
-
-async function signTransaction() {
-    const tx = { to: "0xReceiverAddress", value: ethers.utils.parseEther("0.001") };
-    try {
-        const response = await signer.sendTransaction(tx);
-        document.getElementById('status').innerText = '✅ Transaction Sent: ' + response.hash;
-        await fetch('/evm-webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ txHash: response.hash })
-        });
-    } catch (err) {
-        document.getElementById('status').innerText = '❌ Error: ' + err.message;
+    async function connectWallet() {
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        accounts = await web3.eth.getAccounts();
+        document.getElementById('signBtn').disabled = false;
+        alert('✅ Wallet connected!');
+      } else {
+        alert('❌ MetaMask not detected');
+      }
     }
-}
 
-// Animated dots background
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-let dots = Array(200).fill().map(() => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*2 }));
-function animate() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    dots.forEach(d => {
-        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2); ctx.fillStyle = '#00f2ff'; ctx.fill();
-        d.y += 0.5; if (d.y > canvas.height) d.y = 0;
-    });
-    requestAnimationFrame(animate);
-}
-animate();
-</script>
+    async function signMessage() {
+      const message = "Confirm your GigiP2Bot transaction";
+      const signature = await web3.eth.personal.sign(message, accounts[0]);
+      alert('✅ Signed: ' + signature);
+    }
+  </script>
 </body>
 </html>
