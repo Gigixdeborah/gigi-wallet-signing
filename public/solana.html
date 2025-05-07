@@ -1,118 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Solana Wallet Sign | Gigi Labs</title>
-  <style>
-    body {
-      background: #000;
-      margin: 0;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
-      text-align: center;
-    }
-    button {
-      padding: 14px 28px;
-      font-size: 16px;
-      background: #00ffaa;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-    button:hover {
-      background: #00ddaa;
-    }
-    .footer {
-      position: absolute;
-      bottom: 15px;
-      color: #aaa;
-    }
-    .footer span {
-      color: #fff;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <title>Solana Wallet Connect & Sign</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-wallets@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-base@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-react-ui@latest"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+    </style>
 </head>
 <body>
-  <h1>Solana Wallet Connect</h1>
-  <button onclick="connectAndSign()">Connect Wallet & Sign</button>
-  <div class="footer">✨ Powered by <span>Gigi Labs</span></div>
+    <h1>🔗 Connect & Sign on Solana</h1>
+    <button id="connect">Connect Wallet</button>
+    <button id="sign" disabled>Sign Transaction</button>
+    <div id="status">Status: Waiting for connection...</div>
 
-  <script type="module">
-    import {
-      Connection,
-      Transaction,
-      SystemProgram,
-      PublicKey,
-      clusterApiUrl
-    } from "https://cdn.skypack.dev/@solana/web3.js";
+    <script type="module">
+        import {
+            PhantomWalletAdapter,
+            SolflareWalletAdapter,
+            TorusWalletAdapter,
+            LedgerWalletAdapter
+        } from "https://cdn.skypack.dev/@solana/wallet-adapter-wallets";
 
-    async function connectAndSign() {
-      const params = new URLSearchParams(window.location.search);
-      const toAddress = params.get("to");
-      const amount = parseInt(params.get("amount") || "0");
-      const user_id = params.get("user_id") || "unknown";
+        const connectBtn = document.getElementById('connect');
+        const signBtn = document.getElementById('sign');
+        const statusEl = document.getElementById('status');
 
-      if (!toAddress || amount <= 0) {
-        alert("Missing or invalid 'to' or 'amount' in URL.");
-        return;
-      }
+        let wallet = null;
+        let publicKey = null;
 
-      try {
-        const provider = window.solana;
-        if (!provider || !provider.isPhantom) {
-          alert("Phantom wallet not found.");
-          return;
+        const wallets = [
+            new PhantomWalletAdapter(),
+            new SolflareWalletAdapter(),
+            new TorusWalletAdapter(),
+            new LedgerWalletAdapter()
+        ];
+
+        function updateStatus(msg) {
+            statusEl.textContent = msg;
         }
 
-        const resp = await provider.connect();
-        const publicKey = resp.publicKey;
-        const toPubkey = new PublicKey(toAddress);
-        const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
+        connectBtn.onclick = async () => {
+            try {
+                for (const w of wallets) {
+                    if (w.readyState === 'Installed') {
+                        wallet = w;
+                        break;
+                    }
+                }
+                if (!wallet) {
+                    updateStatus('❌ No installed wallet found. Install Phantom or Solflare.');
+                    return;
+                }
+                await wallet.connect();
+                publicKey = wallet.publicKey.toBase58();
+                updateStatus(`✅ Connected: ${publicKey}`);
+                signBtn.disabled = false;
+            } catch (err) {
+                updateStatus(`❌ Connection failed: ${err.message}`);
+            }
+        };
 
-        const { blockhash } = await connection.getLatestBlockhash();
+        signBtn.onclick = async () => {
+            try {
+                const message = new TextEncoder().encode('Sign this transaction for Gigi!');
+                const signed = await wallet.signMessage(message, 'utf8');
+                updateStatus(`✅ Signed!\nSignature: ${Buffer.from(signed.signature).toString('base64')}`);
 
-        const transaction = new Transaction({
-          recentBlockhash: blockhash,
-          feePayer: publicKey,
-        });
+                const payload = {
+                    user_id: new URLSearchParams(window.location.search).get('user_id'),
+                    address: publicKey,
+                    signature: Buffer.from(signed.signature).toString('base64')
+                };
 
-        transaction.add(SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: toPubkey,
-          lamports: amount
-        }));
+                await fetch('/solana-webhook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-        const signed = await provider.signTransaction(transaction);
-        const signedTx = signed.serialize().toString('base64');
-
-        await fetch("/solana-webhook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id,
-            wallet: publicKey.toString(),
-            to: toAddress,
-            token: "SOL",
-            amount,
-            signed_tx: signedTx
-          })
-        });
-
-        alert("✅ Transaction signed and sent to webhook!");
-      } catch (err) {
-        console.error(err);
-        alert("❌ Error occurred. Check console.");
-      }
-    }
-  </script>
+                updateStatus(prev => prev + '\n🚀 Signature sent to server!');
+            } catch (err) {
+                updateStatus(`❌ Signing failed: ${err.message}`);
+            }
+        };
+    </script>
 </body>
 </html>
