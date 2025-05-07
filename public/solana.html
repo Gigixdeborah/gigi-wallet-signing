@@ -6,20 +6,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="/favicon.ico">
   <style>
-    body, html { margin:0; padding:0; height:100%; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#0a0f2c; color:white; overflow:hidden; }
+    body, html { margin:0; padding:0; height:100%; font-family:'Segoe UI',sans-serif; background:#0a0f2c; color:white; overflow:hidden; }
     canvas { position:absolute; top:0; left:0; }
     .container { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; }
-    h1 { margin-bottom:10px; }
-    button, select {
-      padding:12px 24px; margin:10px; background:#512da8; border:none; border-radius:8px; color:white; font-size:16px; cursor:pointer; transition:background 0.3s;
-    }
+    h1 { margin-bottom:10px; text-align:center; }
+    button, select, input { padding:12px 20px; margin:6px; background:#512da8; border:none; border-radius:8px; color:white; font-size:16px; cursor:pointer; }
     button:hover { background:#673ab7; }
+    input { background:#1c1c3c; width:200px; }
     footer { position:absolute; bottom:10px; font-size:12px; opacity:0.7; animation:pulse 2s infinite; }
-    @keyframes pulse { 0%{opacity:0.7;} 50%{opacity:1;} 100%{opacity:0.7;} }
+    #status { margin-top:10px; font-size:14px; }
+    @keyframes pulse { 0%{opacity:0.7;}50%{opacity:1;}100%{opacity:0.7;} }
+    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #512da8; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin-top:10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
+
 <div class="container">
   <h1 id="title">Connect Your Solana Wallet</h1>
   <select id="language">
@@ -33,9 +36,12 @@
     <option value="solflare">Solflare</option>
     <option value="backpack">Backpack</option>
   </select>
+  <input id="recipient" placeholder="Recipient Address">
+  <input id="amount" placeholder="Amount (SOL)">
   <button id="connectBtn">Connect Wallet</button>
   <button id="signBtn" style="display:none;">Sign Transaction</button>
   <button id="disconnectBtn" style="display:none;">Disconnect</button>
+  <div id="status"></div>
   <footer>🚀 Powered by Gigi Labs</footer>
 </div>
 
@@ -45,59 +51,50 @@ const canvas=document.getElementById('bg'),ctx=canvas.getContext('2d');
 let width=window.innerWidth,height=window.innerHeight;
 canvas.width=width;canvas.height=height;
 let dots=Array.from({length:100},()=>({x:Math.random()*width,y:Math.random()*height,vx:(Math.random()-0.5)*1,vy:(Math.random()-0.5)*1}));
-function animate(){ctx.clearRect(0,0,width,height);
-dots.forEach(dot=>{dot.x+=dot.vx;dot.y+=dot.vy;if(dot.x<0||dot.x>width)dot.vx*=-1;if(dot.y<0||dot.y>height)dot.vy*=-1;
-ctx.beginPath();ctx.arc(dot.x,dot.y,2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fill();});
-dots.forEach(dot1=>{dots.forEach(dot2=>{const dist=Math.hypot(dot1.x-dot2.x,dot1.y-dot2.y);
-if(dist<120){ctx.beginPath();ctx.moveTo(dot1.x,dot1.y);ctx.lineTo(dot2.x,dot2.y);ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.stroke();}});});
-requestAnimationFrame(animate);}animate();
-window.addEventListener('resize',()=>{width=window.innerWidth;height=window.innerHeight;canvas.width=width;canvas.height=height;});
-document.addEventListener('pointermove',e=>{dots.push({x:e.clientX,y:e.clientY,vx:(Math.random()-0.5)*1,vy:(Math.random()-0.5)*1});if(dots.length>100)dots.shift();});
+function animate(){ctx.clearRect(0,0,width,height);dots.forEach(dot=>{dot.x+=dot.vx;dot.y+=dot.vy;if(dot.x<0||dot.x>width)dot.vx*=-1;if(dot.y<0||dot.y>height)dot.vy*=-1;ctx.beginPath();ctx.arc(dot.x,dot.y,2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fill();});dots.forEach(dot1=>{dots.forEach(dot2=>{const dist=Math.hypot(dot1.x-dot2.x,dot1.y-dot2.y);if(dist<120){ctx.beginPath();ctx.moveTo(dot1.x,dot1.y);ctx.lineTo(dot2.x,dot2.y);ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.stroke();}});});requestAnimationFrame(animate);}
+animate();window.addEventListener('resize',()=>{width=window.innerWidth;height=window.innerHeight;canvas.width=width;canvas.height=height;});
+document.addEventListener('pointermove',e=>{dots.push({x:e.clientX,y:e.clientY,vx:(Math.random()-0.5),vy:(Math.random()-0.5)});if(dots.length>100)dots.shift();});
 
 const languageTexts={en:"Connect Your Solana Wallet",fr:"Connectez Votre Portefeuille Solana",es:"Conecta Tu Billetera Solana",zh:"连接您的 Solana 钱包"};
 document.getElementById('language').addEventListener('change',e=>{document.getElementById('title').innerText=languageTexts[e.target.value];});
 
-const connectBtn=document.getElementById('connectBtn');
-const signBtn=document.getElementById('signBtn');
-const disconnectBtn=document.getElementById('disconnectBtn');
-const walletSelect=document.getElementById('walletSelect');
-let provider;
+const connectBtn=document.getElementById('connectBtn'),signBtn=document.getElementById('signBtn'),disconnectBtn=document.getElementById('disconnectBtn'),walletSelect=document.getElementById('walletSelect'),statusDiv=document.getElementById('status');
+const recipientInput=document.getElementById('recipient'),amountInput=document.getElementById('amount');
+let provider,publicKey;
 
 if(navigator.userAgent.includes('Telegram'))alert('⚠️ Please open this page in an external browser for wallet connection.');
 
 async function connectWallet(){
-const selected=walletSelect.value;
-if(selected==='phantom')provider=window.solana;
-if(selected==='solflare')provider=window.solflare;
-if(selected==='backpack')provider=window.backpack;
-
-if(!provider){alert(`Please install ${selected} wallet!`);return;}
-if(provider.isPhantom||provider.isSolflare||provider.isBackpack){
-try{
-const resp=await provider.connect();window.publicKey=resp.publicKey.toString();
-alert(`✅ Connected: ${window.publicKey}`);
-connectBtn.style.display='none';signBtn.style.display='inline-block';disconnectBtn.style.display='inline-block';
-}catch(e){alert('❌ Connection failed: '+e.message);}
-}else{alert(`Please install ${selected} wallet!`);}
+  const selected=walletSelect.value;
+  if(selected==='phantom')provider=window.solana;
+  if(selected==='solflare')provider=window.solflare;
+  if(selected==='backpack')provider=window.backpack;
+  if(!provider){alert(`Please install ${selected} wallet!`);return;}
+  try{
+    const resp=await provider.connect();
+    publicKey=resp.publicKey.toString();
+    statusDiv.innerHTML=`<div class="spinner"></div> Connecting...`;
+    setTimeout(()=>{statusDiv.innerHTML=`✅ Connected: ${publicKey}`;},1000);
+    connectBtn.style.display='none';signBtn.style.display='inline-block';disconnectBtn.style.display='inline-block';
+  }catch(e){statusDiv.innerText='❌ Connection failed: '+e.message;}
 }
 
 async function signTransaction(){
-try{
-const connection=new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'));
-const tx=new solanaWeb3.Transaction();
-tx.feePayer=new solanaWeb3.PublicKey(window.publicKey);
-tx.recentBlockhash=(await connection.getRecentBlockhash()).blockhash;
-alert('🖊 Please approve the signature in your wallet');
-const signedTx=await provider.signTransaction(tx);
-await fetch('/solana-webhook',{method:'POST',headers:{'Content-Type':'application/json'},
-body:JSON.stringify({publicKey:window.publicKey,rawTx:JSON.stringify(signedTx)})});
-alert('✅ Transaction signed and sent to server!');
-}catch(e){alert('❌ Error: '+e.message);}
+  const recipient=recipientInput.value.trim();
+  const amount=amountInput.value.trim();
+  if(!recipient||!amount){alert('Please enter recipient and amount!');return;}
+  try{
+    statusDiv.innerHTML=`<div class="spinner"></div> Preparing transaction...`;
+    await fetch('/solana-webhook',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({publicKey,recipient,amount})});
+    setTimeout(()=>{statusDiv.innerHTML='✅ Transaction sent to backend!';},1000);
+  }catch(e){statusDiv.innerText='❌ Error: '+e.message;}
 }
 
 async function disconnectWallet(){
-try{await provider.disconnect();}catch(e){}
-connectBtn.style.display='inline-block';signBtn.style.display='none';disconnectBtn.style.display='none';alert('🔌 Disconnected!');
+  try{await provider.disconnect();}catch(e){}
+  connectBtn.style.display='inline-block';signBtn.style.display='none';disconnectBtn.style.display='none';
+  statusDiv.innerText='🔌 Disconnected!';
 }
 
 connectBtn.addEventListener('click',connectWallet);
