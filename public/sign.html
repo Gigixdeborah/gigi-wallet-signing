@@ -1,33 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sign with TON Connect</title>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <style>
-    body {
-      background: #0d0d0d;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      font-family: Arial, sans-serif;
-    }
-    h1 { margin-bottom: 20px; }
-    #ton-connect { margin-top: 20px; }
-    footer { margin-top: 40px; font-size: 12px; opacity: 0.6; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Gigi TON Connect</title>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <style>
+        body {
+            background: radial-gradient(circle, #2e2e2e, #000);
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        #container {
+            margin-top: 100px;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #00bfff;
+            color: #fff;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #1e90ff;
+        }
+    </style>
 </head>
 <body>
-  <h1>🔗 Connect & Sign (TON)</h1>
-  <div id="ton-connect"></div>
-  <footer>Powered by Gigi Labs 🚀</footer>
-  <script>
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://yourdomain.com/tonconnect-manifest.json"
-    });
-  </script>
+    <h1>🔐 Gigi TON Connect</h1>
+    <div id="container"></div>
+    <script>
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: "https://yourdomain.com/tonconnect-manifest.json",
+            buttonRootId: "container"
+        });
+    </script>
+    <footer style="margin-top: 50px;">✨ Powered by Gigi Labs ✨</footer>
 </body>
 </html>
