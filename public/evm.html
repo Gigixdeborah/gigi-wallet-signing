@@ -1,51 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sign with EVM Wallet</title>
-  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EVM Transaction Signing</title>
+  <!-- Include Web3Modal HTML and Ethereum modules -->
+  <script type="module">
+    import { EthereumClient, w3mConnectors, w3mProvider, WagmiCore, WagmiCoreChains } from "https://unpkg.com/@web3modal/ethereum@2.7.1";
+    import { Web3Modal } from "https://unpkg.com/@web3modal/html@2.7.1";
+    // Wagmi utilities
+    const { mainnet } = WagmiCoreChains;
+    const { configureChains, createConfig } = WagmiCore;
+    // Configure networks and providers
+    const chains = [ mainnet ];
+    const projectId = "<YOUR_WALLETCONNECT_PROJECT_ID>";  // replace with your WalletConnect Project ID
+    const { publicClient } = configureChains(chains, [ w3mProvider({ projectId }) ]);
+    const wagmiConfig = createConfig({
+      autoConnect: true,
+      connectors: [ ...w3mConnectors({ projectId, version: 2, chains }) ],
+      publicClient
+    });
+    const ethereumClient = new EthereumClient(wagmiConfig, chains);
+    const web3Modal = new Web3Modal({ projectId }, ethereumClient);
+  </script>
+  <link rel="manifest" href="/manifest.json" />
   <style>
-    body {
-      background: #1e1e1e;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      font-family: Arial, sans-serif;
-    }
-    h1 { margin-bottom: 20px; }
-    button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
-    footer { margin-top: 40px; font-size: 12px; opacity: 0.6; }
+    body { background: #101010; color: #f0f0f0; font-family: Arial, sans-serif; text-align: center; padding: 1em; margin: 0; }
+    h1 { font-size: 1.5em; margin-bottom: 0.5em; }
+    .details { margin: 1em 0; font-size: 1.1em; }
+    code { font-size: 0.95em; }
+    #w3m-modal { z-index: 1000; } /* ensure modal appears on top */
+    #sendBtn { margin-top: 1em; padding: 0.7em 2em; font-size: 1em; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #successMsg { display: none; font-size: 1.2em; color: #4caf50; margin-top: 1em; }
+    .footer { margin-top: 2em; font-size: 0.9em; color: #0ff; text-shadow: 0 0 8px #0ff; }
+    #tgWarning { display: none; background: #ffeb3b; color: #000; padding: 10px; margin-bottom: 1em; border-radius: 5px; }
   </style>
 </head>
 <body>
-  <h1>🦊 Connect & Sign (EVM)</h1>
-  <button onclick="connectWallet()">Connect Wallet</button>
-  <button onclick="signMessage()" disabled id="signBtn">Sign Message</button>
-  <footer>Powered by Gigi Labs 🚀</footer>
+  <h1>Ethereum Transaction</h1>
+  <div id="tgWarning">⚠️ You are in Telegram in-app browser. For wallet connection, please open this page in your external browser if possible.</div>
+  <p class="details">
+    Sending <span id="amount"></span> <span id="coinLabel"></span> to<br/><code id="dest"></code>
+  </p>
+  <!-- Web3Modal Connect Button (web component) -->
+  <w3m-core-button></w3m-core-button>
+  <button id="sendBtn">Send Transaction</button>
+  <div id="successMsg">✅ Transaction Submitted!</div>
+  <p class="footer">Powered by Gigi Labs</p>
+  <audio id="successSound" src="success.mp3" preload="auto"></audio>
   <script>
-    let web3;
-    let accounts;
-
-    async function connectWallet() {
+    // Telegram browser detection
+    if(typeof window.TelegramWebview !== 'undefined' || typeof window.TelegramWebviewProxy !== 'undefined') {
+      document.getElementById('tgWarning').style.display = 'block';
+    }
+    // Parse query params
+    const params = new URLSearchParams(window.location.search);
+    const tid = params.get('tid');
+    const destAddress = params.get('to');
+    const amount = params.get('amt');
+    const coin = (params.get('coin') || 'ETH').toUpperCase();
+    document.getElementById('amount').innerText = amount;
+    document.getElementById('coinLabel').innerText = coin;
+    document.getElementById('dest').innerText = destAddress ? (destAddress.substring(0,6) + "..." + destAddress.slice(-4)) : "";
+    // If coin is ETH or native, sending native value; if USDT, use contract transfer
+    async function sendTransaction() {
+      if (!destAddress || !amount) {
+        alert("Missing transaction details.");
+        return;
+      }
+      // Ensure accounts are connected
+      let fromAddress;
       if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        accounts = await web3.eth.getAccounts();
-        document.getElementById('signBtn').disabled = false;
-        alert('✅ Wallet connected!');
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        fromAddress = accounts[0];
       } else {
-        alert('❌ MetaMask not detected');
+        alert("Please connect your wallet first.");
+        return;
+      }
+      try {
+        if(coin === 'USDT') {
+          // USDT token transfer on Ethereum
+          const usdtContract = "0xdAC17F958D2ee523a2206206994597C13D831ec7";  // USDT mainnet contract
+          // Prepare ERC20 transfer data
+          const toHex = destAddress.replace(/^0x/, "").padStart(64, '0');
+          const amountInt = BigInt(Math.round(parseFloat(amount) * 1e6));  // USDT has 6 decimals
+          const valueHex = amountInt.toString(16).padStart(64, '0');
+          const data = "0xa9059cbb" + toHex + valueHex; // function signature + args
+          await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: fromAddress,
+              to: usdtContract,
+              value: '0x0',
+              data: data
+            }]
+          });
+        } else {
+          // Sending native ETH
+          const valueWeiHex = '0x' + BigInt(Math.floor(parseFloat(amount) * 1e18)).toString(16);
+          await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: fromAddress,
+              to: destAddress,
+              value: valueWeiHex
+            }]
+          });
+        }
+        // Success: show message, sound, and notify backend
+        document.getElementById('successMsg').style.display = 'block';
+        document.getElementById('successSound').play().catch(()=>{});
+        fetch('/webhook/evm', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ tid: tid })
+        });
+      } catch (err) {
+        console.error("Transaction error:", err);
+        alert("❌ Error sending transaction: " + (err.message || err));
       }
     }
-
-    async function signMessage() {
-      const message = "Confirm your GigiP2Bot transaction";
-      const signature = await web3.eth.personal.sign(message, accounts[0]);
-      alert('✅ Signed: ' + signature);
-    }
+    document.getElementById('sendBtn').onclick = sendTransaction;
   </script>
 </body>
 </html>
