@@ -1,34 +1,115 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Solana Connect</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solana Transaction Signing</title>
   <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
-  <script src="config.js"></script>
+  <link rel="manifest" href="/manifest.json" />
   <style>
-    body { background: #0b0b0b; color: #fff; font-family: Arial; text-align: center; }
-    button, select { margin: 10px; padding: 10px; }
+    body { background: #101010; color: #f0f0f0; font-family: Arial, sans-serif; text-align: center; padding: 1em; margin: 0; }
+    h1 { font-size: 1.5em; margin-bottom: 0.5em; }
+    .details { margin: 1em 0; font-size: 1.1em; }
+    #connectBtn, #signBtn { margin: 0.5em; padding: 0.6em 1.5em; font-size: 1em; border: none; border-radius: 5px; cursor: pointer; }
+    #connectBtn { background: #008c8c; color: #fff; }
+    #signBtn { background: #4caf50; color: #fff; display: none; }
+    #successMsg { display: none; font-size: 1.2em; color: #4caf50; margin-top: 1em; }
+    .footer { margin-top: 2em; font-size: 0.9em; color: #0ff; text-shadow: 0 0 8px #0ff; }
   </style>
 </head>
 <body>
-  <h1>Connect Phantom</h1>
-  <button id="connect-btn">Connect Wallet</button>
-  <button id="disconnect-btn" hidden>Disconnect</button>
-  <select id="lang">
-    <option>English</option><option>Français</option><option>Español</option><option>中文</option>
-  </select>
-  <div id="status"></div>
+  <h1>Solana Transaction</h1>
+  <p class="details">
+    Sending <span id="amount"></span> <span id="coinLabel"></span> to<br/><code id="dest"></code>
+    <span id="memoInfo" style="color: #ffeb3b; display:none;"><br/>Memo: <code id="memo"></code></span>
+  </p>
+  <button id="connectBtn">Connect Wallet</button>
+  <button id="signBtn">Sign & Send</button>
+  <div id="successMsg">✅ Transaction Sent!</div>
+  <p class="footer">Powered by Gigi Labs</p>
+  <audio id="successSound" src="success.mp3" preload="auto"></audio>
   <script>
-    const provider = window.solana;
-    document.getElementById('connect-btn').onclick = async () => {
-      if (provider && provider.isPhantom) {
-        await provider.connect();
-        document.getElementById('disconnect-btn').hidden = false;
-        fetch(window.APP_CONFIG.SOLANA_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-KEY': window.APP_CONFIG.API_KEY }, body: JSON.stringify({ publicKey: provider.publicKey.toString(), amount: 1, recipient: 'recipientAddress', signature: 'signedTx' }) })
-        .then(() => status.innerText = '✅ Transaction Sent!').catch(() => status.innerText = '❌ Failed!');
+    const params = new URLSearchParams(window.location.search);
+    const tid = params.get('tid');
+    const destAddress = params.get('to');
+    const amount = params.get('amt');
+    const coin = (params.get('coin') || 'SOL').toUpperCase();
+    const memoTag = params.get('memo');
+    document.getElementById('amount').innerText = amount;
+    document.getElementById('coinLabel').innerText = coin;
+    document.getElementById('dest').innerText = destAddress ? (destAddress.substring(0,6) + "..." + destAddress.slice(-4)) : "";
+    if(memoTag) {
+      document.getElementById('memoInfo').style.display = 'inline';
+      document.getElementById('memo').innerText = memoTag;
+    }
+    let provider = null;
+    let fromPubKey = null;
+    document.getElementById('connectBtn').onclick = async () => {
+      provider = window.phantom?.solana || window.solana;
+      if (!provider) {
+        alert("Phantom Wallet not found. Please install Phantom or open in Phantom browser.");
+        return;
+      }
+      try {
+        const resp = await provider.connect();
+        fromPubKey = new solanaWeb3.PublicKey(resp.publicKey.toString());
+        document.getElementById('connectBtn').style.display = 'none';
+        document.getElementById('signBtn').style.display = 'inline-block';
+        // Display connected info (optional)
+      } catch (err) {
+        console.error("Connect error:", err);
+        alert("Connection to wallet failed.");
       }
     };
-    document.getElementById('disconnect-btn').onclick = () => { provider.disconnect(); status.innerText = 'Disconnected'; document.getElementById('disconnect-btn').hidden = true; };
+    document.getElementById('signBtn').onclick = async () => {
+      if (!fromPubKey || !destAddress || !amount) {
+        alert("Missing information for transaction.");
+        return;
+      }
+      try {
+        // Create transaction
+        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'));
+        const tx = new solanaWeb3.Transaction();
+        const destPubKey = new solanaWeb3.PublicKey(destAddress);
+        // Choose instruction based on coin (assume SOL native transfer for now)
+        if (coin === 'SOL') {
+          const lamports = Math.round(parseFloat(amount) * 1e9);
+          tx.add(solanaWeb3.SystemProgram.transfer({
+            fromPubkey: fromPubKey,
+            toPubkey: destPubKey,
+            lamports: lamports
+          }));
+        } 
+        // Add memo instruction if needed
+        if(memoTag) {
+          const memoProgramId = new solanaWeb3.PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+          const memoInstruction = new solanaWeb3.TransactionInstruction({
+            keys: [],
+            programId: memoProgramId,
+            data: Buffer.from(memoTag, 'utf-8')
+          });
+          tx.add(memoInstruction);
+        }
+        // Set recent blockhash and fee payer
+        tx.feePayer = fromPubKey;
+        const { blockhash } = await connection.getLatestBlockhash();
+        tx.recentBlockhash = blockhash;
+        // Sign and send transaction
+        const signed = await provider.signAndSendTransaction(tx);
+        const signature = signed.signature || signed;  // depending on provider's return format
+        // Show success, sound and notify backend
+        document.getElementById('successMsg').style.display = 'block';
+        document.getElementById('successSound').play().catch(()=>{});
+        fetch('/webhook/solana', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ tid: tid, signature: signature })
+        });
+      } catch (err) {
+        console.error("Transaction error:", err);
+        alert("❌ Failed to send transaction: " + (err.message || err));
+      }
+    };
   </script>
 </body>
 </html>
