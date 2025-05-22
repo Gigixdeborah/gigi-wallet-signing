@@ -2,17 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign TON Transaction | Gigi Labs</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <script src="https://cdn.skypack.dev/canvas-confetti"></script>
   <style>
+    :root {
+      --primary-glow: #00f0ff;
+      --secondary-glow: #ff00ff;
+      --error-color: #ff4444;
+      --bg-start: #0a0a2a;
+      --bg-end: #1a0033;
+      --card-bg: rgba(10, 10, 30, 0.8);
+      --text-color: #e0e0e0;
+    }
+
+    [data-theme="light"] {
+      --primary-glow: #00b7eb;
+      --secondary-glow: #ff4081;
+      --bg-start: #e0f7fa;
+      --bg-end: #b3e5fc;
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --text-color: #333;
+    }
+
     html, body {
       margin: 0;
       padding: 0;
-      background: #000;
+      background: linear-gradient(45deg, var(--bg-start), var(--bg-end), var(--bg-start));
+      background-size: 200% 200%;
+      animation: gradientShift 15s ease infinite;
       overflow: hidden;
       font-family: 'Segoe UI', sans-serif;
-      color: #fff;
+      color: var(--text-color);
+      transition: background 0.5s ease, color 0.5s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html, body, .card, button, #successMsg, #errorMsg {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     canvas {
@@ -20,6 +56,7 @@
       top: 0;
       left: 0;
       z-index: 0;
+      opacity: 0.8;
     }
 
     .container {
@@ -35,61 +72,119 @@
     }
 
     .card {
-      background: rgba(0, 0, 0, 0.7);
-      border: 1px solid #00ffff88;
+      background: var(--card-bg);
+      border: 1px solid var(--primary-glow);
       border-radius: 16px;
       padding: 2em;
       max-width: 420px;
       width: 100%;
-      box-shadow: 0 0 25px #00ffff44;
-      backdrop-filter: blur(8px);
+      box-shadow: 0 0 30px var(--primary-glow);
+      backdrop-filter: blur(10px);
+      animation: cardFadeIn 1s ease-out, pulseGlow 3s ease-in-out infinite;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 40px var(--primary-glow);
+    }
+
+    @keyframes cardFadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { border-color: var(--primary-glow); }
+      50% { border-color: var(--secondary-glow); }
     }
 
     h1 {
-      font-size: 1.6em;
+      font-size: 1.8em;
       margin-bottom: 0.5em;
-      color: #0ff;
-      text-shadow: 0 0 6px #0ff;
+      color: var(--primary-glow);
+      text-shadow: 0 0 8px var(--primary-glow);
     }
 
     .info {
       font-size: 1.1em;
       margin-bottom: 1em;
-      color: #fff;
+      color: var(--text-color);
+      line-height: 1.4;
+    }
+
+    .address-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #copyAddrBtn {
+      background: none;
+      border: none;
+      color: var(--primary-glow);
+      cursor: pointer;
+      font-size: 0.9em;
+      padding: 0.2em 0.5em;
+    }
+
+    #copyAddrBtn:hover {
+      text-shadow: 0 0 10px var(--primary-glow);
     }
 
     #ton-connect button {
       margin-top: 1em;
-      background-color: #00c4cc;
+      background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
       border: none;
       border-radius: 8px;
       padding: 0.8em 1.5em;
       color: white;
       font-size: 1em;
       cursor: pointer;
-      box-shadow: 0 0 10px #00f2ff;
+      box-shadow: 0 0 15px var(--primary-glow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #ton-connect button:hover, #signBtn:hover, #themeToggle:hover, #soundToggle:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px var(--primary-glow);
     }
 
     #signBtn {
       display: none;
       margin-top: 1.2em;
-      background: #4caf50;
+      background: linear-gradient(45deg, #4caf50, #66bb6a);
       color: white;
       padding: 0.8em 2em;
       border: none;
       font-size: 1em;
       border-radius: 8px;
       cursor: pointer;
-      box-shadow: 0 0 12px #4caf50aa;
+      box-shadow: 0 0 15px #4caf50aa;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #signBtn:disabled {
+      background: #666;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #successMsg, #errorMsg {
+      margin-top: 1.5em;
+      font-weight: bold;
+      font-size: 1em;
+      animation: pop 0.5s ease-out forwards;
     }
 
     #successMsg {
-      margin-top: 1.5em;
       color: #0f0;
-      font-weight: bold;
-      font-size: 1em;
       display: none;
-      animation: pop 0.5s ease-out forwards;
+    }
+
+    #errorMsg {
+      color: var(--error-color);
+      display: none;
     }
 
     @keyframes pop {
@@ -97,28 +192,100 @@
       to { opacity: 1; transform: scale(1); }
     }
 
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    #errorMsg.shake {
+      animation: shake 0.3s ease-in-out;
+    }
+
     .footer {
       margin-top: 1.8em;
       font-size: 0.9em;
-      color: #0ff;
-      text-shadow: 0 0 6px #0ff;
+      color: var(--primary-glow);
+      text-shadow: 0 0 6px var(--primary-glow);
+    }
+
+    .controls {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    #themeToggle, #soundToggle {
+      background: var(--primary-glow);
+      border: none;
+      border-radius: 8px;
+      padding: 0.5em 1em;
+      color: white;
+      font-size: 0.9em;
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .loading::after {
+      content: "";
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-bar {
+      margin-top: 1em;
+      height: 6px;
+      background: #333;
+      border-radius: 3px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary-glow);
+      width: 0;
+      transition: width 3s ease-in-out;
     }
   </style>
 </head>
 <body>
   <canvas id="bg"></canvas>
 
+  <div class="controls">
+    <button id="themeToggle" aria-label="Toggle theme">🌙</button>
+    <button id="soundToggle" aria-label="Toggle sound">🔊</button>
+  </div>
+
   <div class="container">
     <div class="card">
       <h1>TON Transaction</h1>
       <div class="info">
-        Sending <span id="amt"></span> TON to:<br>
-        <code id="toAddr"></code>
+        Sending <span id="amt">0</span> TON to:<br>
+        <div class="address-container">
+          <code id="toAddr" aria-label="Recipient address"></code>
+          <button id="copyAddrBtn" aria-label="Copy address">📋</button>
+        </div>
       </div>
-
-      <div id="ton-connect"></div>
-      <button id="signBtn">✅ Sign Transaction</button>
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+      </div>
+      <div id="ton-connect" role="region" aria-label="TON wallet connection"></div>
+      <button id="signBtn" aria-label="Sign TON transaction">✅ Sign Transaction</button>
       <div id="successMsg">✅ Signed Successfully!</div>
+      <div id="errorMsg">❌ Failed to sign. Please try again.</div>
       <div class="footer">Powered by Gigi Labs</div>
     </div>
   </div>
@@ -131,12 +298,71 @@
     const to = params.get("to") || "";
     const tid = params.get("tid") || "";
 
-    document.getElementById("amt").textContent = amount;
-    document.getElementById("toAddr").textContent = to.slice(0, 6) + "..." + to.slice(-6);
+    const amtElement = document.getElementById("amt");
+    const toAddrElement = document.getElementById("toAddr");
+    const progressBar = document.getElementById("progressBar");
+    const progressBarFill = document.getElementById("progressBarFill");
+
+    // Amount animation
+    let currentAmount = 0;
+    const targetAmount = parseFloat(amount);
+    function animateAmount() {
+      if (currentAmount < targetAmount) {
+        currentAmount += targetAmount / 50;
+        amtElement.textContent = currentAmount.toFixed(2);
+        requestAnimationFrame(animateAmount);
+      } else {
+        amtElement.textContent = targetAmount.toFixed(2);
+      }
+    }
+    animateAmount();
+
+    // Typewriter effect for address
+    const fullAddr = to.slice(0, 6) + "..." + to.slice(-6);
+    let i = 0;
+    function typeWriter() {
+      if (i < fullAddr.length) {
+        toAddrElement.textContent = fullAddr.slice(0, i + 1);
+        i++;
+        setTimeout(typeWriter, 50);
+      }
+    }
+    typeWriter();
+
+    // Copy address
+    const copyAddrBtn = document.getElementById("copyAddrBtn");
+    copyAddrBtn.onclick = () => {
+      navigator.clipboard.writeText(to).then(() => {
+        copyAddrBtn.textContent = "✅";
+        setTimeout(() => (copyAddrBtn.textContent = "📋"), 1000);
+      });
+    };
+
+    // Theme toggle
+    const themeToggle = document.getElementById("themeToggle");
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    themeToggle.textContent = savedTheme === "dark" ? "🌙" : "☀️";
+    themeToggle.onclick = () => {
+      const newTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      localStorage.setItem("theme", newTheme);
+      themeToggle.textContent = newTheme === "dark" ? "🌙" : "☀️";
+    };
+
+    // Sound toggle
+    const soundToggle = document.getElementById("soundToggle");
+    let soundEnabled = localStorage.getItem("sound") !== "false";
+    soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+    soundToggle.onclick = () => {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem("sound", soundEnabled);
+      soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+    };
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: window.location.origin + "/tonconnect-manifest.json",
-      buttonRootId: "ton-connect"
+      buttonRootId: "ton-connect",
     });
 
     tonConnectUI.onStatusChange(walletInfo => {
@@ -145,59 +371,107 @@
       }
     });
 
-    document.getElementById("signBtn").onclick = async () => {
+    const signBtn = document.getElementById("signBtn");
+    signBtn.onclick = async () => {
+      signBtn.disabled = true;
+      signBtn.classList.add("loading");
+      progressBar.style.display = "block";
+      progressBarFill.style.width = "100%";
       const nano = (BigInt(parseFloat(amount) * 1e9)).toString();
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [{
-          address: to,
-          amount: nano
-        }]
+        messages: [{ address: to, amount: nano }],
       };
       try {
         const result = await tonConnectUI.sendTransaction(transaction);
         document.getElementById("successMsg").style.display = "block";
-        document.getElementById("successSound").play();
+        if (soundEnabled) {
+          document.getElementById("successSound").play();
+        }
+        navigator.vibrate?.(50);
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        // Preserved webhook
         fetch("/webhook/ton", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tid: tid, boc: result.boc })
+          body: JSON.stringify({ tid: tid, boc: result.boc }),
         });
       } catch (err) {
-        alert("❌ Failed to sign. Please try again.");
+        const errorMsg = document.getElementById("errorMsg");
+        errorMsg.textContent = `❌ ${err.message || "Failed to sign. Please try again."}`;
+        errorMsg.style.display = "block";
+        errorMsg.classList.add("shake");
+        setTimeout(() => errorMsg.classList.remove("shake"), 300);
+      } finally {
+        signBtn.disabled = false;
+        signBtn.classList.remove("loading");
+        progressBar.style.display = "none";
+        progressBarFill.style.width = "0";
       }
     };
 
-    // Glowing node background that connects on hover/touch
+    // Keyboard accessibility
+    signBtn.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        signBtn.click();
+      }
+    });
+
+    // Particle background
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
     let w = canvas.width = window.innerWidth;
     let h = canvas.height = window.innerHeight;
+    const isMobile = window.innerWidth < 768;
+    const particleCount = isMobile ? 50 : 100;
 
-    const dots = Array.from({ length: 75 }, () => ({
+    const dots = Array.from({ length: particleCount }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      r: Math.random() * 2 + 1,
+      r: Math.random() * 3 + 1,
       dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5
+      dy: (Math.random() - 0.5) * 0.5,
+      color: Math.random() > 0.7 ? "var(--secondary-glow)" : "var(--primary-glow)",
     }));
 
     let mouse = { x: w / 2, y: h / 2 };
 
-    canvas.addEventListener('mousemove', e => {
+    canvas.addEventListener("mousemove", e => {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
     });
 
-    canvas.addEventListener('touchmove', e => {
-      if (e.touches[0]) {
-        mouse.x = e.touches[0].clientX;
-        mouse.y = e.touches[0].clientY;
-      }
-    }, { passive: true });
+    canvas.addEventListener("click", e => {
+      confetti({
+        particleCount: 20,
+        spread: 30,
+        origin: { x: e.clientX / w, y: e.clientY / h },
+        colors: ["var(--primary-glow)", "var(--secondary-glow)"],
+      });
+    });
 
-    function draw() {
+    canvas.addEventListener(
+      "touchmove",
+      e => {
+        if (e.touches[0]) {
+          mouse.x = e.touches[0].clientX;
+          mouse.y = e.touches[0].clientY;
+        }
+      },
+      { passive: true }
+    );
+
+    let lastFrame = 0;
+    function draw(timestamp) {
+      if (timestamp - lastFrame < 16) {
+        requestAnimationFrame(draw);
+        return;
+      }
+      lastFrame = timestamp;
       ctx.clearRect(0, 0, w, h);
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = "var(--primary-glow)";
+
       for (let i = 0; i < dots.length; i++) {
         const p = dots[i];
         p.x += p.dx;
@@ -205,9 +479,17 @@
         if (p.x < 0 || p.x > w) p.dx *= -1;
         if (p.y < 0 || p.y > h) p.dy *= -1;
 
+        const dxMouse = mouse.x - p.x;
+        const dyMouse = mouse.y - p.y;
+        const distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
+        if (distMouse < 150) {
+          p.dx += dxMouse / distMouse * 0.02;
+          p.dy += dyMouse / distMouse * 0.02;
+        }
+
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
-        ctx.fillStyle = "#00ffff";
+        ctx.fillStyle = p.color;
         ctx.fill();
 
         for (let j = i + 1; j < dots.length; j++) {
@@ -215,28 +497,24 @@
           const dx = p.x - q.x;
           const dy = p.y - q.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 80) {
+          if (dist < 100) {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = "rgba(0,255,255,0.2)";
+            ctx.strokeStyle = "rgba(0, 240, 255, 0.2)";
             ctx.stroke();
           }
         }
 
-        // connect to mouse
-        const dx = p.x - mouse.x;
-        const dy = p.y - mouse.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 100) {
+        if (distMouse < 120) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(mouse.x, mouse.y);
-          ctx.strokeStyle = "rgba(0,255,255,0.3)";
+          ctx.strokeStyle = "rgba(0, 240, 255, 0.3)";
           ctx.stroke();
         }
       }
-
+      ctx.shadowBlur = 0;
       requestAnimationFrame(draw);
     }
 
