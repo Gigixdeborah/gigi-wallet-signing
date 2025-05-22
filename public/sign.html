@@ -2,27 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TON Transaction | MuskNet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign TON Transaction | Gigi Labs</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <script src="https://cdn.skypack.dev/canvas-confetti"></script>
   <style>
-    :root {
-      --primary-glow: #00d4ff;
-      --secondary-glow: #ff4081;
-      --text-color: #e0e0ff;
-      --bg-dark: #0a0a2a;
-      --bg-light: #1a1a3a;
-    }
-
     html, body {
       margin: 0;
       padding: 0;
-      background: radial-gradient(circle at center, var(--bg-light), var(--bg-dark));
+      background: #000;
       overflow: hidden;
-      font-family: 'Roboto', sans-serif;
-      color: var(--text-color);
-      touch-action: manipulation; /* Improve touch handling */
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
     }
 
     canvas {
@@ -37,139 +27,85 @@
       position: relative;
       height: 100vh;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
-      text-align: center;
       padding: 20px;
     }
 
-    .holo-card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      border-radius: 12px;
-      padding: 1.5em;
-      max-width: 350px;
+    .card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid #00ffff88;
+      border-radius: 20px;
+      padding: 2em;
       width: 100%;
-      box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
-      backdrop-filter: blur(12px);
-      animation: holoPulse 4s ease-in-out infinite;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      max-width: 400px;
+      box-shadow: 0 0 30px #00ffff44;
+      backdrop-filter: blur(15px);
+      text-align: center;
+      animation: fadeIn 0.6s ease-out;
     }
 
-    .holo-card.touch-feedback {
-      animation: holoTilt 0.5s ease-out;
-    }
-
-    @keyframes holoPulse {
-      0%, 100% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
-      50% { box-shadow: 0 0 60px rgba(0, 212, 255, 0.4); }
-    }
-
-    @keyframes holoTilt {
-      0% { transform: rotateX(0deg) rotateY(0deg); }
-      50% { transform: rotateX(5deg) rotateY(-5deg); }
-      100% { transform: rotateX(0deg) rotateY(0deg); }
-    }
-
-    .holo-card:hover {
-      transform: scale(1.02);
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     h1 {
-      font-size: 1.5em;
+      font-size: 1.7em;
       margin-bottom: 0.5em;
-      color: var(--primary-glow);
-      text-shadow: 0 0 10px var(--primary-glow);
-      font-weight: 300;
-      letter-spacing: 1px;
+      color: #0ff;
+      text-shadow: 0 0 8px #0ff;
     }
 
     .info {
-      font-size: 0.9em;
+      font-size: 1.15em;
       margin-bottom: 1em;
-      color: var(--text-color);
-      opacity: 0.9;
-    }
-
-    .info code {
-      font-size: 0.85em;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 2px 6px;
-      border-radius: 4px;
     }
 
     #ton-connect button {
-      background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
-      border: none;
-      border-radius: 8px;
-      padding: 0.7em 1.2em;
+      background: #00c4cc;
       color: white;
-      font-size: 0.9em;
+      border: none;
+      padding: 0.8em 1.6em;
+      font-size: 1em;
+      border-radius: 10px;
       cursor: pointer;
-      box-shadow: 0 0 15px var(--primary-glow);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    #ton-connect button:hover, #signBtn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 25px var(--primary-glow);
+      box-shadow: 0 0 15px #00f2ff;
+      margin-top: 1em;
     }
 
     #signBtn {
       display: none;
-      background: linear-gradient(45deg, #00c853, #00e676);
-      color: white;
-      padding: 0.7em 1.2em;
+      background: linear-gradient(to right, #00ff99, #33ccff);
+      color: black;
+      padding: 0.9em 2.2em;
+      font-size: 1em;
       border: none;
-      font-size: 0.9em;
-      border-radius: 8px;
+      border-radius: 10px;
+      margin-top: 1.5em;
       cursor: pointer;
-      box-shadow: 0 0 15px rgba(0, 200, 83, 0.5);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    #signBtn:disabled {
-      background: #555;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    #successMsg, #errorMsg {
-      margin-top: 1em;
-      font-size: 0.9em;
-      font-weight: 500;
+      box-shadow: 0 0 16px #00ffccaa;
     }
 
     #successMsg {
-      color: #00e676;
       display: none;
-      animation: fadeIn 0.5s ease-out;
+      margin-top: 1.5em;
+      color: #0f0;
+      font-weight: bold;
+      font-size: 1.05em;
+      animation: popUp 0.4s ease-out;
     }
 
-    #errorMsg {
-      color: #ff5252;
-      display: none;
-      animation: fadeIn 0.5s ease-out;
-    }
-
-    @keyframes fadeIn {
+    @keyframes popUp {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .data-stream {
-      display: none;
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
-      animation: stream 1.5s linear infinite;
-    }
-
-    @keyframes stream {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
+    .footer {
+      margin-top: 2em;
+      font-size: 0.9em;
+      color: #0ff;
+      text-shadow: 0 0 6px #0ff;
     }
   </style>
 </head>
@@ -177,23 +113,21 @@
   <canvas id="bg"></canvas>
 
   <div class="container">
-    <div class="holo-card">
+    <div class="card">
       <h1>TON Transaction</h1>
       <div class="info">
         Sending <span id="amt"></span> TON to:<br>
-        <code id="toAddr" aria-label="Recipient address"></code>
+        <code id="toAddr" style="font-size: 0.9em;"></code>
       </div>
-      <div id="ton-connect" role="region" aria-label="TON wallet connection"></div>
-      <button id="signBtn" aria-label="Sign TON transaction">Sign Transaction</button>
-      <div class="data-stream" id="dataStream"></div>
-      <div id="successMsg">Transaction Signed!</div>
-      <div id="errorMsg">Failed to Sign. Try Again.</div>
-      <div class="footer">Powered by MuskNet</div>
+
+      <div id="ton-connect"></div>
+      <button id="signBtn">✅ Sign Transaction</button>
+      <div id="successMsg">✅ Transaction Signed!</div>
+      <div class="footer">Powered by Gigi Labs</div>
     </div>
   </div>
 
-  <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
-  <audio id="touchSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto"></audio>
+  <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-positive-interface-beep-221.wav" preload="auto"></audio>
 
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -201,14 +135,12 @@
     const to = params.get("to") || "";
     const tid = params.get("tid") || "";
 
-    const amtElement = document.getElementById("amt");
-    const toAddrElement = document.getElementById("toAddr");
-    amtElement.textContent = amount;
-    toAddrElement.textContent = to.slice(0, 6) + "..." + to.slice(-6);
+    document.getElementById("amt").textContent = amount;
+    document.getElementById("toAddr").textContent = to.slice(0, 6) + "..." + to.slice(-6);
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: window.location.origin + "/tonconnect-manifest.json",
-      buttonRootId: "ton-connect",
+      buttonRootId: "ton-connect"
     });
 
     tonConnectUI.onStatusChange(walletInfo => {
@@ -217,216 +149,91 @@
       }
     });
 
-    const signBtn = document.getElementById("signBtn");
-    const dataStream = document.getElementById("dataStream");
-    const holoCard = document.querySelector(".holo-card");
-    const touchSound = document.getElementById("touchSound");
-
-    signBtn.onclick = async () => {
-      signBtn.disabled = true;
-      dataStream.style.display = "block";
+    document.getElementById("signBtn").onclick = async () => {
       const nano = (BigInt(parseFloat(amount) * 1e9)).toString();
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [{ address: to, amount: nano }],
+        messages: [{ address: to, amount: nano }]
       };
       try {
         const result = await tonConnectUI.sendTransaction(transaction);
         document.getElementById("successMsg").style.display = "block";
         document.getElementById("successSound").play();
-        navigator.vibrate?.(50);
-        confetti({
-          particleCount: 50,
-          spread: 40,
-          colors: ["#00d4ff", "#ff4081"],
-          shapes: ["circle"],
-        });
         fetch("/webhook/ton", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tid: tid, boc: result.boc }),
+          body: JSON.stringify({ tid: tid, boc: result.boc })
         });
       } catch (err) {
-        const errorMsg = document.getElementById("errorMsg");
-        errorMsg.textContent = `Failed to Sign: ${err.message || "Try Again."}`;
-        errorMsg.style.display = "block";
-      } finally {
-        signBtn.disabled = false;
-        dataStream.style.display = "none";
+        alert("❌ Failed to sign. Please try again.");
       }
     };
 
-    signBtn.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") {
-        signBtn.click();
-      }
-    });
-
-    // Canvas effects
+    // Glowing, touch-responsive background
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
     let w = canvas.width = window.innerWidth;
     let h = canvas.height = window.innerHeight;
-
-    // Stars
-    const stars = Array.from({ length: 200 }, () => ({
+    const dots = Array.from({ length: 70 }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      r: Math.random() * 1.5,
-      opacity: Math.random() * 0.5 + 0.5,
+      r: Math.random() * 2 + 1,
+      dx: (Math.random() - 0.5) * 0.6,
+      dy: (Math.random() - 0.5) * 0.6
     }));
+    let touch = { x: w / 2, y: h / 2 };
 
-    // Orbiting particles
-    const particles = Array.from({ length: 10 }, () => ({
-      x: w / 2,
-      y: h / 2,
-      radius: Math.random() * 50 + 50,
-      angle: Math.random() * 2 * Math.PI,
-      speed: Math.random() * 0.02 + 0.01,
-      r: Math.random() * 3 + 1,
-      color: Math.random() > 0.5 ? "var(--primary-glow)" : "var(--secondary-glow)",
-    }));
-
-    // Touch points
-    const touches = new Map();
-    let trail = [];
-
-    canvas.addEventListener("mousemove", e => {
-      const touch = { id: 0, x: e.clientX, y: e.clientY };
-      handleTouch(touch);
-      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
+    canvas.addEventListener('mousemove', e => {
+      touch.x = e.clientX;
+      touch.y = e.clientY;
     });
 
-    canvas.addEventListener("touchmove", e => {
-      e.preventDefault(); // Prevent scrolling
-      touches.clear();
-      for (let touch of e.touches) {
-        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
+    canvas.addEventListener('touchmove', e => {
+      if (e.touches[0]) {
+        touch.x = e.touches[0].clientX;
+        touch.y = e.touches[0].clientY;
       }
-    }, { passive: false });
-
-    canvas.addEventListener("click", e => {
-      handleTouch({ id: 0, x: e.clientX, y: e.clientY });
-      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
-    });
-
-    canvas.addEventListener("touchstart", e => {
-      e.preventDefault(); // Prevent scrolling
-      for (let touch of e.touches) {
-        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
-      }
-    }, { passive: false });
-
-    const ripples = [];
-    function handleTouch(touch) {
-      ripples.push({ id: touch.id, x: touch.x, y: touch.y, radius: 0, opacity: 1, secondaryRadius: 0 });
-      holoCard.classList.add("touch-feedback");
-      touchSound.currentTime = 0;
-      touchSound.play();
-      setTimeout(() => holoCard.classList.remove("touch-feedback"), 500);
-    }
+    }, { passive: true });
 
     function draw() {
       ctx.clearRect(0, 0, w, h);
-
-      // Draw stars
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      for (const star of stars) {
-        ctx.globalAlpha = star.opacity;
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      // Draw orbiting particles
-      for (const p of particles) {
-        let nearestTouch = null;
-        let minDist = Infinity;
-        for (const [_, touch] of touches) {
-          const dist = Math.sqrt((p.x - touch.x) ** 2 + (p.y - touch.y) ** 2);
-          if (dist < minDist) {
-            minDist = dist;
-            nearestTouch = touch;
-          }
-        }
-
-        if (nearestTouch && minDist < 150) {
-          const dx = nearestTouch.x - p.x;
-          const dy = nearestTouch.y - p.y;
-          p.angle += p.speed * (150 - minDist) / 150;
-          p.x += dx * 0.01;
-          p.y += dy * 0.01;
-        } else {
-          p.angle += p.speed;
-        }
-
-        p.x = w / 2 + Math.cos(p.angle) * p.radius;
-        p.y = h / 2 + Math.sin(p.angle) * p.radius;
+      for (let i = 0; i < dots.length; i++) {
+        const p = dots[i];
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0 || p.x > w) p.dx *= -1;
+        if (p.y < 0 || p.y > h) p.dy *= -1;
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
-        ctx.fillStyle = p.color;
+        ctx.fillStyle = "#00ffff";
         ctx.fill();
-      }
 
-      // Draw trail
-      for (let i = trail.length - 1; i >= 0; i--) {
-        const t = trail[i];
-        t.life -= 0.05;
-        if (t.life <= 0) {
-          trail.splice(i, 1);
-          continue;
-        }
-        const gradient = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 10);
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${t.life})`);
-        gradient.addColorStop(1, `rgba(255, 64, 129, ${t.life * 0.5})`);
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 5 * t.life, 0, 2 * Math.PI);
-        ctx.fillStyle = gradient;
-        ctx.fill();
-      }
-
-      // Draw ripples
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.radius += 3;
-        r.opacity -= 0.02;
-        r.secondaryRadius += 4;
-        if (r.opacity <= 0) {
-          ripples.splice(i, 1);
-          continue;
-        }
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(0, 212, 255, ${r.opacity})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.secondaryRadius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(255, 64, 129, ${r.opacity * 0.7})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Particle burst
-        if (r.radius < 20) {
-          ctx.fillStyle = `rgba(0, 212, 255, ${r.opacity})`;
-          for (let j = 0; j < 5; j++) {
-            const angle = (j / 5) * 2 * Math.PI;
-            const px = r.x + Math.cos(angle) * r.radius * 0.5;
-            const py = r.y + Math.sin(angle) * r.radius * 0.5;
+        for (let j = i + 1; j < dots.length; j++) {
+          const q = dots[j];
+          const dx = p.x - q.x;
+          const dy = p.y - q.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
             ctx.beginPath();
-            ctx.arc(px, py, 2, 0, 2 * Math.PI);
-            ctx.fill();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = "rgba(0,255,255,0.15)";
+            ctx.stroke();
           }
         }
-      }
 
+        const dx = p.x - touch.x;
+        const dy = p.y - touch.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(touch.x, touch.y);
+          ctx.strokeStyle = "rgba(0,255,255,0.25)";
+          ctx.stroke();
+        }
+      }
       requestAnimationFrame(draw);
     }
 
