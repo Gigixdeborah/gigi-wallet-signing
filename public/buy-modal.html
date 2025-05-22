@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Buy Crypto</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 { margin-bottom: 0.5em; }
+    label { display: block; margin: 1em 0 0.5em; }
+    select, input {
+      padding: 10px;
+      width: 80%;
+      font-size: 1em;
+      margin-bottom: 1em;
+      border: none;
+      border-radius: 6px;
+    }
+    button {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1em;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .preview {
+      margin-top: 1em;
+      font-size: 1.1em;
+      color: #0ff;
+    }
+    .powered { margin-top: 2em; font-size: 0.9em; color: #0ff; text-shadow: 0 0 5px #0ff; }
+  </style>
+</head>
+<body>
+  <h1>💸 Buy Crypto</h1>
+  <label for="currency">Select Fiat Currency</label>
+  <select id="currency">
+    <option value="NGN">Naira (NGN)</option>
+    <option value="GHS">Ghana Cedis (GHS)</option>
+    <option value="KES">Kenyan Shillings (KES)</option>
+    <option value="USD">US Dollar (USD)</option>
+  </select>
+
+  <label for="amount">Enter Amount</label>
+  <input type="number" id="amount" placeholder="5000" />
+
+  <label for="token">Select Crypto</label>
+  <select id="token">
+    <option value="USDT">USDT</option>
+    <option value="TON">TON</option>
+    <option value="BTC">BTC</option>
+    <option value="ETH">ETH</option>
+  </select>
+
+  <div class="preview" id="preview">You will get: ...</div>
+
+  <button onclick="submitBuy()">✅ Confirm Purchase</button>
+
+  <p class="powered">Powered by Gigi Labs</p>
+
+  <script>
+    // Fake rate table — replace with live API later
+    const fakeRates = {
+      "NGN": { "USDT": 654, "TON": 780, "BTC": 61234500, "ETH": 3456000 },
+      "GHS": { "USDT": 12.5, "TON": 14, "BTC": 60500 * 12.5, "ETH": 3600 * 12.5 },
+      "KES": { "USDT": 130, "TON": 140, "BTC": 61500 * 130, "ETH": 3800 * 130 },
+      "USD": { "USDT": 1, "TON": 1.2, "BTC": 61500, "ETH": 3800 }
+    };
+
+    function updatePreview() {
+      const fiat = document.getElementById('currency').value;
+      const token = document.getElementById('token').value;
+      const amount = parseFloat(document.getElementById('amount').value || "0");
+      const rate = fakeRates[fiat][token];
+      const cryptoAmount = (amount / rate).toFixed(4);
+      document.getElementById('preview').innerText = `You will get: ${cryptoAmount} ${token}`;
+    }
+
+    document.getElementById('amount').addEventListener('input', updatePreview);
+    document.getElementById('token').addEventListener('change', updatePreview);
+    document.getElementById('currency').addEventListener('change', updatePreview);
+
+    function submitBuy() {
+      const fiat = document.getElementById('currency').value;
+      const token = document.getElementById('token').value;
+      const amount = parseFloat(document.getElementById('amount').value || "0");
+      if (amount < 1) return alert("Enter a valid amount");
+
+      const data = {
+        fiat_currency: fiat,
+        fiat_amount: amount,
+        token: token
+      };
+
+      if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.sendData(JSON.stringify(data));
+        Telegram.WebApp.close(); // close the modal after sending
+      } else {
+        alert("Not in Telegram Web App context");
+      }
+    }
+  </script>
+</body>
+</html>
