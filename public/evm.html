@@ -1,752 +1,185 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EVM Transaction | Enchanted Interface</title>
-  <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+  <title>EVM Transaction | Gigi Labs</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.10/dist/index.js"></script>
   <script src="https://cdn.skypack.dev/canvas-confetti"></script>
   <style>
-    :root {
-      --primary-glow: #00d4ff;
-      --secondary-glow: #ff4081;
-      --text-color: #e0e0ff;
-      --bg-dark: #0a0a2a;
-      --bg-light: #1a1a3a;
-      --aurora-glow: rgba(0, 212, 255, 0.2);
-    }
-
     html, body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(45deg, var(--bg-dark), #2a0a3a, var(--bg-dark));
-      background-size: 200% 200%;
-      animation: auroraShift 20s ease infinite;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a2a;
+      color: white;
       overflow: hidden;
-      font-family: 'Roboto', sans-serif;
-      color: var(--text-color);
-      touch-action: manipulation;
     }
-
-    @keyframes auroraShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
     canvas {
       position: fixed;
       top: 0;
       left: 0;
+      width: 100vw;
+      height: 100vh;
       z-index: 0;
       opacity: 0.9;
     }
-
-    .container {
+    .card {
+      position: relative;
       z-index: 10;
-      position: relative;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 20px;
-    }
-
-    .holo-card {
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      border-radius: 12px;
+      border: 1px solid #00d4ff;
+      border-radius: 16px;
       padding: 2em;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
-      backdrop-filter: blur(12px);
-      animation: prismaticGlow 6s ease-in-out infinite, pulseGlow 4s ease-in-out infinite;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.5em;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .holo-card::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, var(--aurora-glow) 10%, transparent 50%);
-      opacity: 0.3;
-      animation: auroraPulse 10s ease-in-out infinite;
-    }
-
-    @keyframes auroraPulse {
-      0% { transform: rotate(0deg); opacity: 0.3; }
-      50% { opacity: 0.5; }
-      100% { transform: rotate(360deg); opacity: 0.3; }
-    }
-
-    @keyframes pulseGlow {
-      0% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
-      50% { box-shadow: 0 0 60px rgba(0, 212, 255, 0.4); }
-      100% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
-    }
-
-    .holo-card.touch-feedback {
-      animation: holoTilt 0.5s ease-out, magicPulse 0.8s ease-out;
-    }
-
-    @keyframes prismaticGlow {
-      0%, 100% { border-color: var(--primary-glow); }
-      50% { border-color: var(--secondary-glow); }
-    }
-
-    @keyframes holoTilt {
-      0% { transform: rotateX(0deg) rotateY(0deg); }
-      50% { transform: rotateX(5deg) rotateY(-5deg); }
-      100% { transform: rotateX(0deg) rotateY(0deg); }
-    }
-
-    @keyframes magicPulse {
-      0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.5); }
-      100% { box-shadow: 0 0 0 30px rgba(0, 212, 255, 0); }
-    }
-
-    .holo-card:hover {
-      transform: scale(1.02);
-    }
-
-    h1 {
-      font-size: 1.5em;
-      margin-bottom: 0.3em;
-      color: var(--primary-glow);
-      text-shadow: 0 0 10px var(--primary-glow), 0 0 20px var(--primary-glow);
-      font-weight: 300;
-      letter-spacing: 1px;
-    }
-
-    #greeting {
-      font-size: 0.8em;
-      color: var(--text-color);
-      opacity: 0.7;
-      margin-bottom: 0.5em;
-      text-shadow: 0 0 5px var(--primary-glow);
-    }
-
-    .info {
-      font-size: 0.9em;
-      margin-bottom: 1em;
-      color: var(--text-color);
-      opacity: 0.9;
-      text-shadow: 0 0 5px var(--primary-glow);
-    }
-
-    .info code {
-      font-size: 0.85em;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 2px 6px;
-      border-radius: 4px;
-      box-shadow: 0 0 5px var(--primary-glow);
-    }
-
-    #connect-wallet, #signBtn {
-      background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
-      border: none;
-      border-radius: 10px;
-      padding: 1em 2em;
-      color: #ffffff;
-      font-size: 1em;
-      font-weight: 500;
-      cursor: pointer;
-      box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-      width: 80%;
-      max-width: 300px;
       text-align: center;
-      position: relative;
-      overflow: hidden;
+      box-shadow: 0 0 20px #00ffff55;
+      width: 90%;
+      max-width: 400px;
+      margin: 10vh auto;
     }
-
-    #connect-wallet::after, #signBtn::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: width 0.4s ease, height 0.4s ease;
+    h1 {
+      font-size: 1.4em;
+      margin-bottom: 1em;
+      color: #00d4ff;
+      text-shadow: 0 0 10px #00d4ff;
     }
-
-    #connect-wallet:hover::after, #signBtn:hover::after,
-    #connect-wallet:focus-visible::after, #signBtn:focus-visible::after {
-      width: 200px;
-      height: 200px;
-    }
-
-    #connect-wallet:hover, #signBtn:hover, #connect-wallet:focus-visible, #signBtn:focus-visible {
-      transform: scale(1.05);
-      box-shadow: 0 0 30px rgba(0, 212, 255, 0.7);
-      background: linear-gradient(45deg, #00b0ff, #ff6e94);
-      outline: 2px solid #ffffff;
-    }
-
-    #signBtn {
-      display: none;
-      background: linear-gradient(45deg, #00c853, #00e676);
-      box-shadow: 0 0 20px rgba(0, 200, 83, 0.6);
-    }
-
-    #signBtn:disabled {
-      background: #555;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    #successMsg, #errorMsg, #easterEgg {
+    button {
+      padding: 0.8em 1.5em;
+      background: linear-gradient(45deg, #00e676, #00c853);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
       margin-top: 1em;
+      box-shadow: 0 0 15px rgba(0, 200, 83, 0.5);
+    }
+    #status {
+      margin-top: 1.2em;
       font-size: 0.9em;
-      font-weight: 500;
-      text-shadow: 0 0 5px var(--primary-glow);
-    }
-
-    #successMsg {
       color: #00e676;
-      display: none;
-      animation: sparkleFade 1s ease-out;
-    }
-
-    #errorMsg {
-      color: #ff5252;
-      display: none;
-      animation: sparkleFade 1s ease-out;
-    }
-
-    #easterEgg {
-      color: var(--secondary-glow);
-      display: none;
-      animation: sparkleFade 1s ease-out;
-      text-shadow: 0 0 10px var(--secondary-glow);
-    }
-
-    @keyframes sparkleFade {
-      0% { opacity: 0; transform: translateY(10px); filter: brightness(1); }
-      50% { filter: brightness(2); }
-      100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
-    }
-
-    .footer {
-      margin-top: 1em;
-      font-size: 0.8em;
-      color: var(--primary-glow);
-      opacity: 0.7;
-      text-shadow: 0 0 5px var(--primary-glow);
-    }
-
-    .data-stream {
-      display: none;
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
-      animation: stream 1.5s linear infinite;
-    }
-
-    @keyframes stream {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
     }
   </style>
 </head>
 <body>
   <canvas id="bg"></canvas>
-
-  <div class="container">
-    <div class="holo-card">
-      <h1>EVM Transaction</h1>
-      <div id="greeting"></div>
-      <div class="info">
-        Sending <span id="amt"></span> ETH to:<br>
-        <code id="toAddr" aria-label="Recipient address"></code>
-      </div>
-      <button id="connect-wallet" aria-label="Connect EVM wallet">Connect Wallet</button>
-      <button id="signBtn" aria-label="Sign EVM transaction">Sign Transaction</button>
-      <div class="data-stream" id="dataStream"></div>
-      <div id="successMsg">Transaction Signed!</div>
-      <div id="errorMsg">Failed to Sign. Try Again.</div>
-      <div id="easterEgg">✨ You Found the Cosmic Secret! ✨</div>
-      <div class="footer">Powered by Gigi Labs</div>
-    </div>
-  </div>
-
-  <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
-  <audio id="touchSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto"></audio>
-  <audio id="cometSound" src="https://assets.mixkit.co/sfx/download/mixkit-magic-sweep-234.wav" preload="auto"></audio>
-  <audio id="ambientSound" src="https://assets.mixkit.co/sfx/download/mixkit-ambient-mystical-forest-121.wav" preload="auto" loop></audio>
-
-  <script>
-    // Initialize Telegram Web App
-    const TelegramWebApp = window.Telegram?.WebApp;
-    if (TelegramWebApp) {
-      TelegramWebApp.ready();
-      TelegramWebApp.expand();
-      TelegramWebApp.MainButton.setParams({
-        text: 'Return to Cosmos',
-        color: '#00d4ff',
-        text_color: '#ffffff'
-      });
-      TelegramWebApp.MainButton.show();
-      TelegramWebApp.MainButton.onClick(() => {
-        TelegramWebApp.close();
-      });
+  <div class="card">
+    <h1>EVM Transaction</h1>
+    <p>Send <span id="amount"></span> <span id="token"></span> to:</p>
+    <p><code id="toAddr"></code></p>
+    <button id="connectBtn">Connect Wallet</button>
+    <button id="sendBtn" style="display:none">Sign Transaction</button>
+    <div id="status"></div>
+  </div>  <script>
+    // Enable Telegram WebApp mode
+    if (window.Telegram && Telegram.WebApp) {
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
     }
 
-    // Parse query parameters
     const params = new URLSearchParams(window.location.search);
-    const amount = params.get("amount") || "0.01";
+    const amount = params.get("amount") || "1";
     const to = params.get("to") || "";
+    const token = params.get("token") || "ETH";
     const tid = params.get("tid") || "";
+    const chain = params.get("chain") || "eth";
 
-    const amtElement = document.getElementById("amt");
-    const toAddrElement = document.getElementById("toAddr");
-    amtElement.textContent = amount;
-    toAddrElement.textContent = to.slice(0, 6) + "..." + to.slice(-6);
+    document.getElementById("amount").textContent = amount;
+    document.getElementById("token").textContent = token;
+    document.getElementById("toAddr").textContent = to.slice(0, 6) + "..." + to.slice(-6);
 
-    // Personalized greeting based on time of day
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? "Good Morning, Starfarer!" : hour < 18 ? "Good Afternoon, Starfarer!" : "Good Evening, Starfarer!";
-    document.getElementById("greeting").textContent = greeting;
+    let web3;
+    let userAccount;
 
-    // Ambient sound with toggle
-    const ambientSound = document.getElementById("ambientSound");
-    let soundEnabled = localStorage.getItem("soundEnabled") !== "false";
-    if (soundEnabled) {
-      ambientSound.play();
-    }
-
-    // EVM wallet connection
-    const connectWalletBtn = document.getElementById("connect-wallet");
-    const signBtn = document.getElementById("signBtn");
-    const dataStream = document.getElementById("dataStream");
-    const holoCard = document.querySelector(".holo-card");
-    const touchSound = document.getElementById("touchSound");
-    const cometSound = document.getElementById("cometSound");
-    let provider;
-    let signer;
-
-    connectWalletBtn.onclick = async () => {
-      try {
-        if (window.ethereum) {
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          await provider.send("eth_requestAccounts", []);
-          signer = provider.getSigner();
-          const walletAddress = await signer.getAddress();
-          connectWalletBtn.style.display = "none";
-          signBtn.style.display = "inline-block";
-          document.getElementById("successMsg").textContent = "Wallet Connected to the Cosmos!";
-          document.getElementById("successMsg").style.display = "block";
-          setTimeout(() => {
-            document.getElementById("successMsg").style.display = "none";
-          }, 2000);
-          if (soundEnabled) {
-            touchSound.play();
-          }
-        } else {
-          throw new Error("No EVM wallet detected. Please install MetaMask.");
+    const providerOptions = {
+      walletconnect: {
+        package: window.WalletConnectProvider.default,
+        options: {
+          infuraId: "1f8000b000f14d35ac46dcfa4cbb104b"
         }
-      } catch (err) {
-        const errorMsg = document.getElementById("errorMsg");
-        errorMsg.textContent = `Failed to Connect: ${err.message || "Try Again."}`;
-        errorMsg.style.display = "block";
       }
     };
 
-    signBtn.onclick = async () => {
-      signBtn.disabled = true;
-      dataStream.style.display = "block";
-      try {
-        if (!signer) throw new Error("Wallet not connected.");
-        const walletAddress = await signer.getAddress();
-        const transaction = {
-          to: to,
-          value: ethers.utils.parseEther(amount),
-          gasLimit: 21000,
-        };
-        const tx = await signer.sendTransaction(transaction);
-        const receipt = await tx.wait();
+    const web3Modal = new window.Web3Modal.default({
+      cacheProvider: false,
+      providerOptions
+    });
 
-        // Send transaction details to webhook
+    document.getElementById("connectBtn").onclick = async () => {
+      const provider = await web3Modal.connect();
+      web3 = new Web3(provider);
+      const accounts = await web3.eth.getAccounts();
+      userAccount = accounts[0];
+      document.getElementById("connectBtn").style.display = "none";
+      document.getElementById("sendBtn").style.display = "inline-block";
+      document.getElementById("status").textContent = `Connected: ${userAccount.slice(0, 6)}...${userAccount.slice(-4)}`;
+    };
+
+    document.getElementById("sendBtn").onclick = async () => {
+      const value = web3.utils.toWei(amount, "ether");
+      const txParams = {
+        from: userAccount,
+        to: to,
+        value: value,
+      };
+
+      try {
+        const txHash = await web3.eth.sendTransaction(txParams);
+        document.getElementById("status").textContent = "✅ Transaction sent! Redirecting...";
+
         await fetch("/webhook/evm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             tid: tid,
-            txHash: receipt.transactionHash,
-            wallet: walletAddress
-          }),
+            tx_hash: txHash.transactionHash,
+            wallet: userAccount,
+            amount: amount,
+            token: token,
+            chain: chain
+          })
         });
 
-        document.getElementById("successMsg").textContent = "Transaction Signed in the Stars!";
-        document.getElementById("successMsg").style.display = "block";
-        if (soundEnabled) {
-          document.getElementById("successSound").play();
-          cometSound.play();
-        }
-        navigator.vibrate?.(50);
-        comets.push({
-          x: 0,
-          y: Math.random() * h,
-          angle: Math.random() * Math.PI / 4,
-          speed: 5,
-          life: 1,
-        });
-
-        // Redirect user back to Telegram after 3 seconds
         setTimeout(() => {
           window.location.href = "https://t.me/GigiP2Bot";
         }, 3000);
       } catch (err) {
-        const errorMsg = document.getElementById("errorMsg");
-        errorMsg.textContent = `Failed to Sign: ${err.message || "Try Again."}`;
-        errorMsg.style.display = "block";
-      } finally {
-        signBtn.disabled = false;
-        dataStream.style.display = "none";
+        document.getElementById("status").textContent = `❌ Error: ${err.message}`;
       }
     };
 
-    signBtn.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") {
-        signBtn.click();
-      }
-    });
-
-    // Easter egg: Triple-tap to reveal with confetti
-    let tapCount = 0;
-    holoCard.addEventListener("click", () => {
-      tapCount++;
-      if (tapCount >= 3) {
-        document.getElementById("easterEgg").style.display = "block";
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#00d4ff', '#ff4081', '#ffffff']
-        });
-        setTimeout(() => document.getElementById("easterEgg").style.display = "none", 3000);
-        tapCount = 0;
-      }
-    });
-
-    // Canvas effects
+    // Animated constellation background
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
     let w = canvas.width = window.innerWidth;
     let h = canvas.height = window.innerHeight;
 
-    // Stars with twinkling
-    const stars = Array.from({ length: 200 }, () => ({
+    const stars = Array.from({ length: 150 }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      r: Math.random() * 1.5,
+      r: Math.random() * 1.2,
       opacity: Math.random() * 0.5 + 0.5,
-      twinkleSpeed: Math.random() * 0.05 + 0.02,
-      twinklePhase: Math.random() * 2 * Math.PI,
+      speed: Math.random() * 0.5 + 0.2,
     }));
-
-    // Orbiting particles forming constellations
-    const particles = Array.from({ length: 10 }, () => ({
-      x: w / 2,
-      y: h / 2,
-      radius: Math.random() * 50 + 50,
-      angle: Math.random() * 2 * Math.PI,
-      speed: Math.random() * 0.02 + 0.01,
-      r: Math.random() * 3 + 1,
-      color: Math.random() > 0.5 ? "var(--primary-glow)" : "var(--secondary-glow)",
-      constellationTarget: { x: w / 2, y: h / 2 },
-    }));
-
-    // Enchanted particles for interactions
-    const enchantedParticles = [];
-
-    // Touch points
-    const touches = new Map();
-    let trail = [];
-    const comets = [];
-    const ripples = [];
-
-    canvas.addEventListener("mousemove", e => {
-      const touch = { id: 0, x: e.clientX, y: e.clientY };
-      handleTouch(touch);
-      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
-      enchantedParticles.push({
-        x: e.clientX,
-        y: e.clientY,
-        vx: (Math.random() - 0.5) * 4,
-        vy: (Math.random() - 0.5) * 4,
-        life: 1,
-        size: Math.random() * 2 + 1,
-        color: Math.random() > 0.5 ? 'var(--primary-glow)' : 'var(--secondary-glow)'
-      });
-    });
-
-    canvas.addEventListener("touchmove", e => {
-      e.preventDefault();
-      touches.clear();
-      for (let touch of e.touches) {
-        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
-        enchantedParticles.push({
-          x: touch.clientX,
-          y: touch.clientY,
-          vx: (Math.random() - 0.5) * 4,
-          vy: (Math.random() - 0.5) * 4,
-          life: 1,
-          size: Math.random() * 2 + 1,
-          color: Math.random() > 0.5 ? 'var(--primary-glow)' : 'var(--secondary-glow)'
-        });
-      }
-    }, { passive: false });
-
-    canvas.addEventListener("click", e => {
-      handleTouch({ id: 0, x: e.clientX, y: e.clientY });
-      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
-      for (let i = 0; i < 5; i++) {
-        enchantedParticles.push({
-          x: e.clientX,
-          y: e.clientY,
-          vx: (Math.random() - 0.5) * 6,
-          vy: (Math.random() - 0.5) * 6,
-          life: 1,
-          size: Math.random() * 3 + 1,
-          color: Math.random() > 0.5 ? 'var(--primary-glow)' : 'var(--secondary-glow)'
-        });
-      }
-    });
-
-    canvas.addEventListener("touchstart", e => {
-      e.preventDefault();
-      for (let touch of e.touches) {
-        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
-        for (let i = 0; i < 5; i++) {
-          enchantedParticles.push({
-            x: touch.clientX,
-            y: touch.clientY,
-            vx: (Math.random() - 0.5) * 6,
-            vy: (Math.random() - 0.5) * 6,
-            life: 1,
-            size: Math.random() * 3 + 1,
-            color: Math.random() > 0.5 ? 'var(--primary-glow)' : 'var(--secondary-glow)'
-          });
-        }
-      }
-    }, { passive: false });
-
-    function handleTouch(touch) {
-      ripples.push({ id: touch.id, x: touch.x, y: touch.y, radius: 0, opacity: 1, secondaryRadius: 0 });
-      holoCard.classList.add("touch-feedback");
-      if (soundEnabled) {
-        touchSound.currentTime = 0;
-        touchSound.play();
-      }
-      setTimeout(() => holoCard.classList.remove("touch-feedback"), 500);
-    }
 
     function draw() {
       ctx.clearRect(0, 0, w, h);
-
-      // Draw nebula background
-      const nebulaGradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h));
-      nebulaGradient.addColorStop(0, 'rgba(0, 212, 255, 0.05)');
-      nebulaGradient.addColorStop(0.5, 'rgba(255, 64, 129, 0.05)');
-      nebulaGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = nebulaGradient;
-      ctx.fillRect(0, 0, w, h);
-
-      // Draw stars with twinkling
-      for (const star of stars) {
-        star.opacity = 0.5 + 0.5 * Math.sin(star.twinklePhase);
-        star.twinklePhase += star.twinkleSpeed;
-        ctx.globalAlpha = star.opacity;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      for (const s of stars) {
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, 2 * Math.PI);
+        ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
         ctx.fill();
+        s.x += s.speed;
+        if (s.x > w) s.x = 0;
       }
-      ctx.globalAlpha = 1;
-
-      // Draw orbiting particles with constellation behavior
-      const hasTouch = touches.size > 0;
-      for (const p of particles) {
-        let nearestTouch = null;
-        let minDist = Infinity;
-        for (const [_, touch] of touches) {
-          const dist = Math.sqrt((p.x - touch.x) ** 2 + (p.y - touch.y) ** 2);
-          if (dist < minDist) {
-            minDist = dist;
-            nearestTouch = touch;
-          }
-        }
-
-        if (nearestTouch && minDist < 150) {
-          const dx = nearestTouch.x - p.x;
-          const dy = nearestTouch.y - p.y;
-          p.angle += p.speed * (150 - minDist) / 150;
-          p.x += dx * 0.01;
-          p.y += dy * 0.01;
-        } else {
-          const dx = p.constellationTarget.x - p.x;
-          const dy = p.constellationTarget.y - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 5) {
-            p.x += dx * 0.02;
-            p.y += dy * 0.02;
-          } else if (!hasTouch) {
-            p.constellationTarget = {
-              x: w / 2 + (Math.random() - 0.5) * 200,
-              y: h / 2 + (Math.random() - 0.5) * 200,
-            };
-          }
-        }
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
-        ctx.fillStyle = p.color;
-        ctx.fill();
-
-        // Draw constellation lines
-        for (const q of particles) {
-          if (p !== q) {
-            const dist = Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
-            if (dist < 100) {
-              ctx.beginPath();
-              ctx.moveTo(p.x, p.y);
-              ctx.lineTo(q.x, q.y);
-              ctx.strokeStyle = `rgba(0, 212, 255, ${1 - dist / 100})`;
-              ctx.stroke();
-            }
-          }
-        }
-      }
-
-      // Draw enchanted particles
-      for (let i = enchantedParticles.length - 1; i >= 0; i--) {
-        const p = enchantedParticles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.02;
-        if (p.life <= 0 || p.x < 0 || p.x > w || p.y < 0 || p.y > h) {
-          enchantedParticles.splice(i, 1);
-          continue;
-        }
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life;
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      // Draw trail with comet effect
-      for (let i = trail.length - 1; i >= 0; i--) {
-        const t = trail[i];
-        t.life -= 0.05;
-        if (t.life <= 0) {
-          trail.splice(i, 1);
-          continue;
-        }
-        const gradient = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 15);
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${t.life})`);
-        gradient.addColorStop(1, `rgba(255, 64, 129, ${t.life * 0.3})`);
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 5 * t.life, 0, 2 * Math.PI);
-        ctx.fillStyle = gradient;
-        ctx.fill();
-
-        // Add sparkles to trail
-        if (Math.random() < 0.1) {
-          ctx.beginPath();
-          ctx.arc(t.x + (Math.random() - 0.5) * 10, t.y + (Math.random() - 0.5) * 10, 1, 0, 2 * Math.PI);
-          ctx.fillStyle = `rgba(255, 255, 255, ${t.life})`;
-          ctx.fill();
-        }
-      }
-
-      // Draw ripples
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.radius += 3;
-        r.opacity -= 0.02;
-        r.secondaryRadius += 4;
-        if (r.opacity <= 0) {
-          ripples.splice(i, 1);
-          continue;
-        }
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(0, 212, 255, ${r.opacity})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.secondaryRadius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(255, 64, 129, ${r.opacity * 0.7})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        if (r.radius < 20) {
-          ctx.fillStyle = `rgba(0, 212, 255, ${r.opacity})`;
-          for (let j = 0; j < 5; j++) {
-            const angle = (j / 5) * 2 * Math.PI;
-            const px = r.x + Math.cos(angle) * r.radius * 0.5;
-            const py = r.y + Math.sin(angle) * r.radius * 0.5;
-            ctx.beginPath();
-            ctx.arc(px, py, 2, 0, 2 * Math.PI);
-            ctx.fill();
-          }
-        }
-      }
-
-      // Draw comets on success
-      for (let i = comets.length - 1; i >= 0; i--) {
-        const c = comets[i];
-        c.x += Math.cos(c.angle) * c.speed;
-        c.y += Math.sin(c.angle) * c.speed;
-        c.life -= 0.01;
-        if (c.life <= 0 || c.x > w || c.y > h) {
-          comets.splice(i, 1);
-          continue;
-        }
-        const gradient = ctx.createLinearGradient(c.x, c.y, c.x - 20, c.y - 20);
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${c.life})`);
-        gradient.addColorStop(1, `rgba(255, 64, 129, 0)`);
-        ctx.beginPath();
-        ctx.moveTo(c.x, c.y);
-        ctx.lineTo(c.x - 20, c.y - 20);
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
       requestAnimationFrame(draw);
     }
 
     draw();
-
     window.addEventListener("resize", () => {
       w = canvas.width = window.innerWidth;
       h = canvas.height = window.innerHeight;
     });
-  </script>
-</body>
+  </script></body>
 </html>
