@@ -3,102 +3,102 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TON Signing | Gigi Labs</title>
+  <title>Sign TON Transaction | Gigi Labs</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: radial-gradient(circle at center, #111 0%, #000 100%);
+      padding: 0;
+      background: #000;
+      overflow: hidden;
       font-family: 'Segoe UI', sans-serif;
       color: #fff;
-      overflow: hidden;
-    }
-
-    .glow {
-      text-shadow: 0 0 8px #0ff, 0 0 16px #0ff;
-    }
-
-    .container {
-      position: relative;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      padding: 1em;
-      text-align: center;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid #0ff;
-      border-radius: 16px;
-      padding: 2em;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 0 20px #0ff2;
-      width: 90%;
-      max-width: 400px;
-    }
-
-    h1 {
-      margin-bottom: 0.5em;
-      font-size: 1.5em;
-    }
-
-    .details {
-      margin-bottom: 1em;
-      font-size: 1.1em;
-    }
-
-    #ton-connect button {
-      background: #00c4cc;
-      color: white;
-      border: none;
-      padding: 0.8em 1.5em;
-      border-radius: 8px;
-      font-size: 1em;
-      margin-top: 1em;
-      cursor: pointer;
-      box-shadow: 0 0 10px #00f2ff;
-    }
-
-    #signBtn {
-      background: #4caf50;
-      color: white;
-      border: none;
-      padding: 0.8em 2em;
-      font-size: 1em;
-      border-radius: 8px;
-      margin-top: 1.5em;
-      cursor: pointer;
-      display: none;
-      box-shadow: 0 0 12px #4caf50;
-    }
-
-    #successMsg {
-      display: none;
-      color: #0f0;
-      font-weight: bold;
-      margin-top: 1em;
-      animation: blink 1s ease-in-out forwards;
-    }
-
-    @keyframes blink {
-      0% { opacity: 0; transform: scale(0.8); }
-      100% { opacity: 1; transform: scale(1); }
     }
 
     canvas {
       position: fixed;
       top: 0;
       left: 0;
-      z-index: 1;
-      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      z-index: 10;
+      position: relative;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #00ffff88;
+      border-radius: 16px;
+      padding: 2em;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 0 25px #00ffff44;
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      font-size: 1.6em;
+      margin-bottom: 0.5em;
+      color: #0ff;
+      text-shadow: 0 0 6px #0ff;
+    }
+
+    .info {
+      font-size: 1.1em;
+      margin-bottom: 1em;
+      color: #fff;
+    }
+
+    #ton-connect button {
+      margin-top: 1em;
+      background-color: #00c4cc;
+      border: none;
+      border-radius: 8px;
+      padding: 0.8em 1.5em;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00f2ff;
+    }
+
+    #signBtn {
+      display: none;
+      margin-top: 1.2em;
+      background: #4caf50;
+      color: white;
+      padding: 0.8em 2em;
+      border: none;
+      font-size: 1em;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 12px #4caf50aa;
+    }
+
+    #successMsg {
+      margin-top: 1.5em;
+      color: #0f0;
+      font-weight: bold;
+      font-size: 1em;
+      display: none;
+      animation: pop 0.5s ease-out forwards;
+    }
+
+    @keyframes pop {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     .footer {
-      margin-top: 2em;
+      margin-top: 1.8em;
       font-size: 0.9em;
       color: #0ff;
       text-shadow: 0 0 6px #0ff;
@@ -107,18 +107,18 @@
 </head>
 <body>
   <canvas id="bg"></canvas>
+
   <div class="container">
     <div class="card">
-      <h1 class="glow">TON Transaction</h1>
-      <div class="details glow">
+      <h1>TON Transaction</h1>
+      <div class="info">
         Sending <span id="amt"></span> TON to:<br>
-        <code id="toAddr" style="font-size: 0.9em;"></code>
+        <code id="toAddr"></code>
       </div>
 
       <div id="ton-connect"></div>
       <button id="signBtn">✅ Sign Transaction</button>
       <div id="successMsg">✅ Signed Successfully!</div>
-
       <div class="footer">Powered by Gigi Labs</div>
     </div>
   </div>
@@ -130,19 +130,18 @@
     const amount = params.get("amount") || "1";
     const to = params.get("to") || "";
     const tid = params.get("tid") || "";
-    const lang = params.get("lang") || "en";
 
     document.getElementById("amt").textContent = amount;
     document.getElementById("toAddr").textContent = to.slice(0, 6) + "..." + to.slice(-6);
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: window.location.origin + '/tonconnect-manifest.json',
-      buttonRootId: 'ton-connect'
+      manifestUrl: window.location.origin + "/tonconnect-manifest.json",
+      buttonRootId: "ton-connect"
     });
 
     tonConnectUI.onStatusChange(walletInfo => {
-      if(walletInfo?.account) {
-        document.getElementById('signBtn').style.display = 'inline-block';
+      if (walletInfo?.account) {
+        document.getElementById("signBtn").style.display = "inline-block";
       }
     });
 
@@ -161,44 +160,92 @@
         document.getElementById("successSound").play();
         fetch("/webhook/ton", {
           method: "POST",
-          headers: {"Content-Type": "application/json"},
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tid: tid, boc: result.boc })
         });
-      } catch (e) {
-        alert("❌ Failed to sign. Try again.");
+      } catch (err) {
+        alert("❌ Failed to sign. Please try again.");
       }
     };
 
-    // Glowing animated background
+    // Glowing node background that connects on hover/touch
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const dots = Array.from({ length: 80 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
+    let w = canvas.width = window.innerWidth;
+    let h = canvas.height = window.innerHeight;
+
+    const dots = Array.from({ length: 75 }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
       r: Math.random() * 2 + 1,
       dx: (Math.random() - 0.5) * 0.5,
       dy: (Math.random() - 0.5) * 0.5
     }));
 
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      dots.forEach(dot => {
-        dot.x += dot.dx;
-        dot.y += dot.dy;
-        if(dot.x < 0 || dot.x > canvas.width) dot.dx *= -1;
-        if(dot.y < 0 || dot.y > canvas.height) dot.dy *= -1;
+    let mouse = { x: w / 2, y: h / 2 };
+
+    canvas.addEventListener('mousemove', e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    canvas.addEventListener('touchmove', e => {
+      if (e.touches[0]) {
+        mouse.x = e.touches[0].clientX;
+        mouse.y = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      for (let i = 0; i < dots.length; i++) {
+        const p = dots[i];
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0 || p.x > w) p.dx *= -1;
+        if (p.y < 0 || p.y > h) p.dy *= -1;
 
         ctx.beginPath();
-        ctx.arc(dot.x, dot.y, dot.r, 0, 2 * Math.PI);
-        ctx.fillStyle = "#00ffffaa";
+        ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
+        ctx.fillStyle = "#00ffff";
         ctx.fill();
-      });
-      requestAnimationFrame(animate);
+
+        for (let j = i + 1; j < dots.length; j++) {
+          const q = dots[j];
+          const dx = p.x - q.x;
+          const dy = p.y - q.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 80) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = "rgba(0,255,255,0.2)";
+            ctx.stroke();
+          }
+        }
+
+        // connect to mouse
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(mouse.x, mouse.y);
+          ctx.strokeStyle = "rgba(0,255,255,0.3)";
+          ctx.stroke();
+        }
+      }
+
+      requestAnimationFrame(draw);
     }
 
-    animate();
+    draw();
+
+    window.addEventListener("resize", () => {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    });
   </script>
 </body>
 </html>
