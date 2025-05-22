@@ -1,45 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Gigi TON Connect</title>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <style>
-        body {
-            background: radial-gradient(circle, #2e2e2e, #000);
-            color: #fff;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-        }
-        #container {
-            margin-top: 100px;
-        }
-        button {
-            padding: 12px 24px;
-            margin: 10px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            background: #00bfff;
-            color: #fff;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background: #1e90ff;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#0a0a23"/>
+  <title>Gigi Wallet Signing</title>
+  <link rel="icon" href="https://gigi-labs.com/favicon.ico" type="image/x-icon">
+  <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+    .container {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: #40e0d0;
+    }
+    p {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      opacity: 0.8;
+    }
+    button {
+      padding: 0.8rem 1.5rem;
+      border: none;
+      background: #40e0d0;
+      color: black;
+      font-weight: bold;
+      font-size: 1rem;
+      border-radius: 12px;
+      cursor: pointer;
+      margin: 0.5rem;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0ff;
+    }
+    .footer {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #888;
+    }
+    #disconnectBtn {
+      display: none;
+      background: #ff4f4f;
+      color: white;
+    }
+  </style>
 </head>
 <body>
-    <h1>🔐 Gigi TON Connect</h1>
-    <div id="container"></div>
-    <script>
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: "https://yourdomain.com/tonconnect-manifest.json",
-            buttonRootId: "container"
-        });
-    </script>
-    <footer style="margin-top: 50px;">✨ Powered by Gigi Labs ✨</footer>
+<canvas id="nodes"></canvas>
+
+<div class="container">
+  <h1 id="heading">🔐 Connect Your Wallet</h1>
+  <p id="instructions">Sign the TON transaction securely</p>
+  <button id="connectBtn">Connect Wallet</button>
+  <button id="disconnectBtn">Disconnect</button>
+</div>
+
+<div class="footer">✨ Powered by Gigi Labs</div>
+
+<script>
+  // TON Connect Setup
+  const connector = new TON_CONNECT.TonConnect({
+    manifestUrl: "https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json"
+  });
+
+  const userId = new URLSearchParams(window.location.search).get("user_id");
+  const amount = new URLSearchParams(window.location.search).get("amount");
+  const to = new URLSearchParams(window.location.search).get("to");
+  const lang = new URLSearchParams(window.location.search).get("lang");
+
+  // Multi-language support
+  const langMap = {
+    fr: { heading: "🔐 Connecte Ton Portefeuille", instructions: "Signe la transaction TON en toute sécurité" },
+    es: { heading: "🔐 Conecta Tu Billetera", instructions: "Firma la transacción de TON de forma segura" },
+    zh: { heading: "🔐 连接您的钱包", instructions: "安全地签署TON交易" }
+  };
+  const l = langMap[lang];
+  if (l) {
+    document.getElementById("heading").innerText = l.heading;
+    document.getElementById("instructions").innerText = l.instructions;
+  }
+
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+
+  async function sendTx(wallet) {
+    const tx = {
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [{
+        address: to,
+        amount: (parseFloat(amount) * 1e9).toString()
+      }]
+    };
+    try {
+      const result = await wallet.sendTransaction(tx);
+      fetch('https://gigi-wallet-signing.onrender.com/ton-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, amount, to, tx: result })
+      });
+      alert("✅ Transaction signed successfully!");
+    } catch (err) {
+      alert("❌ Signing failed: " + err.message);
+    }
+  }
+
+  connectBtn.onclick = async () => {
+    await connector.restoreConnection();
+    if (!connector.connected) {
+      await connector.connect();
+    } else {
+      sendTx(connector.wallet);
+    }
+  };
+
+  disconnectBtn.onclick = () => {
+    connector.disconnect();
+    disconnectBtn.style.display = 'none';
+    alert("🔌 Wallet disconnected");
+  };
+
+  connector.onStatusChange(wallet => {
+    if (wallet) {
+      disconnectBtn.style.display = 'inline-block';
+      sendTx(wallet);
+    }
+  });
+
+  // Animated node background
+  const canvas = document.getElementById("nodes");
+  const ctx = canvas.getContext("2d");
+  let w, h;
+  const nodes = [];
+  for (let i = 0; i < 70; i++) {
+    nodes.push({
+      x: Math.random() * innerWidth,
+      y: Math.random() * innerHeight,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+    });
+  }
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  window.onresize = resize;
+  resize();
+
+  function animate() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < nodes.length; i++) {
+      let n = nodes[i];
+      n.x += n.vx;
+      n.y += n.vy;
+
+      if (n.x < 0 || n.x > w) n.vx *= -1;
+      if (n.y < 0 || n.y > h) n.vy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, 2, 0, 2 * Math.PI);
+      ctx.fillStyle = "#40e0d0";
+      ctx.fill();
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        let dx = nodes[i].x - nodes[j].x;
+        let dy = nodes[i].y - nodes[j].y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.strokeStyle = "rgba(64,224,208," + (1 - dist / 120) + ")";
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+</script>
 </body>
 </html>
