@@ -2,98 +2,203 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TON Transaction Signing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TON Signing | Gigi Labs</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <link rel="manifest" href="/manifest.json" />
   <style>
-    body { background: #101010; color: #f0f0f0; font-family: Arial, sans-serif; margin: 0; padding: 1em; text-align: center; }
-    h1 { font-size: 1.5em; margin-bottom: 0.5em; }
-    .content { max-width: 400px; margin: auto; text-align: center; }
-    .details { margin: 1em 0; font-size: 1.1em; }
-    #ton-connect button { /* style TonConnectUI button if needed */ font-size: 1em; padding: 0.5em 1em; }
-    #signBtn { display: none; margin-top: 1em; padding: 0.7em 2em; font-size: 1em; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    #signBtn:disabled { background: #888; }
-    #successMsg { display: none; font-size: 1.2em; color: #4caf50; margin-top: 1em; }
-    @keyframes blinkAnim { 0% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.2); opacity:1; } 100% { transform: scale(1); opacity:1; } }
-    .blink { animation: blinkAnim 0.5s ease-out forwards; }
-    .footer { margin-top: 2em; font-size: 0.9em; color: #0ff; text-shadow: 0 0 8px #0ff; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at center, #111 0%, #000 100%);
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .glow {
+      text-shadow: 0 0 8px #0ff, 0 0 16px #0ff;
+    }
+
+    .container {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 1em;
+      text-align: center;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid #0ff;
+      border-radius: 16px;
+      padding: 2em;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px #0ff2;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    h1 {
+      margin-bottom: 0.5em;
+      font-size: 1.5em;
+    }
+
+    .details {
+      margin-bottom: 1em;
+      font-size: 1.1em;
+    }
+
+    #ton-connect button {
+      background: #00c4cc;
+      color: white;
+      border: none;
+      padding: 0.8em 1.5em;
+      border-radius: 8px;
+      font-size: 1em;
+      margin-top: 1em;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00f2ff;
+    }
+
+    #signBtn {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 0.8em 2em;
+      font-size: 1em;
+      border-radius: 8px;
+      margin-top: 1.5em;
+      cursor: pointer;
+      display: none;
+      box-shadow: 0 0 12px #4caf50;
+    }
+
+    #successMsg {
+      display: none;
+      color: #0f0;
+      font-weight: bold;
+      margin-top: 1em;
+      animation: blink 1s ease-in-out forwards;
+    }
+
+    @keyframes blink {
+      0% { opacity: 0; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .footer {
+      margin-top: 2em;
+      font-size: 0.9em;
+      color: #0ff;
+      text-shadow: 0 0 6px #0ff;
+    }
   </style>
 </head>
 <body>
-  <div class="content">
-    <h1>TON Transaction</h1>
-    <p class="details">
-      Sending <span id="amount"></span> TON to<br/><code id="dest"></code>
-      <span id="memoInfo" style="color: #ffeb3b; display:none;"><br/>Memo: <code id="memo"></code></span>
-    </p>
-    <!-- TonConnect connect button -->
-    <div id="ton-connect"></div>
-    <button id="signBtn">Sign Transaction ✅</button>
-    <div id="successMsg">✅ Transaction Signed!</div>
-    <p class="footer">Powered by Gigi Labs</p>
+  <canvas id="bg"></canvas>
+  <div class="container">
+    <div class="card">
+      <h1 class="glow">TON Transaction</h1>
+      <div class="details glow">
+        Sending <span id="amt"></span> TON to:<br>
+        <code id="toAddr" style="font-size: 0.9em;"></code>
+      </div>
+
+      <div id="ton-connect"></div>
+      <button id="signBtn">✅ Sign Transaction</button>
+      <div id="successMsg">✅ Signed Successfully!</div>
+
+      <div class="footer">Powered by Gigi Labs</div>
+    </div>
   </div>
-  <audio id="successSound" src="success.mp3" preload="auto"></audio>
+
+  <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-positive-interface-beep-221.wav" preload="auto"></audio>
+
   <script>
-    // Parse query parameters (tid, to, amt, memo)
     const params = new URLSearchParams(window.location.search);
-    const tid = params.get('tid');
-    const destAddress = params.get('to');
-    const amount = params.get('amt');
-    const memo = params.get('memo');
-    // Display transaction details
-    document.getElementById('amount').innerText = amount;
-    const destEl = document.getElementById('dest');
-    destEl.innerText = destAddress ? (destAddress.substring(0,6) + "..." + destAddress.slice(-6)) : "";
-    if(memo) {
-      document.getElementById('memoInfo').style.display = 'inline';
-      document.getElementById('memo').innerText = memo;
-    }
-    // Initialize TonConnectUI
+    const amount = params.get("amount") || "1";
+    const to = params.get("to") || "";
+    const tid = params.get("tid") || "";
+    const lang = params.get("lang") || "en";
+
+    document.getElementById("amt").textContent = amount;
+    document.getElementById("toAddr").textContent = to.slice(0, 6) + "..." + to.slice(-6);
+
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: window.location.origin + '/tonconnect-manifest.json',
       buttonRootId: 'ton-connect'
     });
-    // Enable sign button when wallet is connected
+
     tonConnectUI.onStatusChange(walletInfo => {
-      if(walletInfo && walletInfo.account) {
-        document.getElementById('signBtn').disabled = false;
+      if(walletInfo?.account) {
         document.getElementById('signBtn').style.display = 'inline-block';
       }
     });
-    // On sign button click, send the transaction
-    document.getElementById('signBtn').onclick = async () => {
-      if(!destAddress || !amount) {
-        alert("Transaction details missing.");
-        return;
-      }
-      // Prepare transaction object for TonConnect
-      const nanoAmount = (BigInt(Math.floor(parseFloat(amount) * 1e9))).toString();  // Toncoin in nanotons
+
+    document.getElementById("signBtn").onclick = async () => {
+      const nano = (BigInt(parseFloat(amount) * 1e9)).toString();
       const transaction = {
-        validUntil: Math.floor(Date.now()/1000) + 600,
+        validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [{
-          address: destAddress,
-          amount: nanoAmount
-          // We won't auto-attach memo payload here (requires advanced cell encoding).
+          address: to,
+          amount: nano
         }]
       };
       try {
         const result = await tonConnectUI.sendTransaction(transaction);
-        // Play success sound and animation
-        document.getElementById('successMsg').style.display = 'block';
-        document.getElementById('successMsg').classList.add('blink');
-        document.getElementById('successSound').play().catch(()=>{});
-        // Notify server via webhook
-        fetch('/webhook/ton', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+        document.getElementById("successMsg").style.display = "block";
+        document.getElementById("successSound").play();
+        fetch("/webhook/ton", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
           body: JSON.stringify({ tid: tid, boc: result.boc })
         });
-      } catch (error) {
-        console.error("Transaction failed:", error);
-        alert("❌ Transaction failed: " + (error.message || error));
+      } catch (e) {
+        alert("❌ Failed to sign. Try again.");
       }
     };
+
+    // Glowing animated background
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const dots = Array.from({ length: 80 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 2 + 1,
+      dx: (Math.random() - 0.5) * 0.5,
+      dy: (Math.random() - 0.5) * 0.5
+    }));
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      dots.forEach(dot => {
+        dot.x += dot.dx;
+        dot.y += dot.dy;
+        if(dot.x < 0 || dot.x > canvas.width) dot.dx *= -1;
+        if(dot.y < 0 || dot.y > canvas.height) dot.dy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, dot.r, 0, 2 * Math.PI);
+        ctx.fillStyle = "#00ffffaa";
+        ctx.fill();
+      });
+      requestAnimationFrame(animate);
+    }
+
+    animate();
   </script>
 </body>
 </html>
