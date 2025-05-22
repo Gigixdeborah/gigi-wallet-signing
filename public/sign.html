@@ -22,6 +22,7 @@
       overflow: hidden;
       font-family: 'Roboto', sans-serif;
       color: var(--text-color);
+      touch-action: manipulation; /* Improve touch handling */
     }
 
     canvas {
@@ -53,12 +54,22 @@
       box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
       backdrop-filter: blur(12px);
       animation: holoPulse 4s ease-in-out infinite;
-      transition: transform 0.3s ease;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .holo-card.touch-feedback {
+      animation: holoTilt 0.5s ease-out;
     }
 
     @keyframes holoPulse {
       0%, 100% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
       50% { box-shadow: 0 0 60px rgba(0, 212, 255, 0.4); }
+    }
+
+    @keyframes holoTilt {
+      0% { transform: rotateX(0deg) rotateY(0deg); }
+      50% { transform: rotateX(5deg) rotateY(-5deg); }
+      100% { transform: rotateX(0deg) rotateY(0deg); }
     }
 
     .holo-card:hover {
@@ -147,13 +158,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .footer {
-      margin-top: 1em;
-      font-size: 0.8em;
-      color: var(--primary-glow);
-      opacity: 0.7;
-    }
-
     .data-stream {
       display: none;
       position: absolute;
@@ -189,6 +193,7 @@
   </div>
 
   <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
+  <audio id="touchSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto"></audio>
 
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -214,6 +219,9 @@
 
     const signBtn = document.getElementById("signBtn");
     const dataStream = document.getElementById("dataStream");
+    const holoCard = document.querySelector(".holo-card");
+    const touchSound = document.getElementById("touchSound");
+
     signBtn.onclick = async () => {
       signBtn.disabled = true;
       dataStream.style.display = "block";
@@ -279,33 +287,48 @@
       color: Math.random() > 0.5 ? "var(--primary-glow)" : "var(--secondary-glow)",
     }));
 
-    let mouse = { x: w / 2, y: h / 2 };
-    const trail = [];
+    // Touch points
+    const touches = new Map();
+    let trail = [];
 
     canvas.addEventListener("mousemove", e => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-      trail.push({ x: mouse.x, y: mouse.y, life: 1 });
+      const touch = { id: 0, x: e.clientX, y: e.clientY };
+      handleTouch(touch);
+      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
     });
 
     canvas.addEventListener("touchmove", e => {
-      if (e.touches[0]) {
-        mouse.x = e.touches[0].clientX;
-        mouse.y = e.touches[0].clientY;
-        trail.push({ x: mouse.x, y: mouse.y, life: 1 });
+      e.preventDefault(); // Prevent scrolling
+      touches.clear();
+      for (let touch of e.touches) {
+        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
+        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
+        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
       }
-    }, { passive: true });
+    }, { passive: false });
 
-    const ripples = [];
     canvas.addEventListener("click", e => {
-      ripples.push({ x: e.clientX, y: e.clientY, radius: 0, opacity: 1 });
+      handleTouch({ id: 0, x: e.clientX, y: e.clientY });
+      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
     });
 
     canvas.addEventListener("touchstart", e => {
-      if (e.touches[0]) {
-        ripples.push({ x: e.touches[0].clientX, y: e.touches[0].clientY, radius: 0, opacity: 1 });
+      e.preventDefault(); // Prevent scrolling
+      for (let touch of e.touches) {
+        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
+        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
+        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
       }
-    }, { passive: true });
+    }, { passive: false });
+
+    const ripples = [];
+    function handleTouch(touch) {
+      ripples.push({ id: touch.id, x: touch.x, y: touch.y, radius: 0, opacity: 1, secondaryRadius: 0 });
+      holoCard.classList.add("touch-feedback");
+      touchSound.currentTime = 0;
+      touchSound.play();
+      setTimeout(() => holoCard.classList.remove("touch-feedback"), 500);
+    }
 
     function draw() {
       ctx.clearRect(0, 0, w, h);
@@ -322,9 +345,22 @@
 
       // Draw orbiting particles
       for (const p of particles) {
-        const dist = Math.sqrt((p.x - mouse.x) ** 2 + (p.y - mouse.y) ** 2);
-        if (dist < 150) {
-          p.angle += p.speed * (150 - dist) / 150;
+        let nearestTouch = null;
+        let minDist = Infinity;
+        for (const [_, touch] of touches) {
+          const dist = Math.sqrt((p.x - touch.x) ** 2 + (p.y - touch.y) ** 2);
+          if (dist < minDist) {
+            minDist = dist;
+            nearestTouch = touch;
+          }
+        }
+
+        if (nearestTouch && minDist < 150) {
+          const dx = nearestTouch.x - p.x;
+          const dy = nearestTouch.y - p.y;
+          p.angle += p.speed * (150 - minDist) / 150;
+          p.x += dx * 0.01;
+          p.y += dy * 0.01;
         } else {
           p.angle += p.speed;
         }
@@ -346,17 +382,21 @@
           trail.splice(i, 1);
           continue;
         }
+        const gradient = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 10);
+        gradient.addColorStop(0, `rgba(0, 212, 255, ${t.life})`);
+        gradient.addColorStop(1, `rgba(255, 64, 129, ${t.life * 0.5})`);
         ctx.beginPath();
-        ctx.arc(t.x, t.y, 2, 0, 2 * Math.PI);
-        ctx.fillStyle = `rgba(0, 212, 255, ${t.life})`;
+        ctx.arc(t.x, t.y, 5 * t.life, 0, 2 * Math.PI);
+        ctx.fillStyle = gradient;
         ctx.fill();
       }
 
       // Draw ripples
       for (let i = ripples.length - 1; i >= 0; i--) {
         const r = ripples[i];
-        r.radius += 2;
+        r.radius += 3;
         r.opacity -= 0.02;
+        r.secondaryRadius += 4;
         if (r.opacity <= 0) {
           ripples.splice(i, 1);
           continue;
@@ -364,7 +404,27 @@
         ctx.beginPath();
         ctx.arc(r.x, r.y, r.radius, 0, 2 * Math.PI);
         ctx.strokeStyle = `rgba(0, 212, 255, ${r.opacity})`;
+        ctx.lineWidth = 2;
         ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.secondaryRadius, 0, 2 * Math.PI);
+        ctx.strokeStyle = `rgba(255, 64, 129, ${r.opacity * 0.7})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Particle burst
+        if (r.radius < 20) {
+          ctx.fillStyle = `rgba(0, 212, 255, ${r.opacity})`;
+          for (let j = 0; j < 5; j++) {
+            const angle = (j / 5) * 2 * Math.PI;
+            const px = r.x + Math.cos(angle) * r.radius * 0.5;
+            const py = r.y + Math.sin(angle) * r.radius * 0.5;
+            ctx.beginPath();
+            ctx.arc(px, py, 2, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
       }
 
       requestAnimationFrame(draw);
