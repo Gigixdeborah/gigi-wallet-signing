@@ -310,7 +310,6 @@
       100% { transform: translateX(100%); }
     }
 
-    /* Enchanted Modal Styles */
     .modal {
       display: none;
       position: fixed;
@@ -465,7 +464,7 @@
         <option value="137">Polygon</option>
       </select>
       <div class="spinner" id="spinner"></div>
-      <button id="connect-wallet" aria-label="Connect EVM wallet">Connect to the Cosmos</button>
+      <button id="connect-wallet" aria-label="Connect to the Cosmos">Connect to the Cosmos</button>
       <button id="signBtn" aria-label="Sign EVM transaction">Sign Transaction</button>
       <div class="data-stream" id="dataStream"></div>
       <div id="successMsg">Transaction Signed in the Stars!</div>
@@ -508,9 +507,9 @@
 
     const params = new URLSearchParams(window.location.search);
     const amount = params.get("amount") || "0.01";
-    const to = params.get("to") || "";
-    const tid = params.get("tid") || "";
-    const userId = params.get("user_id") || "";
+    const to = params.get("to") || "0x1234567890abcdef1234567890abcdef12345678";
+    const tid = params.get("tid") || "test_tx_001";
+    const userId = params.get("user_id") || "123456789";
 
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
@@ -560,7 +559,7 @@
       try {
         await provider.send("wallet_switchEthereumChain", [{ chainId: `0x${parseInt(chainId).toString(16)}` }]);
       } catch (err) {
-        console.warn(`Chain switch failed: ${err.message}. Using default provider.`);
+        console.warn(`Chain switch failed: ${err.message}. Using current chain.`);
       }
     }
 
@@ -584,10 +583,7 @@
               throw new Error("MetaMask not detected. Please install MetaMask or open in browser.");
             }
           } else if (walletType === "walletconnect") {
-            const wcProvider = new WalletConnectProvider({
-              infuraId: "753520ebaf074efb8e464667dade5337",
-              chainId: parseInt(chainSelect.value)
-            });
+            const wcProvider = new WalletConnectProvider.default();
             await wcProvider.enable();
             provider = new ethers.providers.Web3Provider(wcProvider);
             signer = provider.getSigner();
