@@ -1,318 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EVM Transaction | Enchanted Interface</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EVM Wallet Connection</title>
   <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
-  <script src="https://cdn.skypack.dev/canvas-confetti"></script>
   <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <script src="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js"></script>
-  <script src="https://unpkg.com/@bitget-wallet/omni-connect@0.0.8/dist/index.umd.js"></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
-      --secondary-glow: #ff4081;
-      --text-color: #e0e0ff;
-      --bg-dark: #0a0a2a;
-      --bg-light: #1a1a3a;
-      --aurora-glow: rgba(0, 212, 255, 0.2);
+      --secondary-glow: #ff00ff;
+      --background: #1a1a2e;
+      --card-background: rgba(255, 255, 255, 0.05);
+      --text-color: #ffffff;
+      --shadow: 0 0 20px rgba(0, 212, 255, 0.5);
     }
 
-    html, body {
+    body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(45deg, var(--bg-dark), #2a0a3a, var(--bg-dark));
-      background-size: 200% 200%;
-      animation: auroraShift 20s ease infinite;
-      overflow: hidden;
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Arial', sans-serif;
+      background: var(--background);
       color: var(--text-color);
-      touch-action: manipulation;
-    }
-
-    @keyframes auroraShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 0;
-      opacity: 0.9;
-    }
-
-    .container {
-      z-index: 10;
-      position: relative;
-      height: 100vh;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
-      text-align: center;
-      padding: 20px;
+      min-height: 100vh;
+      overflow: hidden;
     }
 
     .holo-card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      border-radius: 12px;
+      background: var(--card-background);
+      border-radius: 15px;
       padding: 2em;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
-      backdrop-filter: blur(12px);
-      animation: prismaticGlow 6s ease-in-out infinite, pulseGlow 4s ease-in-out infinite;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.5em;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .holo-card::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, var(--aurora-glow) 10%, transparent 50%);
-      opacity: 0.3;
-      animation: auroraPulse 10s ease-in-out infinite;
-    }
-
-    @keyframes auroraPulse {
-      0% { transform: rotate(0deg); opacity: 0.3; }
-      50% { opacity: 0.5; }
-      100% { transform: rotate(360deg); opacity: 0.3; }
-    }
-
-    @keyframes pulseGlow {
-      0% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
-      50% { box-shadow: 0 0 60px rgba(0, 212, 255, 0.4); }
-      100% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
-    }
-
-    .holo-card.touch-feedback {
-      animation: holoTilt 0.5s ease-out, magicPulse 0.8s ease-out;
-    }
-
-    @keyframes prismaticGlow {
-      0%, 100% { border-color: var(--primary-glow); }
-      50% { border-color: var(--secondary-glow); }
-    }
-
-    @keyframes holoTilt {
-      0% { transform: rotateX(0deg) rotateY(0deg); }
-      50% { transform: rotateX(5deg) rotateY(-5deg); }
-      100% { transform: rotateX(0deg) rotateY(0deg); }
-    }
-
-    @keyframes magicPulse {
-      0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.5); }
-      100% { box-shadow: 0 0 0 30px rgba(0, 212, 255, 0); }
-    }
-
-    .holo-card:hover {
-      transform: scale(1.02);
-    }
-
-    h1 {
-      font-size: 1.5em;
-      margin-bottom: 0.3em;
-      color: var(--primary-glow);
-      text-shadow: 0 0 10px var(--primary-glow), 0 0 20px var(--primary-glow);
-      font-weight: 300;
-      letter-spacing: 1px;
-      animation: textGlow 3s ease-in-out infinite;
-    }
-
-    #greeting {
-      font-size: 0.8em;
-      color: var(--text-color);
-      opacity: 0.7;
-      margin-bottom: 0.5em;
-      text-shadow: 0 0 5px var(--primary-glow);
-      animation: textGlow 3s ease-in-out infinite;
-    }
-
-    .info {
-      font-size: 0.9em;
-      margin-bottom: 1em;
-      color: var(--text-color);
-      opacity: 0.9;
-      text-shadow: 0 0 5px var(--primary-glow);
-      animation: textGlow 3s ease-in-out infinite;
-    }
-
-    .info code {
-      font-size: 0.85em;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 2px 6px;
-      border-radius: 4px;
-      box-shadow: 0 0 5px var(--primary-glow);
-    }
-
-    select {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid var(--primary-glow);
-      border-radius: 8px;
-      padding: 0.5em;
-      color: var(--text-color);
-      font-size: 0.9em;
-      width: 80%;
-      max-width: 300px;
       text-align: center;
-      box-shadow: 0 0 10px var(--primary-glow);
-      cursor: pointer;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      max-width: 90%;
+      width: 400px;
+      position: relative;
+      z-index: 1;
     }
 
-    select:focus {
-      outline: 2px solid #ffffff;
-      box-shadow: 0 0 20px var(--primary-glow);
+    .holo-card h2 {
+      margin: 0 0 1em;
+      font-size: 1.5em;
+      background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    #connect-wallet, #signBtn {
+    button {
       background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
       border: none;
       border-radius: 10px;
       padding: 1em 2em;
-      color: #ffffff;
+      color: var(--text-color);
       font-size: 1em;
       font-weight: 500;
       cursor: pointer;
-      box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-      width: 80%;
-      max-width: 300px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--shadow);
+      margin: 0.5em;
     }
 
-    #connect-wallet::after, #signBtn::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: width 0.4s ease, height 0.4s ease;
-    }
-
-    #connect-wallet:hover::after, #signBtn:hover::after,
-    #connect-wallet:focus-visible::after, #signBtn:focus-visible::after {
-      width: 200px;
-      height: 200px;
-    }
-
-    #connect-wallet:hover, #signBtn:hover, #connect-wallet:focus-visible, #signBtn:focus-visible {
+    button:hover {
       transform: scale(1.05);
       box-shadow: 0 0 30px rgba(0, 212, 255, 0.7);
-      background: linear-gradient(45deg, #00b0ff, #ff6e94);
-      outline: 2px solid #ffffff;
     }
 
-    #signBtn {
-      display: none;
-      background: linear-gradient(45deg, #00c853, #00e676);
-      box-shadow: 0 0 20px rgba(0, 200, 83, 0.6);
-    }
-
-    #signBtn:disabled {
+    button:disabled {
       background: #555;
       cursor: not-allowed;
       box-shadow: none;
     }
 
-    .spinner {
-      display: none;
-      width: 20px;
-      height: 20px;
-      border: 3px solid var(--primary-glow);
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto;
+    p {
+      margin: 0.5em 0;
+      color: var(--text-color);
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    #successMsg, #errorMsg, #easterEgg {
-      margin-top: 1em;
-      font-size: 0.9em;
-      font-weight: 500;
-      text-shadow: 0 0 5px var(--primary-glow);
-      animation: textGlow 3s ease-in-out infinite;
-    }
-
-    #successMsg {
-      color: #00e676;
-      display: none;
-      animation: sparkleFade 1s ease-out, textGlow 3s ease-in-out infinite;
-    }
-
-    #errorMsg {
-      color: #ff5252;
-      display: none;
-      animation: sparkleFade 1s ease-out, textGlow 3s ease-in-out infinite;
-    }
-
-    #easterEgg {
-      color: var(--secondary-glow);
-      display: none;
-      animation: sparkleFade 1s ease-out, textGlow 3s ease-in-out infinite;
-      text-shadow: 0 0 10px var(--secondary-glow);
-    }
-
-    @keyframes sparkleFade {
-      0% { opacity: 0; transform: translateY(10px); filter: brightness(1); }
-      50% { filter: brightness(2); }
-      100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
-    }
-
-    @keyframes textGlow {
-      0% { text-shadow: 0 0 5px var(--primary-glow); }
-      50% { text-shadow: 0 0 15px var(--primary-glow), 0 0 25px var(--primary-glow); }
-      100% { text-shadow: 0 0 5px var(--primary-glow); }
-    }
-
-    .footer {
-      margin-top: 1em;
-      font-size: 0.8em;
-      color: var(--primary-glow);
-      opacity: 0.7;
-      text-shadow: 0 0 5px var(--primary-glow);
-      animation: textGlow 3s ease-in-out infinite;
-    }
-
-    .data-stream {
-      display: none;
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
-      animation: stream 1.5s linear infinite;
-    }
-
-    @keyframes stream {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-
-    /* Modal Styles */
     .modal {
       display: none;
       position: fixed;
@@ -321,704 +88,250 @@
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.7);
-      z-index: 100;
       justify-content: center;
       align-items: center;
-      animation: fadeIn 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      z-index: 2;
     }
 
     .modal-content {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--primary-glow);
-      border-radius: 12px;
-      padding: 1.5em;
-      max-width: 350px;
-      width: 90%;
-      box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
-      backdrop-filter: blur(12px);
-      animation: prismaticGlow 6s ease-in-out infinite;
-      display: flex;
-      flex-direction: column;
-      gap: 1em;
-      position: relative;
-    }
-
-    .modal-content h2 {
-      font-size: 1.2em;
-      color: var(--primary-glow);
-      text-shadow: 0 0 10px var(--primary-glow);
-      animation: textGlow 3s ease-in-out infinite;
-      margin: 0;
-    }
-
-    .wallet-option {
-      background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
-      border: none;
-      border-radius: 8px;
-      padding: 0.8em;
-      color: #ffffff;
-      font-size: 0.9em;
-      cursor: pointer;
-      box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      background: var(--card-background);
+      border-radius: 15px;
+      padding: 2em;
       text-align: center;
+      box-shadow: var(--shadow);
+      max-width: 90%;
+      width: 300px;
     }
 
-    .wallet-option:hover, .wallet-option:focus-visible {
-      transform: scale(1.05);
-      box-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
-      outline: 2px solid #ffffff;
+    .modal-content p {
+      margin: 0 0 1em;
     }
 
-    .modal-spinner {
-      width: 20px;
-      height: 20px;
-      border: 3px solid var(--primary-glow);
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto;
-    }
-
-    .modal-error {
-      color: #ff5252;
-      font-size: 0.8em;
-      text-shadow: 0 0 5px var(--primary-glow);
-      animation: textGlow 3s ease-in-out infinite;
-    }
-
-    .close-modal {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: none;
-      border: none;
-      color: var(--text-color);
-      font-size: 1.2em;
-      cursor: pointer;
+    .background-effects {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.1), transparent 70%);
     }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
-
-  <div class="container">
-    <div class="holo-card">
-      <h1>EVM Transaction</h1>
-      <div id="greeting"></div>
-      <div class="info">
-        Sending <span id="amt"></span> ETH to:<br>
-        <code id="toAddr" aria-label="Recipient address"></code>
-      </div>
-      <select id="chainSelect" aria-label="Select EVM chain">
-        <option value="1">Ethereum Mainnet</option>
-        <option value="11155111">Sepolia Testnet</option>
-        <option value="137">Polygon</option>
-      </select>
-      <div class="spinner" id="spinner"></div>
-      <button id="connect-wallet" aria-label="Connect EVM wallet">Connect Wallet</button>
-      <button id="signBtn" aria-label="Sign EVM transaction">Sign Transaction</button>
-      <div class="data-stream" id="dataStream"></div>
-      <div id="successMsg">Transaction Signed!</div>
-      <div id="errorMsg">Failed to Sign. Try Again.</div>
-      <div id="easterEgg">✨ You Found the Cosmic Secret! ✨</div>
-      <div class="footer">Powered by Gigi Labs</div>
-    </div>
+  <div class="background-effects"></div>
+  <div class="holo-card">
+    <h2>Connect Your EVM Wallet</h2>
+    <button id="connectMetaMask">Connect MetaMask</button>
+    <button id="connectWalletConnect">Connect WalletConnect</button>
+    <p id="status">Please select a wallet to connect.</p>
   </div>
 
-  <!-- Wallet Selection Modal -->
-  <div class="modal" id="walletModal">
+  <div id="modal" class="modal">
     <div class="modal-content">
-      <button class="close-modal" id="closeModal" aria-label="Close modal">×</button>
-      <h2>Select Wallet</h2>
-      <button class="wallet-option" data-wallet="metamask">MetaMask</button>
-      <button class="wallet-option" data-wallet="walletconnect">WalletConnect</button>
-      <button class="wallet-option" data-wallet="ton">TON Wallet (@wallet)</button>
-      <button class="wallet-option" data-wallet="bitget">Bitget Wallet Lite</button>
-      <div class="modal-spinner" id="modalSpinner" style="display: none;"></div>
-      <div class="modal-error" id="modalError"></div>
+      <p id="modalMessage">Connecting...</p>
+      <button id="modalClose">Close</button>
     </div>
   </div>
-
-  <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
-  <audio id="touchSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto"></audio>
-  <audio id="cometSound" src="https://assets.mixkit.co/sfx/download/mixkit-magic-sweep-234.wav" preload="auto"></audio>
-  <audio id="ambientSound" src="https://assets.mixkit.co/sfx/download/mixkit-ambient-mystical-forest-121.wav" preload="auto" loop></audio>
 
   <script>
-    // Initialize Telegram Web App
     const TelegramWebApp = window.Telegram?.WebApp;
+    let provider, signer, walletAddress;
+
+    // TWA initialization
     if (TelegramWebApp) {
       TelegramWebApp.ready();
       TelegramWebApp.expand();
       TelegramWebApp.MainButton.setParams({
-        text: 'Return to Cosmos',
+        text: 'Return to GigiP2Bot',
         color: '#00d4ff',
         text_color: '#ffffff'
       });
       TelegramWebApp.MainButton.show();
-      TelegramWebApp.MainButton.onClick(() => {
-        TelegramWebApp.close();
-      });
+      TelegramWebApp.MainButton.onClick(() => TelegramWebApp.close());
+
+      // Add "Open in Browser" prompt
+      const message = document.createElement('p');
+      message.textContent = 'For better wallet connection experience, consider opening this page in your browser.';
+      message.style.color = 'white';
+      message.style.marginBottom = '10px';
+      const button = document.createElement('button');
+      button.textContent = 'Open in Browser';
+      button.style.background = 'linear-gradient(45deg, var(--primary-glow), var(--secondary-glow))';
+      button.style.border = 'none';
+      button.style.borderRadius = '10px';
+      button.style.padding = '1em 2em';
+      button.style.color = '#ffffff';
+      button.style.fontSize = '1em';
+      button.style.fontWeight = '500';
+      button.style.cursor = 'pointer';
+      button.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.5)';
+      button.onclick = () => TelegramWebApp.openLink(window.location.href);
+      const holoCard = document.querySelector('.holo-card');
+      holoCard.insertBefore(button, holoCard.firstChild);
+      holoCard.insertBefore(message, holoCard.firstChild);
     }
 
-    // Parse query parameters
-    const params = new URLSearchParams(window.location.search);
-    const amount = params.get("amount") || "0.01";
-    const to = params.get("to") || "";
-    const tid = params.get("tid") || "";
+    // Modal handling
+    const modal = document.getElementById('modal');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalClose = document.getElementById('modalClose');
+    const status = document.getElementById('status');
 
-    const amtElement = document.getElementById("amt");
-    const toAddrElement = document.getElementById("toAddr");
-    amtElement.textContent = amount;
-    toAddrElement.textContent = to.slice(0, 6) + "..." + to.slice(-6);
-
-    // Personalized greeting
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? "Good Morning, Starfarer!" : hour < 18 ? "Good Afternoon, Starfarer!" : "Good Evening, Starfarer!";
-    document.getElementById("greeting").textContent = greeting;
-
-    // Ambient sound
-    const ambientSound = document.getElementById("ambientSound");
-    let soundEnabled = localStorage.getItem("soundEnabled") !== "false";
-    if (soundEnabled) {
-      ambientSound.play();
+    function showModal(message) {
+      modalMessage.textContent = message;
+      modal.style.display = 'flex';
+      if (TelegramWebApp) TelegramWebApp.HapticFeedback.impactOccurred('light');
     }
 
-    // EVM wallet connection
-    const connectWalletBtn = document.getElementById("connect-wallet");
-    const signBtn = document.getElementById("signBtn");
-    const dataStream = document.getElementById("dataStream");
-    const spinner = document.getElementById("spinner");
-    const chainSelect = document.getElementById("chainSelect");
-    const holoCard = document.querySelector(".holo-card");
-    const touchSound = document.getElementById("touchSound");
-    const cometSound = document.getElementById("cometSound");
-    const walletModal = document.getElementById("walletModal");
-    const closeModal = document.getElementById("closeModal");
-    const modalSpinner = document.getElementById("modalSpinner");
-    const modalError = document.getElementById("modalError");
-    let provider;
-    let signer;
-
-    // Modal control
-    function showModal() {
-      walletModal.style.display = "flex";
-      if (TelegramWebApp) {
-        TelegramWebApp.HapticFeedback.impactOccurred('light');
-      }
-    }
-
-    function hideModal() {
-      walletModal.style.display = "none";
-      modalError.textContent = "";
-      modalSpinner.style.display = "none";
-    }
-
-    connectWalletBtn.onclick = () => {
-      showModal();
+    modalClose.onclick = () => {
+      modal.style.display = 'none';
+      if (TelegramWebApp) TelegramWebApp.HapticFeedback.impactOccurred('medium');
     };
 
-    closeModal.onclick = hideModal;
+    // URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+    const amount = parseFloat(urlParams.get('amount')) || 0;
+    const token = urlParams.get('token');
+    const toAddress = urlParams.get('to');
+    const tid = urlParams.get('tid');
 
-    // Wallet connection logic
-    async function switchChain(chainId) {
-      try {
-        await provider.send("wallet_switchEthereumChain", [{ chainId: `0x${parseInt(chainId).toString(16)}` }]);
-      } catch (err) {
-        throw new Error(`Failed to switch chain: ${err.message}`);
-      }
+    // Validate required parameters
+    if (!userId) {
+      showModal('Error: User ID is missing. Please try again.');
+      status.textContent = 'Invalid link. Missing user ID.';
+      return;
     }
 
-    chainSelect.onchange = async () => {
-      if (!provider) return;
-      try {
-        await switchChain(chainSelect.value);
-      } catch (err) {
-        document.getElementById("errorMsg").textContent = err.message;
-        document.getElementById("errorMsg").style.display = "block";
-      }
-    };
-
-    document.querySelectorAll(".wallet-option").forEach(button => {
-      button.onclick = async () => {
-        modalSpinner.style.display = "block";
-        const walletType = button.dataset.wallet;
-        try {
-          if (walletType === "metamask") {
-            if (window.ethereum) {
-              provider = new ethers.providers.Web3Provider(window.ethereum);
-              await provider.send("eth_requestAccounts", []);
-              await switchChain(chainSelect.value);
-              signer = provider.getSigner();
-            } else {
-              throw new Error("MetaMask not detected. Please install MetaMask.");
-            }
-          } else if (walletType === "walletconnect") {
-            const wcProvider = new WalletConnectProvider({
-              infuraId: "753520ebaf074efb8e464667dade5337",
-              chainId: parseInt(chainSelect.value)
-            });
-            await wcProvider.enable();
-            provider = new ethers.providers.Web3Provider(wcProvider);
-            signer = provider.getSigner();
-          } else if (walletType === "ton") {
-            const tonConnect = new TONConnectUI({
-              manifestUrl: "https://your-app.com/tonconnect-manifest.json" // Replace with your manifest URL
-            });
-            await tonConnect.connectWallet();
-            const wallet = tonConnect.wallet;
-            if (!wallet) throw new Error("TON Wallet connection failed.");
-            // Note: TON Connect is for TON blockchain; bridge to EVM via TAC or similar if needed
-            provider = new ethers.providers.Web3Provider(window.ethereum); // Fallback to MetaMask for EVM
-            signer = provider.getSigner();
-            modalError.textContent = "TON Wallet connected, but EVM transactions require a bridge (e.g., TAC).";
-          } else if (walletType === "bitget") {
-            const connector = new OmniConnect({
-              metadata: {
-                name: "Enchanted EVM App",
-                iconUrl: "https://your-app.com/icon.png",
-                url: "https://your-app.com"
-              },
-              namespace: {
-                eip155: { chains: ["1", "11155111", "137"] }
-              }
-            });
-            await connector.connectWallet();
-            const address = await connector.getAddress();
-            if (!address) throw new Error("Bitget Wallet connection failed.");
-            provider = new ethers.providers.Web3Provider({
-              request: async (request) => connector.send(request.method, request.params)
-            });
-            signer = provider.getSigner();
-          }
-
-          const walletAddress = await signer.getAddress();
-          hideModal();
-          connectWalletBtn.style.display = "none";
-          signBtn.style.display = "inline-block";
-          document.getElementById("successMsg").textContent = "Wallet Connected to the Cosmos!";
-          document.getElementById("successMsg").style.display = "block";
-          setTimeout(() => {
-            document.getElementById("successMsg").style.display = "none";
-          }, 2000);
-          if (soundEnabled) {
-            touchSound.play();
-          }
-          if (TelegramWebApp) {
-            TelegramWebApp.HapticFeedback.impactOccurred('medium');
-          }
-          spawnSuccessParticles(w / 2, h / 2);
-        } catch (err) {
-          modalError.textContent = `Failed to Connect: ${err.message || "Try Again."}`;
-        } finally {
-          modalSpinner.style.display = "none";
-        }
-      };
-    });
-
-    signBtn.onclick = async () => {
-      signBtn.disabled = true;
-      dataStream.style.display = "block";
-      spinner.style.display = "block";
-      if (TelegramWebApp) {
-        TelegramWebApp.MainButton.setParams({ text: 'Processing...', is_active: false });
+    // Connect MetaMask
+    document.getElementById('connectMetaMask').onclick = async () => {
+      if (!window.ethereum) {
+        showModal('MetaMask not detected! Please install MetaMask or open in browser.');
+        return;
       }
       try {
-        if (!signer) throw new Error("Wallet not connected.");
-        if (!ethers.utils.isAddress(to)) throw new Error("Invalid recipient address.");
-        const walletAddress = await signer.getAddress();
-        const balance = await provider.getBalance(walletAddress);
-        if (balance.lt(ethers.utils.parseEther(amount))) {
-          throw new Error("Insufficient ETH balance.");
-        }
-        const transaction = {
-          to: to,
-          value: ethers.utils.parseEther(amount),
-          gasLimit: 21000,
-        };
-        const tx = await signer.sendTransaction(transaction);
-        const receipt = await tx.wait();
-
-        await fetch("/webhook/evm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tid: tid,
-            txHash: receipt.transactionHash,
-            wallet: walletAddress
-          }),
-        });
-
-        document.getElementById("successMsg").textContent = "Transaction Signed in the Stars!";
-        document.getElementById("successMsg").style.display = "block";
-        if (soundEnabled) {
-          document.getElementById("successSound").play();
-          cometSound.play();
-        }
-        if (TelegramWebApp) {
-          TelegramWebApp.HapticFeedback.notificationOccurred('success');
-        }
-        spawnSuccessParticles(w / 2, h / 2);
-        comets.push({
-          x: 0,
-          y: Math.random() * h,
-          angle: Math.random() * Math.PI / 4,
-          speed: 5,
-          life: 1,
-        });
-
-        setTimeout(() => {
-          window.location.href = "https://t.me/GigiP2Bot";
-        }, 3000);
-      } catch (err) {
-        document.getElementById("errorMsg").textContent = `Failed to Sign: ${err.message || "Try Again."}`;
-        document.getElementById("errorMsg").style.display = "block";
-      } finally {
-        signBtn.disabled = false;
-        dataStream.style.display = "none";
-        spinner.style.display = "none";
-        if (TelegramWebApp) {
-          TelegramWebApp.MainButton.setParams({ text: 'Return to Cosmos', is_active: true });
-        }
-      }
-    };
-
-    signBtn.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") {
-        signBtn.click();
-      }
-    });
-
-    // Easter egg: Triple-tap to reveal with confetti
-    let tapCount = 0;
-    holoCard.addEventListener("click", () => {
-      tapCount++;
-      if (tapCount >= 3) {
-        document.getElementById("easterEgg").style.display = "block";
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#00d4ff', '#ff4081', '#ffffff']
-        });
-        setTimeout(() => document.getElementById("easterEgg").style.display = "none", 3000);
-        tapCount = 0;
-        if (TelegramWebApp) {
-          TelegramWebApp.HapticFeedback.notificationOccurred('success');
-        }
-      }
-    });
-
-    // Canvas effects
-    const canvas = document.getElementById("bg");
-    const ctx = canvas.getContext("2d");
-    let w = canvas.width = window.innerWidth;
-    let h = canvas.height = window.innerHeight;
-
-    const stars = Array.from({ length: 200 }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: Math.random() * 1.5,
-      opacity: Math.random() * 0.5 + 0.5,
-      twinkleSpeed: Math.random() * 0.05 + 0.02,
-      twinklePhase: Math.random() * 2 * Math.PI,
-    }));
-
-    const particles = Array.from({ length: 10 }, () => ({
-      x: w / 2,
-      y: h / 2,
-      radius: Math.random() * 50 + 50,
-      angle: Math.random() * 2 * Math.PI,
-      speed: Math.random() * 0.02 + 0.01,
-      r: Math.random() * 3 + 1,
-      color: Math.random() > 0.5 ? "var(--primary-glow)" : "var(--secondary-glow)",
-      constellationTarget: { x: w / 2, y: h / 2 },
-    }));
-
-    const enchantedParticles = [];
-    const touches = new Map();
-    let trail = [];
-    const comets = [];
-    const ripples = [];
-
-    canvas.addEventListener("mousemove", e => {
-      const touch = { id: 0, x: e.clientX, y: e.clientY };
-      handleTouch(touch);
-      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
-      enchantedParticles.push({
-        x: e.clientX,
-        y: e.clientY,
-        vx: (Math.random() - 0.5) * 4,
-        vy: (Math.random() - 0.5) * 4,
-        life: 1,
-        size: Math.random() * 2 + 1,
-        color: Math.random() > 0.5 ? 'var(--primary-glow)' : 'var(--secondary-glow)'
-      });
-    });
-
-    canvas.addEventListener("touchmove", e => {
-      e.preventDefault();
-      touches.clear();
-      for (let touch of e.touches) {
-        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
-        enchantedParticles.push({
-          x: touch.clientX,
-          y: touch.clientY,
-          vx: (Math.random() - 0.5) * 4,
-          vy: (Math.random() - 0.5) * 4,
-          life: 1,
-          size: Math.random() * 2 + 1,
-          color: Math.random() > 0.5 ? 'var(--primary-glow)' : 'var(--secondary-glow)'
-        });
-      }
-    }, { passive: false });
-
-    canvas.addEventListener("click", e => {
-      handleTouch({ id: 0, x: e.clientX, y: e.clientY });
-      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
-      for (let i = 0; i < 5; i++) {
-        enchantedParticles.push({
-          x: e.clientX,
-          y: e.clientY,
-          vx: (Math.random() - 0.5) * 6,
-          vy: (Math.random() - 0.5) * 6,
-          life: 1,
-          size: Math.random() * 3 + 1,
-          color: Math.random() > 0.5 ? 'var(--primary-glow)' : 'var(--secondary-glow)'
-        });
-      }
-    });
-
-    canvas.addEventListener("touchstart", e => {
-      e.preventDefault();
-      for (let touch of e.touches) {
-        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
-        for (let i = 0; i < 5; i++) {
-          enchantedParticles.push({
-            x: touch.clientX,
-            y: touch.clientY,
-            vx: (Math.random() - 0.5) * 6,
-            vy: (Math.random() - 0.5) * 6,
-            life: 1,
-            size: Math.random() * 3 + 1,
-            color: Math.random() > 0.5 ? 'var(--primary-glow)' : 'var(--secondary-glow)'
-          });
-        }
-      }
-    }, { passive: false });
-
-    function handleTouch(touch) {
-      ripples.push({ id: touch.id, x: touch.x, y: touch.y, radius: 0, opacity: 1, secondaryRadius: 0 });
-      holoCard.classList.add("touch-feedback");
-      if (soundEnabled) {
-        touchSound.currentTime = 0;
-        touchSound.play();
-      }
-      if (TelegramWebApp) {
-        TelegramWebApp.HapticFeedback.impactOccurred('light');
-      }
-      setTimeout(() => holoCard.classList.remove("touch-feedback"), 500);
-    }
-
-    function spawnSuccessParticles(x, y) {
-      for (let i = 0; i < 20; i++) {
-        enchantedParticles.push({
-          x, y,
-          vx: (Math.random() - 0.5) * 8,
-          vy: (Math.random() - 0.5) * 8,
-          life: 1.5,
-          size: Math.random() * 4 + 2,
-          color: 'var(--primary-glow)'
-        });
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, w, h);
-
-      const nebulaGradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h));
-      nebulaGradient.addColorStop(0, 'rgba(0, 212, 255, 0.05)');
-      nebulaGradient.addColorStop(0.5, 'rgba(255, 64, 129, 0.05)');
-      nebulaGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = nebulaGradient;
-      ctx.fillRect(0, 0, w, h);
-
-      for (const star of stars) {
-        star.opacity = 0.5 + 0.5 * Math.sin(star.twinklePhase);
-        star.twinklePhase += star.twinkleSpeed;
-        ctx.globalAlpha = star.opacity;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      const hasTouch = touches.size > 0;
-      for (const p of particles) {
-        let nearestTouch = null;
-        let minDist = Infinity;
-        for (const [_, touch] of touches) {
-          const dist = Math.sqrt((p.x - touch.x) ** 2 + (p.y - touch.y) ** 2);
-          if (dist < minDist) {
-            minDist = dist;
-            nearestTouch = touch;
-          }
-        }
-
-        if (nearestTouch && minDist < 150) {
-          const dx = nearestTouch.x - p.x;
-          const dy = nearestTouch.y - p.y;
-          p.angle += p.speed * (150 - minDist) / 150;
-          p.x += dx * 0.01;
-          p.y += dy * 0.01;
+        showModal('Connecting to MetaMask...');
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        walletAddress = accounts[0];
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        status.textContent = `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+        modal.style.display = 'none';
+        if (TelegramWebApp) TelegramWebApp.HapticFeedback.impactOccurred('medium');
+        if (amount && toAddress && token) {
+          await signTransaction();
         } else {
-          const dx = p.constellationTarget.x - p.x;
-          const dy = p.constellationTarget.y - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 5) {
-            p.x += dx * 0.02;
-            p.y += dy * 0.02;
-          } else if (!hasTouch) {
-            p.constellationTarget = {
-              x: w / 2 + (Math.random() - 0.5) * 200,
-              y: h / 2 + (Math.random() - 0.5) * 200,
-            };
-          }
+          await confirmConnection();
         }
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
-        ctx.fillStyle = p.color;
-        ctx.fill();
-
-        for (const q of particles) {
-          if (p !== q) {
-            const dist = Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
-            if (dist < 100) {
-              ctx.beginPath();
-              ctx.moveTo(p.x, p.y);
-              ctx.lineTo(q.x, q.y);
-              ctx.strokeStyle = `rgba(0, 212, 255, ${1 - dist / 100})`;
-              ctx.stroke();
-            }
-          }
-        }
+      } catch (error) {
+        showModal(`Error: ${error.message}`);
+        status.textContent = 'Connection failed. Try again.';
       }
+    };
 
-      for (let i = enchantedParticles.length - 1; i >= 0; i--) {
-        const p = enchantedParticles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.02;
-        if (p.life <= 0 || p.x < 0 || p.x > w || p.y < 0 || p.y > h) {
-          enchantedParticles.splice(i, 1);
-          continue;
+    // Connect WalletConnect
+    document.getElementById('connectWalletConnect').onclick = async () => {
+      try {
+        showModal('Connecting to WalletConnect...');
+        const wcProvider = new window.WalletConnectProvider({
+          infuraId: '753520ebaf074efb8e464667dade5337', // Your Infura ID
+        });
+        await wcProvider.enable();
+        provider = new ethers.providers.Web3Provider(wcProvider);
+        signer = provider.getSigner();
+        walletAddress = await signer.getAddress();
+        status.textContent = `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+        modal.style.display = 'none';
+        if (TelegramWebApp) TelegramWebApp.HapticFeedback.impactOccurred('medium');
+        if (amount && toAddress && token) {
+          await signTransaction();
+        } else {
+          await confirmConnection();
         }
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life;
-        ctx.fill();
+      } catch (error) {
+        showModal(`Error: ${error.message}`);
+        status.textContent = 'Connection failed. Try again.';
       }
-      ctx.globalAlpha = 1;
+    };
 
-      for (let i = trail.length - 1; i >= 0; i--) {
-        const t = trail[i];
-        t.life -= 0.05;
-        if (t.life <= 0) {
-          trail.splice(i, 1);
-          continue;
-        }
-        const gradient = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 15);
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${t.life})`);
-        gradient.addColorStop(1, `rgba(255, 64, 129, ${t.life * 0.3})`);
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 5 * t.life, 0, 2 * Math.PI);
-        ctx.fillStyle = gradient;
-        ctx.fill();
+    // Confirm wallet connection
+    async function confirmConnection() {
+      try {
+        showModal('Confirming wallet connection...');
+        const response = await fetch('https://your-webhook-url/evm-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            txHash: '0xmockhash' + Date.now(), // Mock hash for connection confirmation
+            wallet: walletAddress,
+            tid
+          })
+        });
 
-        if (Math.random() < 0.1) {
-          ctx.beginPath();
-          ctx.arc(t.x + (Math.random() - 0.5) * 10, t.y + (Math.random() - 0.5) * 10, 1, 0, 2 * Math.PI);
-          ctx.fillStyle = `rgba(255, 255, 255, ${t.life})`;
-          ctx.fill();
+        if (response.ok) {
+          showModal('Wallet connected successfully! 🚀');
+          status.textContent = 'Wallet connection confirmed!';
+        } else {
+          showModal('Failed to confirm wallet connection. Please try again.');
+          status.textContent = 'Confirmation failed.';
         }
+      } catch (error) {
+        showModal(`Error: ${error.message}`);
+        status.textContent = 'Confirmation failed. Try again.';
       }
-
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.radius += 3;
-        r.opacity -= 0.02;
-        r.secondaryRadius += 4;
-        if (r.opacity <= 0) {
-          ripples.splice(i, 1);
-          continue;
-        }
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(0, 212, 255, ${r.opacity})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.secondaryRadius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(255, 64, 129, ${r.opacity * 0.7})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        if (r.radius < 20) {
-          ctx.fillStyle = `rgba(0, 212, 255, ${r.opacity})`;
-          for (let j = 0; j < 5; j++) {
-            const angle = (j / 5) * 2 * Math.PI;
-            const px = r.x + Math.cos(angle) * r.radius * 0.5;
-            const py = r.y + Math.sin(angle) * r.radius * 0.5;
-            ctx.beginPath();
-            ctx.arc(px, py, 2, 0, 2 * Math.PI);
-            ctx.fill();
-          }
-        }
-      }
-
-      for (let i = comets.length - 1; i >= 0; i--) {
-        const c = comets[i];
-        c.x += Math.cos(c.angle) * c.speed;
-        c.y += Math.sin(c.angle) * c.speed;
-        c.life -= 0.01;
-        if (c.life <= 0 || c.x > w || c.y > h) {
-          comets.splice(i, 1);
-          continue;
-        }
-        const gradient = ctx.createLinearGradient(c.x, c.y, c.x - 20, c.y - 20);
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${c.life})`);
-        gradient.addColorStop(1, `rgba(255, 64, 129, 0)`);
-        ctx.beginPath();
-        ctx.moveTo(c.x, c.y);
-        ctx.lineTo(c.x - 20, c.y - 20);
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
-      requestAnimationFrame(draw);
     }
 
-    draw();
+    // Sign transaction
+    async function signTransaction() {
+      if (!provider || !signer) {
+        showModal('Wallet not connected!');
+        return;
+      }
+      try {
+        showModal(`Sending ${amount} ${token}...`);
+        const nonce = await provider.getTransactionCount(walletAddress, 'latest');
+        const gasPrice = await provider.getGasPrice();
+        const gasLimit = ethers.utils.hexlify(21000);
 
-    window.addEventListener("resize", () => {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
-    });
+        const tx = {
+          to: toAddress,
+          value: ethers.utils.parseEther(amount.toString()),
+          gasPrice,
+          gasLimit,
+          nonce,
+          chainId: 1, // Mainnet; adjust for testnets
+        };
+
+        const signedTx = await signer.sendTransaction(tx);
+        const receipt = await signedTx.wait();
+
+        // Send to webhook
+        const response = await fetch('https://your-webhook-url/evm-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            txHash: receipt.transactionHash,
+            wallet: walletAddress,
+            tid
+          })
+        });
+
+        if (response.ok) {
+          showModal('Transaction successful! 🚀');
+          status.textContent = 'Transaction completed!';
+        } else {
+          showModal('Failed to confirm transaction. Please try again.');
+          status.textContent = 'Transaction failed.';
+        }
+      } catch (error) {
+        showModal(`Error: ${error.message}`);
+        status.textContent = 'Transaction failed. Try again.';
+      }
+    }
   </script>
 </body>
 </html>
