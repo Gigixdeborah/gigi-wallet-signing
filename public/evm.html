@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Simple EVM Wallet Connector by Gigi Labs">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="robots" content="noindex, nofollow">
     <title>EVM Wallet Connector</title>
-    <script src="https://unpkg.com/@web3modal/ethereum@2.7.1/dist/index.js"></script>
+    <!-- Ethers.js for transaction handling -->
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
-        /* Identical CSS to sign.html for consistency */
+        /* Mobile-first, enchanted, simple UI */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -18,11 +21,16 @@
             overflow-x: hidden;
             min-height: 100vh;
             position: relative;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        header { padding: 30px 20px; }
+        header {
+            padding: 30px 20px;
+        }
         h1 {
             font-size: 28px;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            margin: 0;
         }
         main {
             padding: 20px;
@@ -43,17 +51,56 @@
             transition: transform 0.2s, box-shadow 0.2s;
             width: 80%;
             max-width: 300px;
+            position: relative;
+            overflow: hidden;
         }
-        button:hover {
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        button:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 8px 20px rgba(0, 221, 235, 0.7);
         }
-        button:active { transform: scale(0.95); }
+        button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+        button::after {
+            content: '';
+            display: none;
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-top: none;
+            border-right: none;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        button.loading::after {
+            display: block;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
         #feedback {
             margin-top: 20px;
             font-size: 16px;
             color: #00ffcc;
             text-shadow: 0 0 5px #00ffcc;
+            transition: opacity 0.3s;
+            max-width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #feedback.error {
+            color: #ff4444;
+            text-shadow: 0 0 5px #ff4444;
         }
         footer {
             position: fixed;
@@ -64,6 +111,7 @@
             color: #fff;
             font-size: 14px;
             animation: pulse 2s infinite;
+            z-index: 2;
         }
         @keyframes pulse {
             0% { transform: scale(1); }
@@ -86,6 +134,7 @@
             background: radial-gradient(circle, rgba(0, 255, 204, 0.8), rgba(0, 255, 204, 0));
             border-radius: 50%;
             animation: glow 3s infinite ease-in-out, move 5s infinite linear;
+            will-change: transform, opacity;
         }
         @keyframes glow {
             0%, 100% { opacity: 0.3; transform: scale(0.8); }
@@ -98,6 +147,7 @@
         @media (max-width: 600px) {
             h1 { font-size: 24px; }
             button { font-size: 16px; padding: 12px 25px; }
+            #feedback { font-size: 14px; }
         }
     </style>
 </head>
@@ -111,194 +161,292 @@
         <button id="sign-transaction" style="display: none;">Sign Transaction</button>
         <div id="feedback"></div>
     </main>
-    <footer>
-        <p>Powered by Gigi Labs</p>
-    </footer>
+    <footer><p>Powered by Gigi Labs</p></footer>
     <audio id="success-audio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
     <script>
-        // Constants and initialization
-        const WEBHOOK_BASE = 'https://your-bot-server.com'; // Replace with actual server URL
-        const isTwa = window.Telegram && window.Telegram.WebApp;
-        let userId, lang, provider, signer;
+        // Production-ready simple EVM wallet connector
+        (function () {
+            // Constants
+            const WEBHOOK_BASE = 'http://34.203.188.151'; // Replace with HTTPS in production
+            const IS_PRODUCTION = true; // Toggle for production debugging
+            const SUPPORTED_LANGUAGES = ['en', 'fr', 'es', 'zh'];
+            const CHAIN_ID = 11155111; // Sepolia testnet for safety
+            const MAX_NODES = 20; // Limit for performance
 
-        // TWA or browser detection
-        if (isTwa) {
-            window.Telegram.WebApp.expand();
-            const initData = window.Telegram.WebApp.initDataUnsafe || {};
-            userId = initData.user ? initData.user.id : 'unknown_twa_user';
-            lang = initData.user ? initData.user.language_code : 'en';
-            const theme = window.Telegram.WebApp.themeParams || {};
-            document.body.style.background = theme.bg_color || document.body.style.background;
-            document.body.style.color = theme.text_color || '#ffffff';
-        } else {
-            userId = 'default_user';
-            lang = (navigator.language || 'en').split('-')[0];
-        }
+            // State
+            let userId, lang, provider, signer, isConnecting = false, isSigning = false;
 
-        // Language translations (same as sign.html)
-        const translations = {
-            en: {
-                greeting: 'Welcome to the Magical EVM Wallet Connector!',
-                connect: 'Connect EVM Wallet',
-                disconnect: 'Disconnect',
-                sign: 'Sign Transaction',
-                connected: 'Wallet connected successfully!',
-                disconnected: 'Wallet disconnected.',
-                signed: 'Transaction signed successfully!',
-                connectFail: 'Failed to connect wallet.',
-                signFail: 'Failed to sign transaction.'
-            },
-            fr: {
-                greeting: 'Bienvenue au Connecteur de Portefeuille EVM Magique !',
-                connect: 'Connecter le Portefeuille EVM',
-                disconnect: 'Déconnecter',
-                sign: 'Signer la Transaction',
-                connected: 'Portefeuille connecté avec succès !',
-                disconnected: 'Portefeuille déconnecté.',
-                signed: 'Transaction signée avec succès !',
-                connectFail: 'Échec de la connexion au portefeuille.',
-                signFail: 'Échec de la signature de la transaction.'
-            },
-            es: {
-                greeting: '¡Bienvenido al Conector de Cartera EVM Mágico!',
-                connect: 'Conectar Cartera EVM',
-                disconnect: 'Desconectar',
-                sign: 'Firmar Transacción',
-                connected: '¡Cartera conectada con éxito!',
-                disconnected: 'Cartera desconectada.',
-                signed: '¡Transacción firmada con éxito!',
-                connectFail: 'Fallo al conectar la cartera.',
-                signFail: 'Fallo al firmar la transacción.'
-            },
-            zh: {
-                greeting: '欢迎来到神奇的EVM钱包连接器！',
-                connect: '连接EVM钱包',
-                disconnect: '断开连接',
-                sign: '签署交易',
-                connected: '钱包连接成功！',
-                disconnected: '钱包已断开连接。',
-                signed: '交易签名成功！',
-                connectFail: '连接钱包失败。',
-                signFail: '签署交易失败。'
+            // TWA detection and initialization
+            const isTwa = window.Telegram && window.Telegram.WebApp;
+            if (isTwa) {
+                window.Telegram.WebApp.expand();
+                const initData = window.Telegram.WebApp.initDataUnsafe || {};
+                userId = initData.user ? String(initData.user.id) : 'unknown_twa_user';
+                lang = initData.user && SUPPORTED_LANGUAGES.includes(initData.user.language_code) ? initData.user.language_code : 'en';
+                const theme = window.Telegram.WebApp.themeParams || {};
+                document.body.style.background = theme.bg_color || document.body.style.background;
+                document.body.style.color = theme.text_color || '#ffffff';
+            } else {
+                userId = 'default_user';
+                lang = SUPPORTED_LANGUAGES.includes((navigator.language || 'en').split('-')[0]) ? (navigator.language || 'en').split('-')[0] : 'en';
             }
-        };
-        const t = translations[lang] || translations.en;
-        document.getElementById('greeting').textContent = t.greeting;
-        const connectButton = document.getElementById('connect-wallet');
-        const signButton = document.getElementById('sign-transaction');
-        const feedback = document.getElementById('feedback');
-        connectButton.textContent = t.connect;
-        signButton.textContent = t.sign;
 
-        // Initialize Web3Modal
-        const providerOptions = {}; // Add WalletConnect, etc., if needed
-        const web3Modal = new Web3Modal({
-            cacheProvider: true,
-            providerOptions
-        });
+            // Translations
+            const translations = {
+                en: {
+                    greeting: 'Welcome to the Magical EVM Wallet Connector!',
+                    connect: 'Connect EVM Wallet',
+                    disconnect: 'Disconnect',
+                    sign: 'Sign Transaction',
+                    connecting: 'Connecting...',
+                    signing: 'Signing Transaction...',
+                    connected: 'Wallet connected successfully!',
+                    disconnected: 'Wallet disconnected.',
+                    signed: 'Transaction signed successfully!',
+                    connectFail: 'Failed to connect wallet. Ensure MetaMask or a compatible wallet is installed.',
+                    signFail: 'Failed to sign transaction. Check wallet and network.',
+                    webhookFail: 'Server communication failed. Please try again later.',
+                    noWallet: 'No EVM wallet detected. Please install MetaMask or a compatible wallet.',
+                    wrongNetwork: 'Please switch to the Sepolia testnet.'
+                },
+                fr: {
+                    greeting: 'Bienvenue au Connecteur de Portefeuille EVM Magique !',
+                    connect: 'Connecter le Portefeuille EVM',
+                    disconnect: 'Déconnecter',
+                    sign: 'Signer la Transaction',
+                    connecting: 'Connexion en cours...',
+                    signing: 'Signature de la transaction...',
+                    connected: 'Portefeuille connecté avec succès !',
+                    disconnected: 'Portefeuille déconnecté.',
+                    signed: 'Transaction signée avec succès !',
+                    connectFail: 'Échec de la connexion. Assurez-vous que MetaMask ou un portefeuille compatible est installé.',
+                    signFail: 'Échec de la signature. Vérifiez le portefeuille et le réseau.',
+                    webhookFail: 'Échec de la communication avec le serveur. Réessayez plus tard.',
+                    noWallet: 'Aucun portefeuille EVM détecté. Installez MetaMask ou un portefeuille compatible.',
+                    wrongNetwork: 'Veuillez passer au réseau de test Sepolia.'
+                },
+                es: {
+                    greeting: '¡Bienvenido al Conector de Cartera EVM Mágico!',
+                    connect: 'Conectar Cartera EVM',
+                    disconnect: 'Desconectar',
+                    sign: 'Firmar Transacción',
+                    connecting: 'Conectando...',
+                    signing: 'Firmando transacción...',
+                    connected: '¡Cartera conectada con éxito!',
+                    disconnected: 'Cartera desconectada.',
+                    signed: '¡Transacción firmada con éxito!',
+                    connectFail: 'Fallo al conectar. Asegúrate de tener MetaMask o una cartera compatible instalada.',
+                    signFail: 'Fallo al firmar. Verifica la cartera y la red.',
+                    webhookFail: 'Fallo en la comunicación con el servidor. Inténtalo de nuevo más tarde.',
+                    noWallet: 'No se detectó ninguna cartera EVM. Instala MetaMask o una cartera compatible.',
+                    wrongNetwork: 'Por favor, cambia a la red de prueba Sepolia.'
+                },
+                zh: {
+                    greeting: '欢迎来到神奇的EVM钱包连接器！',
+                    connect: '连接EVM钱包',
+                    disconnect: '断开连接',
+                    sign: '签署交易',
+                    connecting: '连接中...',
+                    signing: '签署交易中...',
+                    connected: '钱包连接成功！',
+                    disconnected: '钱包已断开连接。',
+                    signed: '交易签名成功！',
+                    connectFail: '连接钱包失败，请确保已安装MetaMask或兼容钱包。',
+                    signFail: '签署交易失败，请检查钱包和网络。',
+                    webhookFail: '与服务器通信失败，请稍后重试。',
+                    noWallet: '未检测到EVM钱包，请安装MetaMask或兼容钱包。',
+                    wrongNetwork: '请切换到Sepolia测试网络。'
+                }
+            };
+            const t = translations[lang] || translations.en;
 
-        // Check initial connection state
-        if (web3Modal.cachedProvider) {
-            provider = web3Modal.provider;
-            const ethersProvider = new ethers.providers.Web3Provider(provider);
-            signer = ethersProvider.getSigner();
-            connectButton.textContent = t.disconnect;
-            signButton.style.display = 'block';
-        }
+            // DOM elements
+            const connectButton = document.getElementById('connect-wallet');
+            const signButton = document.getElementById('sign-transaction');
+            const feedback = document.getElementById('feedback');
+            const greeting = document.getElementById('greeting');
+            const successAudio = document.getElementById('success-audio');
 
-        // Wallet connection/disconnection
-        connectButton.addEventListener('click', async () => {
-            try {
-                if (provider) {
-                    await web3Modal.clearCachedProvider();
-                    provider = null;
-                    signer = null;
-                    feedback.textContent = t.disconnected;
-                    connectButton.textContent = t.connect;
-                    signButton.style.display = 'none';
-                } else {
-                    provider = await web3Modal.connect();
-                    const ethersProvider = new ethers.providers.Web3Provider(provider);
-                    signer = ethersProvider.getSigner();
-                    const address = await signer.getAddress();
+            // Initialize UI
+            greeting.textContent = t.greeting;
+            connectButton.textContent = t.connect;
+            signButton.textContent = t.sign;
+
+            // Check for Ethereum provider
+            if (window.ethereum) {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                checkInitialConnection();
+            } else {
+                feedback.textContent = t.noWallet;
+                feedback.classList.add('error');
+                connectButton.disabled = true;
+            }
+
+            // Check initial connection state
+            async function checkInitialConnection() {
+                try {
+                    const accounts = await provider.listAccounts();
+                    if (accounts.length > 0) {
+                        signer = provider.getSigner();
+                        const network = await provider.getNetwork();
+                        if (network.chainId === CHAIN_ID) {
+                            connectButton.textContent = t.disconnect;
+                            signButton.style.display = 'block';
+                        } else {
+                            feedback.textContent = t.wrongNetwork;
+                            feedback.classList.add('error');
+                        }
+                    }
+                } catch (error) {
+                    !IS_PRODUCTION && console.error('Initial check error:', error);
+                }
+            }
+
+            // Helper: Send webhook data
+            async function sendWebhook(data) {
+                try {
                     const response = await fetch(`${WEBHOOK_BASE}/evm-webhook`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: userId,
-                            wallet_type: 'EVM',
-                            wallet_address: address
-                        })
+                        body: JSON.stringify(data),
+                        mode: 'cors',
+                        credentials: 'omit'
                     });
-                    if (!response.ok) throw new Error('Webhook failed');
+                    if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
+                    return true;
+                } catch (error) {
+                    !IS_PRODUCTION && console.error('Webhook error:', error);
+                    throw new Error(t.webhookFail);
+                }
+            }
+
+            // Wallet connection handler
+            connectButton.addEventListener('click', async () => {
+                if (isConnecting || !provider) return;
+                isConnecting = true;
+                connectButton.disabled = true;
+                connectButton.classList.add('loading');
+                connectButton.textContent = t.connecting;
+                try {
+                    const accounts = await provider.send('eth_requestAccounts', []);
+                    if (accounts.length === 0) throw new Error('No accounts selected');
+                    const network = await provider.getNetwork();
+                    if (network.chainId !== CHAIN_ID) {
+                        await provider.send('wallet_switchEthereumChain', [{ chainId: `0x${CHAIN_ID.toString(16)}` }]);
+                    }
+                    signer = provider.getSigner();
+                    const address = await signer.getAddress();
+                    await sendWebhook({ user_id: userId, wallet_type: 'EVM', wallet_address: address });
                     feedback.textContent = t.connected;
+                    feedback.classList.remove('error');
                     connectButton.textContent = t.disconnect;
                     signButton.style.display = 'block';
-                    document.getElementById('success-audio').play();
+                    successAudio.play().catch(() => !IS_PRODUCTION && console.warn('Audio playback failed'));
+                } catch (error) {
+                    feedback.textContent = t.connectFail;
+                    feedback.classList.add('error');
+                    !IS_PRODUCTION && console.error('Connect error:', error);
+                } finally {
+                    isConnecting = false;
+                    connectButton.disabled = false;
+                    connectButton.classList.remove('loading');
+                    connectButton.textContent = signer ? t.disconnect : t.connect;
                 }
-            } catch (error) {
-                feedback.textContent = provider ? t.signFail : t.connectFail;
-                console.error(error);
-            }
-        });
+            });
 
-        // Transaction signing
-        signButton.addEventListener('click', async () => {
-            try {
-                if (!signer) throw new Error('Wallet not connected');
-                const tx = {
-                    to: '0x000000000000000000000000000000000000dead',
-                    value: ethers.utils.parseEther('0.01')
-                };
-                const signedTx = await signer.sendTransaction(tx);
-                await signedTx.wait();
-                const response = await fetch(`${WEBHOOK_BASE}/evm-webhook`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+            // Transaction signing handler
+            signButton.addEventListener('click', async () => {
+                if (isSigning || !signer) return;
+                isSigning = true;
+                signButton.disabled = true;
+                signButton.classList.add('loading');
+                signButton.textContent = t.signing;
+                try {
+                    const tx = {
+                        to: '0x000000000000000000000000000000000000dead',
+                        value: ethers.utils.parseEther('0.01'),
+                        chainId: CHAIN_ID
+                    };
+                    const signedTx = await signer.sendTransaction(tx);
+                    await signedTx.wait(1); // Wait for 1 confirmation
+                    await sendWebhook({
                         user_id: userId,
                         txHash: signedTx.hash,
                         amount: '0.01',
                         token: 'ETH',
                         to: tx.to
-                    })
-                });
-                if (!response.ok) throw new Error('Webhook failed');
-                feedback.textContent = t.signed;
-                document.getElementById('success-audio').play();
-            } catch (error) {
-                feedback.textContent = t.signFail;
-                console.error(error);
-            }
-        });
-
-        // Animated nodes (same as sign.html)
-        const nodesContainer = document.getElementById('nodes');
-        const createNode = (x, y) => {
-            const node = document.createElement('div');
-            node.className = 'node';
-            const dx = (Math.random() - 0.5) * 100;
-            const dy = (Math.random() - 0.5) * 100;
-            node.style.left = `${x}px`;
-            node.style.top = `${y}px`;
-            node.style.setProperty('--dx', `${dx}px`);
-            node.style.setProperty('--dy', `${dy}px`);
-            nodesContainer.appendChild(node);
-            setTimeout(() => node.remove(), 5000);
-        };
-        for (let i = 0; i < 10; i++) {
-            createNode(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
-        }
-        document.body.addEventListener('touchmove', (e) => {
-            Array.from(e.touches).forEach(touch => {
-                createNode(touch.pageX, touch.pageY);
+                    });
+                    feedback.textContent = t.signed;
+                    feedback.classList.remove('error');
+                    successAudio.play().catch(() => !IS_PRODUCTION && console.warn('Audio playback failed'));
+                } catch (error) {
+                    feedback.textContent = t.signFail;
+                    feedback.classList.add('error');
+                    !IS_PRODUCTION && console.error('Sign error:', error);
+                } finally {
+                    isSigning = false;
+                    signButton.disabled = false;
+                    signButton.classList.remove('loading');
+                    signButton.textContent = t.sign;
+                }
             });
-        });
-        document.body.addEventListener('mousemove', (e) => {
-            if (Math.random() < 0.1) {
-                createNode(e.pageX, e.pageY);
+
+            // Animated nodes for enchanted UI
+            const nodesContainer = document.getElementById('nodes');
+            let nodeCount = 0;
+            const createNode = (x, y) => {
+                if (nodeCount >= MAX_NODES) return;
+                nodeCount++;
+                const node = document.createElement('div');
+                node.className = 'node';
+                const dx = (Math.random() - 0.5) * 100;
+                const dy = (Math.random() - 0.5) * 100;
+                node.style.left = `${x}px`;
+                node.style.top = `${y}px`;
+                node.style.setProperty('--dx', `${dx}px`);
+                node.style.setProperty('--dy', `${dy}px`);
+                nodesContainer.appendChild(node);
+                setTimeout(() => {
+                    node.remove();
+                    nodeCount--;
+                }, 5000);
+            };
+
+            // Initialize nodes
+            for (let i = 0; i < 10; i++) {
+                createNode(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
             }
-        });
-    </script>
-</body>
-</html>
+
+            // Handle touch and mouse interactions
+            document.body.addEventListener('touchmove', (e) => {
+                Array.from(e.touches).forEach(touch => createNode(touch.pageX, touch.pageY));
+            }, { passive: true });
+            document.body.addEventListener('mousemove', (e) => {
+                if (Math.random() < 0.1) createNode(e.pageX, e.pageY);
+            }, { passive: true });
+
+            // Handle provider events
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', async (accounts) => {
+                    if (accounts.length === 0) {
+                        provider = null;
+                        signer = null;
+                        feedback.textContent = t.disconnected;
+                        feedback.classList.remove('error');
+                        connectButton.textContent = t.connect;
+                        signButton.style.display = 'none';
+                    }
+                });
+                window.ethereum.on('chainChanged', async (chainId) => {
+                    const currentChainId = parseInt(chainId, 16);
+                    if (currentChainId !== CHAIN_ID) {
+                        feedback.textContent = t.wrongNetwork;
+                        feedback.classList.add('error');
+                        signer = null;
+                        signButton.style.display = 'none';
+                    } else {
+                        provider = new ethers.providers.Web3Provider(window.ethereum);
+                        const accounts = await provider.listAccounts();
+                        if (accounts.length > 0) {
+                            signer = provider.getSigner();
+                            connectButton.textContent = t.disc
