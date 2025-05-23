@@ -449,4 +449,13 @@
                         const accounts = await provider.listAccounts();
                         if (accounts.length > 0) {
                             signer = provider.getSigner();
-                            connectButton.textContent = t.disc
+                            connectButton.textContent = t.disconnect;
+                            signButton.style.display = 'block';
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
