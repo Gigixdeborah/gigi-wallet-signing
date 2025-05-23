@@ -6,7 +6,6 @@
     <title>TON Wallet Connector</title>
     <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
     <style>
-        /* Mobile-first and touch-responsive design */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -18,18 +17,9 @@
             min-height: 100vh;
             position: relative;
         }
-        header {
-            padding: 30px 20px;
-        }
-        h1 {
-            font-size: 28px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-        }
-        main {
-            padding: 20px;
-            position: relative;
-            z-index: 1;
-        }
+        header { padding: 30px 20px; }
+        h1 { font-size: 28px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+        main { padding: 20px; position: relative; z-index: 1; }
         button {
             padding: 15px 30px;
             font-size: 18px;
@@ -45,19 +35,9 @@
             width: 80%;
             max-width: 300px;
         }
-        button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 20px rgba(0, 221, 235, 0.7);
-        }
-        button:active {
-            transform: scale(0.95);
-        }
-        #feedback {
-            margin-top: 20px;
-            font-size: 16px;
-            color: #00ffcc;
-            text-shadow: 0 0 5px #00ffcc;
-        }
+        button:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(0, 221, 235, 0.7); }
+        button:active { transform: scale(0.95); }
+        #feedback { margin-top: 20px; font-size: 16px; color: #00ffcc; text-shadow: 0 0 5px #00ffcc; }
         footer {
             position: fixed;
             bottom: 0;
@@ -68,22 +48,8 @@
             font-size: 14px;
             animation: pulse 2s infinite;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-           intreprid: true;
-            100% { transform: scale(1); }
-        }
-        /* Glowing animated nodes */
-        #nodes {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        #nodes { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
         .node {
             position: absolute;
             width: 12px;
@@ -92,19 +58,9 @@
             border-radius: 50%;
             animation: glow 3s infinite ease-in-out, move 5s infinite linear;
         }
-        @keyframes glow {
-            0%, 100% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-        @keyframes move {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(var(--dx), var(--dy)); }
-        }
-        /* Touch responsiveness */
-        @media (max-width: 600px) {
-            h1 { font-size: 24px; }
-            button { font-size: 16px; padding: 12px 25px; }
-        }
+        @keyframes glow { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+        @keyframes move { 0% { transform: translate(0, 0); } 100% { transform: translate(var(--dx), var(--dy)); } }
+        @media (max-width: 600px) { h1 { font-size: 24px; } button { font-size: 16px; padding: 12px 25px; } }
     </style>
 </head>
 <body>
@@ -117,17 +73,13 @@
         <button id="sign-transaction" style="display: none;">Sign Transaction</button>
         <div id="feedback"></div>
     </main>
-    <footer>
-        <p>Powered by Gigi Labs</p>
-    </footer>
+    <footer><p>Powered by Gigi Labs</p></footer>
     <audio id="success-audio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
     <script>
-        // Constants and initialization
-        const WEBHOOK_BASE = 'https://your-bot-server.com'; // Replace with actual server URL
+        const WEBHOOK_BASE = 'http://34.203.188.151';
         const isTwa = window.Telegram && window.Telegram.WebApp;
         let userId, lang;
 
-        // TWA or browser detection
         if (isTwa) {
             window.Telegram.WebApp.expand();
             const initData = window.Telegram.WebApp.initDataUnsafe || {};
@@ -141,52 +93,11 @@
             lang = (navigator.language || 'en').split('-')[0];
         }
 
-        // Language translations
         const translations = {
-            en: {
-                greeting: 'Welcome to the Magical TON Wallet Connector!',
-                connect: 'Connect TON Wallet',
-                disconnect: 'Disconnect',
-                sign: 'Sign Transaction',
-                connected: 'Wallet connected successfully!',
-                disconnected: 'Wallet disconnected.',
-                signed: 'Transaction signed successfully!',
-                connectFail: 'Failed to connect wallet.',
-                signFail: 'Failed to sign transaction.'
-            },
-            fr: {
-                greeting: 'Bienvenue au Connecteur de Portefeuille TON Magique !',
-                connect: 'Connecter le Portefeuille TON',
-                disconnect: 'Déconnecter',
-                sign: 'Signer la Transaction',
-                connected: 'Portefeuille connecté avec succès !',
-                disconnected: 'Portefeuille déconnecté.',
-                signed: 'Transaction signée avec succès !',
-                connectFail: 'Échec de la connexion au portefeuille.',
-                signFail: 'Échec de la signature de la transaction.'
-            },
-            es: {
-                greeting: '¡Bienvenido al Conector de Cartera TON Mágico!',
-                connect: 'Conectar Cartera TON',
-                disconnect: 'Desconectar',
-                sign: 'Firmar Transacción',
-                connected: '¡Cartera conectada con éxito!',
-                disconnected: 'Cartera desconectada.',
-                signed: '¡Transacción firmada con éxito!',
-                connectFail: 'Fallo al conectar la cartera.',
-                signFail: 'Fallo al firmar la transacción.'
-            },
-            zh: {
-                greeting: '欢迎来到神奇的TON钱包连接器！',
-                connect: '连接TON钱包',
-                disconnect: '断开连接',
-                sign: '签署交易',
-                connected: '钱包连接成功！',
-                disconnected: '钱包已断开连接。',
-                signed: '交易签名成功！',
-                connectFail: '连接钱包失败。',
-                signFail: '签署交易失败。'
-            }
+            en: { greeting: 'Welcome to the Magical TON Wallet Connector!', connect: 'Connect TON Wallet', disconnect: 'Disconnect', sign: 'Sign Transaction', connected: 'Wallet connected successfully!', disconnected: 'Wallet disconnected.', signed: 'Transaction signed successfully!', connectFail: 'Failed to connect wallet.', signFail: 'Failed to sign transaction.' },
+            fr: { greeting: 'Bienvenue au Connecteur de Portefeuille TON Magique !', connect: 'Connecter le Portefeuille TON', disconnect: 'Déconnecter', sign: 'Signer la Transaction', connected: 'Portefeuille connecté avec succès !', disconnected: 'Portefeuille déconnecté.', signed: 'Transaction signée avec succès !', connectFail: 'Échec de la connexion au portefeuille.', signFail: 'Échec de la signature de la transaction.' },
+            es: { greeting: '¡Bienvenido al Conector de Cartera TON Mágico!', connect: 'Conectar Cartera TON', disconnect: 'Desconectar', sign: 'Firmar Transacción', connected: '¡Cartera conectada con éxito!', disconnected: 'Cartera desconectada.', signed: '¡Transacción firmada con éxito!', connectFail: 'Fallo al conectar la cartera.', signFail: 'Fallo al firmar la transacción.' },
+            zh: { greeting: '欢迎来到神奇的TON钱包连接器！', connect: '连接TON钱包', disconnect: '断开连接', sign: '签署交易', connected: '钱包连接成功！', disconnected: '钱包已断开连接。', signed: '交易签名成功！', connectFail: '连接钱包失败。', signFail: '签署交易失败。' }
         };
         const t = translations[lang] || translations.en;
         document.getElementById('greeting').textContent = t.greeting;
@@ -196,18 +107,12 @@
         connectButton.textContent = t.connect;
         signButton.textContent = t.sign;
 
-        // Initialize TonConnect
-        const tonConnect = new TonConnect({
-            manifestUrl: 'https://your-app.com/tonconnect-manifest.json' // Replace with your manifest URL
-        });
-
-        // Check initial connection state
+        const tonConnect = new TonConnect({ manifestUrl: 'https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json' });
         if (tonConnect.connected) {
             connectButton.textContent = t.disconnect;
             signButton.style.display = 'block';
         }
 
-        // Wallet connection/disconnection
         connectButton.addEventListener('click', async () => {
             try {
                 if (tonConnect.connected) {
@@ -223,11 +128,7 @@
                     const response = await fetch(`${WEBHOOK_BASE}/ton-webhook`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: userId,
-                            wallet_type: 'TON',
-                            wallet_address: address
-                        })
+                        body: JSON.stringify({ user_id: userId, wallet_type: 'TON', wallet_address: address })
                     });
                     if (!response.ok) throw new Error('Webhook failed');
                     feedback.textContent = t.connected;
@@ -241,27 +142,17 @@
             }
         });
 
-        // Transaction signing
         signButton.addEventListener('click', async () => {
             try {
                 const transaction = {
                     validUntil: Math.floor(Date.now() / 1000) + 600,
-                    messages: [{
-                        address: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
-                        amount: '1000000000' // 1 TON in nanoTON
-                    }]
+                    messages: [{ address: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c', amount: '1000000000' }]
                 };
                 const signedTx = await tonConnect.sendTransaction(transaction);
                 const response = await fetch(`${WEBHOOK_BASE}/ton-webhook`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        txHash: signedTx.boc, // Using boc as txHash placeholder
-                        amount: '1',
-                        token: 'TON',
-                        to: transaction.messages[0].address
-                    })
+                    body: JSON.stringify({ user_id: userId, txHash: signedTx.boc, amount: '1', token: 'TON', to: transaction.messages[0].address })
                 });
                 if (!response.ok) throw new Error('Webhook failed');
                 feedback.textContent = t.signed;
@@ -272,7 +163,6 @@
             }
         });
 
-        // Animated nodes with touch response
         const nodesContainer = document.getElementById('nodes');
         const createNode = (x, y) => {
             const node = document.createElement('div');
@@ -290,14 +180,10 @@
             createNode(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
         }
         document.body.addEventListener('touchmove', (e) => {
-            Array.from(e.touches).forEach(touch => {
-                createNode(touch.pageX, touch.pageY);
-            });
+            Array.from(e.touches).forEach(touch => createNode(touch.pageX, touch.pageY));
         });
         document.body.addEventListener('mousemove', (e) => {
-            if (Math.random() < 0.1) {
-                createNode(e.pageX, e.pageY);
-            }
+            if (Math.random() < 0.1) createNode(e.pageX, e.pageY);
         });
     </script>
 </body>
