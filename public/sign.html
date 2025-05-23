@@ -3,188 +3,533 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Magical TON Wallet Connector by Gigi Labs">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="robots" content="noindex, nofollow">
     <title>TON Wallet Connector</title>
-    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
+    <!-- TonConnect UI for wallet connection -->
+    <script src="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js"></script>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
+        /* Vibrant, magical, mobile-first UI */
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            text-align: center;
-            background: linear-gradient(135deg, #1e1e2f, #3b3b98);
-            color: #ffffff;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
             overflow-x: hidden;
             min-height: 100vh;
             position: relative;
+            color: #ffffff;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        header { padding: 30px 20px; }
-        h1 { font-size: 28px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
-        main { padding: 20px; position: relative; z-index: 1; }
+        canvas#cosmic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #1e1e2f, #0a0a23);
+        }
+        header {
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 32px;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px #00ffcc, 0 0 30px #ff4081;
+            animation: holographic 4s infinite ease-in-out;
+            transform: perspective(500px) rotateX(10deg);
+        }
+        @keyframes holographic {
+            0%, 100% { text-shadow: 0 0 15px #00ffcc, 0 0 30px #ff4081; }
+            50% { text-shadow: 0 0 20px #ff4081, 0 0 40px #00ffcc; }
+        }
+        main {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 1;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 221, 235, 0.3);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
         button {
             padding: 15px 30px;
             font-size: 18px;
-            margin: 15px auto;
+            margin: 20px auto;
             display: block;
             border: none;
-            border-radius: 25px;
+            border-radius: 30px;
             background: linear-gradient(45deg, #00ddeb, #ff4081);
             color: #fff;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0, 221, 235, 0.5);
-            transition: transform 0.2s, box-shadow 0.2s;
-            width: 80%;
-            max-width: 300px;
+            box-shadow: 0 0 15px rgba(0, 221, 235, 0.7);
+            transition: transform 0.3s, box-shadow 0.3s;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            font-weight: 600;
         }
-        button:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(0, 221, 235, 0.7); }
-        button:active { transform: scale(0.95); }
-        #feedback { margin-top: 20px; font-size: 16px; color: #00ffcc; text-shadow: 0 0 5px #00ffcc; }
+        button:disabled {
+            background: #444;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(0, 221, 235, 1);
+        }
+        button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s, height 0.4s;
+        }
+        button:active::before {
+            width: 200px;
+            height: 200px;
+        }
+        button::after {
+            content: '';
+            display: none;
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-top: none;
+            border-right: none;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        button.loading::after {
+            display: block;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        #status-orb {
+            width: 20px;
+            height: 20px;
+            background: #ff4444;
+            border-radius: 50%;
+            margin: 15px auto;
+            box-shadow: 0 0 10px #ff4444;
+            transition: background 0.3s, box-shadow 0.3s;
+            animation: pulse-orb 2s infinite;
+        }
+        #status-orb.connected {
+            background: #00ff00;
+            box-shadow: 0 0 15px #00ff00;
+        }
+        @keyframes pulse-orb {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        #feedback {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #00ffcc;
+            text-shadow: 0 0 5px #00ffcc;
+            transition: opacity 0.3s;
+            max-width: 90%;
+        }
+        #feedback.error {
+            color: #ff4444;
+            text-shadow: 0 0 5px #ff4444;
+        }
         footer {
             position: fixed;
-            bottom: 0;
-            width: 100%;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #00ffcc;
             font-size: 14px;
-            animation: pulse 2s infinite;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+            animation: comet-trail 3s infinite linear;
         }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        #nodes { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        @keyframes comet-trail {
+            0% { box-shadow: 0 0 15px rgba(0, 255, 204, 0.5), -10px 0 20px rgba(0, 255, 204, 0.3); }
+            50% { box-shadow: 0 0 15px rgba(0, 255, 204, 0.5), 10px 0 20px rgba(0, 255, 204, 0.3); }
+            100% { box-shadow: 0 0 15px rgba(0, 255, 204, 0.5), -10px 0 20px rgba(0, 255, 204, 0.3); }
+        }
+        #nodes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
         .node {
             position: absolute;
-            width: 12px;
-            height: 12px;
-            background: radial-gradient(circle, rgba(0, 255, 204, 0.8), rgba(0, 255, 204, 0));
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            animation: glow 3s infinite ease-in-out, move 5s infinite linear;
+            animation: sparkle 2s infinite ease-in-out, trail 3s infinite linear;
+            will-change: transform, opacity;
         }
-        @keyframes glow { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
-        @keyframes move { 0% { transform: translate(0, 0); } 100% { transform: translate(var(--dx), var(--dy)); } }
-        @media (max-width: 600px) { h1 { font-size: 24px; } button { font-size: 16px; padding: 12px 25px; } }
+        .node.cyan { background: radial-gradient(circle, rgba(0, 255, 204, 0.8), rgba(0, 255, 204, 0)); }
+        .node.magenta { background: radial-gradient(circle, rgba(255, 64, 129, 0.8), rgba(255, 64, 129, 0)); }
+        .node.yellow { background: radial-gradient(circle, rgba(255, 204, 0, 0.8), rgba(255, 204, 0, 0)); }
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.4; transform: scale(0.7); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+        @keyframes trail {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(var(--dx), var(--dy)); }
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 26px; }
+            button { font-size: 16px; padding: 12px 25px; }
+            .card { padding: 20px; }
+            #feedback { font-size: 14px; }
+        }
     </style>
 </head>
 <body>
+    <canvas id="cosmic-bg"></canvas>
     <div id="nodes"></div>
     <header>
-        <h1 id="greeting">Welcome to the Magical TON Wallet Connector!</h1>
+        <h1 id="greeting">Welcome to the Cosmic TON Wallet!</h1>
     </header>
     <main>
-        <button id="connect-wallet">Connect TON Wallet</button>
-        <button id="sign-transaction" style="display: none;">Sign Transaction</button>
-        <div id="feedback"></div>
+        <div class="card">
+            <button id="connect-wallet">Connect TON Wallet</button>
+            <button id="sign-transaction" style="display: none;">Sign Transaction</button>
+            <div id="status-orb"></div>
+            <div id="feedback"></div>
+        </div>
     </main>
     <footer><p>Powered by Gigi Labs</p></footer>
     <audio id="success-audio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
     <script>
-        const WEBHOOK_BASE = 'http://34.203.188.151';
-        const isTwa = window.Telegram && window.Telegram.WebApp;
-        let userId, lang;
+        // Production-ready TON wallet connector with upgraded UI
+        (function () {
+            // Constants
+            const WEBHOOK_BASE = 'http://34.203.188.151'; // Replace with HTTPS in production
+            const MANIFEST_URL = 'https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json';
+            const IS_PRODUCTION = true; // Toggle for production debugging
+            const SUPPORTED_LANGUAGES = ['en', 'fr', 'es', 'zh'];
+            const MAX_NODES = 30; // Increased for vibrant effect
 
-        if (isTwa) {
-            window.Telegram.WebApp.expand();
-            const initData = window.Telegram.WebApp.initDataUnsafe || {};
-            userId = initData.user ? initData.user.id : 'unknown_twa_user';
-            lang = initData.user ? initData.user.language_code : 'en';
-            const theme = window.Telegram.WebApp.themeParams || {};
-            document.body.style.background = theme.bg_color || document.body.style.background;
-            document.body.style.color = theme.text_color || '#ffffff';
-        } else {
-            userId = 'default_user';
-            lang = (navigator.language || 'en').split('-')[0];
-        }
+            // State
+            let userId, lang, tonConnectUI, walletInfo, isConnecting = false, isSigning = false;
 
-        const translations = {
-            en: { greeting: 'Welcome to the Magical TON Wallet Connector!', connect: 'Connect TON Wallet', disconnect: 'Disconnect', sign: 'Sign Transaction', connected: 'Wallet connected successfully!', disconnected: 'Wallet disconnected.', signed: 'Transaction signed successfully!', connectFail: 'Failed to connect wallet.', signFail: 'Failed to sign transaction.' },
-            fr: { greeting: 'Bienvenue au Connecteur de Portefeuille TON Magique !', connect: 'Connecter le Portefeuille TON', disconnect: 'Déconnecter', sign: 'Signer la Transaction', connected: 'Portefeuille connecté avec succès !', disconnected: 'Portefeuille déconnecté.', signed: 'Transaction signée avec succès !', connectFail: 'Échec de la connexion au portefeuille.', signFail: 'Échec de la signature de la transaction.' },
-            es: { greeting: '¡Bienvenido al Conector de Cartera TON Mágico!', connect: 'Conectar Cartera TON', disconnect: 'Desconectar', sign: 'Firmar Transacción', connected: '¡Cartera conectada con éxito!', disconnected: 'Cartera desconectada.', signed: '¡Transacción firmada con éxito!', connectFail: 'Fallo al conectar la cartera.', signFail: 'Fallo al firmar la transacción.' },
-            zh: { greeting: '欢迎来到神奇的TON钱包连接器！', connect: '连接TON钱包', disconnect: '断开连接', sign: '签署交易', connected: '钱包连接成功！', disconnected: '钱包已断开连接。', signed: '交易签名成功！', connectFail: '连接钱包失败。', signFail: '签署交易失败。' }
-        };
-        const t = translations[lang] || translations.en;
-        document.getElementById('greeting').textContent = t.greeting;
-        const connectButton = document.getElementById('connect-wallet');
-        const signButton = document.getElementById('sign-transaction');
-        const feedback = document.getElementById('feedback');
-        connectButton.textContent = t.connect;
-        signButton.textContent = t.sign;
+            // TWA detection and initialization
+            const isTwa = window.Telegram && window.Telegram.WebApp;
+            if (isTwa) {
+                window.Telegram.WebApp.expand();
+                const initData = window.Telegram.WebApp.initDataUnsafe || {};
+                userId = initData.user ? String(initData.user.id) : 'unknown_twa_user';
+                lang = initData.user && SUPPORTED_LANGUAGES.includes(initData.user.language_code) ? initData.user.language_code : 'en';
+                const theme = window.Telegram.WebApp.themeParams || {};
+                document.body.style.color = theme.text_color || '#ffffff';
+            } else {
+                userId = 'default_user';
+                lang = SUPPORTED_LANGUAGES.includes((navigator.language || 'en').split('-')[0]) ? (navigator.language || 'en').split('-')[0] : 'en';
+            }
 
-        const tonConnect = new TonConnect({ manifestUrl: 'https://gigi-wallet-signing.onrender.com/tonconnect-manifest.json' });
-        if (tonConnect.connected) {
-            connectButton.textContent = t.disconnect;
-            signButton.style.display = 'block';
-        }
+            // Translations
+            const translations = {
+                en: {
+                    greeting: 'Welcome to the Cosmic TON Wallet!',
+                    connect: 'Connect TON Wallet',
+                    disconnect: 'Disconnect',
+                    sign: 'Sign Transaction',
+                    connecting: 'Connecting...',
+                    signing: 'Signing Transaction...',
+                    connected: 'Wallet connected successfully!',
+                    disconnected: 'Wallet disconnected.',
+                    signed: 'Transaction signed successfully!',
+                    connectFail: 'Failed to connect wallet. Please try again.',
+                    signFail: 'Failed to sign transaction. Check wallet connection.',
+                    webhookFail: 'Server communication failed. Please try again later.',
+                    noWallet: 'No TON wallet selected.'
+                },
+                fr: {
+                    greeting: 'Bienvenue au Portefeuille TON Cosmique !',
+                    connect: 'Connecter le Portefeuille TON',
+                    disconnect: 'Déconnecter',
+                    sign: 'Signer la Transaction',
+                    connecting: 'Connexion en cours...',
+                    signing: 'Signature de la transaction...',
+                    connected: 'Portefeuille connecté avec succès !',
+                    disconnected: 'Portefeuille déconnecté.',
+                    signed: 'Transaction signée avec succès !',
+                    connectFail: 'Échec de la connexion au portefeuille. Veuillez réessayer.',
+                    signFail: 'Échec de la signature. Vérifiez la connexion du portefeuille.',
+                    webhookFail: 'Échec de la communication avec le serveur. Réessayez plus tard.',
+                    noWallet: 'Aucun portefeuille TON sélectionné.'
+                },
+                es: {
+                    greeting: '¡Bienvenido a la Cartera TON Cósmica!',
+                    connect: 'Conectar Cartera TON',
+                    disconnect: 'Desconectar',
+                    sign: 'Firmar Transacción',
+                    connecting: 'Conectando...',
+                    signing: 'Firmando transacción...',
+                    connected: '¡Cartera conectada con éxito!',
+                    disconnected: 'Cartera desconectada.',
+                    signed: '¡Transacción firmada con éxito!',
+                    connectFail: 'Fallo al conectar la cartera. Inténtalo de nuevo.',
+                    signFail: 'Fallo al firmar la transacción. Verifica la conexión de la cartera.',
+                    webhookFail: 'Fallo en la comunicación con el servidor. Inténtalo de nuevo más tarde.',
+                    noWallet: 'No se seleccionó ninguna cartera TON.'
+                },
+                zh: {
+                    greeting: '欢迎体验宇宙TON钱包！',
+                    connect: '连接TON钱包',
+                    disconnect: '断开连接',
+                    sign: '签署交易',
+                    connecting: '连接中...',
+                    signing: '签署交易中...',
+                    connected: '钱包连接成功！',
+                    disconnected: '钱包已断开连接。',
+                    signed: '交易签名成功！',
+                    connectFail: '连接钱包失败，请重试。',
+                    signFail: '签署交易失败，请检查钱包连接。',
+                    webhookFail: '与服务器通信失败，请稍后重试。',
+                    noWallet: '未选择TON钱包。'
+                }
+            };
+            const t = translations[lang] || translations.en;
 
-        connectButton.addEventListener('click', async () => {
-            try {
-                if (tonConnect.connected) {
-                    await tonConnect.disconnect();
-                    feedback.textContent = t.disconnected;
-                    connectButton.textContent = t.connect;
-                    signButton.style.display = 'none';
-                } else {
-                    await tonConnect.connect();
-                    const wallet = tonConnect.wallet;
-                    if (!wallet) throw new Error('No wallet selected');
-                    const address = wallet.account.address;
+            // DOM elements
+            const connectButton = document.getElementById('connect-wallet');
+            const signButton = document.getElementById('sign-transaction');
+            const feedback = document.getElementById('feedback');
+            const greeting = document.getElementById('greeting');
+            const statusOrb = document.getElementById('status-orb');
+            const successAudio = document.getElementById('success-audio');
+
+            // Initialize UI
+            greeting.textContent = t.greeting;
+            connectButton.textContent = t.connect;
+            signButton.textContent = t.sign;
+
+            // Cosmic background
+            const canvas = document.getElementById('cosmic-bg');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            function initCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                particles = Array.from({ length: 50 }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2 + 1,
+                    speedX: (Math.random() - 0.5) * 0.5,
+                    speedY: (Math.random() - 0.5) * 0.5
+                }));
+            }
+            function animateCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+                    if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fill();
+                });
+                requestAnimationFrame(animateCanvas);
+            }
+            initCanvas();
+            animateCanvas();
+            window.addEventListener('resize', initCanvas);
+
+            // TonConnect UI setup
+            tonConnectUI = new TONConnectUI.TonConnectUI({
+                manifestUrl: MANIFEST_URL,
+                buttonRootId: null
+            });
+
+            // Check initial connection state
+            if (tonConnectUI.connected) {
+                walletInfo = tonConnectUI.walletInfo;
+                connectButton.textContent = t.disconnect;
+                signButton.style.display = 'block';
+                statusOrb.classList.add('connected');
+            }
+
+            // Helper: Send webhook data
+            async function sendWebhook(data) {
+                try {
                     const response = await fetch(`${WEBHOOK_BASE}/ton-webhook`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId, wallet_type: 'TON', wallet_address: address })
+                        body: JSON.stringify(data),
+                        mode: 'cors',
+                        credentials: 'omit'
                     });
-                    if (!response.ok) throw new Error('Webhook failed');
-                    feedback.textContent = t.connected;
-                    connectButton.textContent = t.disconnect;
-                    signButton.style.display = 'block';
-                    document.getElementById('success-audio').play();
+                    if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
+                    return true;
+                } catch (error) {
+                    !IS_PRODUCTION && console.error('Webhook error:', error);
+                    throw new Error(t.webhookFail);
                 }
-            } catch (error) {
-                feedback.textContent = tonConnect.connected ? t.signFail : t.connectFail;
-                console.error(error);
             }
-        });
 
-        signButton.addEventListener('click', async () => {
-            try {
-                const transaction = {
-                    validUntil: Math.floor(Date.now() / 1000) + 600,
-                    messages: [{ address: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c', amount: '1000000000' }]
-                };
-                const signedTx = await tonConnect.sendTransaction(transaction);
-                const response = await fetch(`${WEBHOOK_BASE}/ton-webhook`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, txHash: signedTx.boc, amount: '1', token: 'TON', to: transaction.messages[0].address })
-                });
-                if (!response.ok) throw new Error('Webhook failed');
-                feedback.textContent = t.signed;
-                document.getElementById('success-audio').play();
-            } catch (error) {
-                feedback.textContent = t.signFail;
-                console.error(error);
+            // Wallet connection handler
+            connectButton.addEventListener('click', async () => {
+                if (isConnecting) return;
+                isConnecting = true;
+                connectButton.disabled = true;
+                connectButton.classList.add('loading');
+                connectButton.textContent = t.connecting;
+                try {
+                    if (tonConnectUI.connected) {
+                        await tonConnectUI.disconnect();
+                        walletInfo = null;
+                        feedback.textContent = t.disconnected;
+                        feedback.classList.remove('error');
+                        connectButton.textContent = t.connect;
+                        signButton.style.display = 'none';
+                        statusOrb.classList.remove('connected');
+                    } else {
+                        await tonConnectUI.openModal();
+                        walletInfo = tonConnectUI.walletInfo;
+                        if (!walletInfo) throw new Error('No wallet selected');
+                        const address = tonConnectUI.account.address;
+                        await sendWebhook({ user_id: userId, wallet_type: 'TON', wallet_address: address });
+                        feedback.textContent = t.connected;
+                        feedback.classList.remove('error');
+                        connectButton.textContent = t.disconnect;
+                        signButton.style.display = 'block';
+                        statusOrb.classList.add('connected');
+                        successAudio.play().catch(() => !IS_PRODUCTION && console.warn('Audio playback failed'));
+                    }
+                } catch (error) {
+                    feedback.textContent = error.message === 'No wallet selected' ? t.noWallet : t.connectFail;
+                    feedback.classList.add('error');
+                    !IS_PRODUCTION && console.error('Connect error:', error);
+                } finally {
+                    isConnecting = false;
+                    connectButton.disabled = false;
+                    connectButton.classList.remove('loading');
+                    connectButton.textContent = tonConnectUI.connected ? t.disconnect : t.connect;
+                }
+            });
+
+            // Transaction signing handler
+            signButton.addEventListener('click', async () => {
+                if (isSigning || !tonConnectUI.connected) return;
+                isSigning = true;
+                signButton.disabled = true;
+                signButton.classList.add('loading');
+                signButton.textContent = t.signing;
+                try {
+                    const transaction = {
+                        validUntil: Math.floor(Date.now() / 1000) + 600,
+                        messages: [
+                            {
+                                address: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
+                                amount: '1000000000' // 1 TON in nanoTON
+                            }
+                        ]
+                    };
+                    const signedTx = await tonConnectUI.sendTransaction(transaction);
+                    await sendWebhook({
+                        user_id: userId,
+                        txHash: signedTx.boc,
+                        amount: '1',
+                        token: 'TON',
+                        to: transaction.messages[0].address
+                    });
+                    feedback.textContent = t.signed;
+                    feedback.classList.remove('error');
+                    successAudio.play().catch(() => !IS_PRODUCTION && console.warn('Audio playback failed'));
+                } catch (error) {
+                    feedback.textContent = t.signFail;
+                    feedback.classList.add('error');
+                    !IS_PRODUCTION && console.error('Sign error:', error);
+                } finally {
+                    isSigning = false;
+                    signButton.disabled = false;
+                    signButton.classList.remove('loading');
+                    signButton.textContent = t.sign;
+                }
+            });
+
+            // Animated nodes
+            const nodesContainer = document.getElementById('nodes');
+            let nodeCount = 0;
+            const colors = ['cyan', 'magenta', 'yellow'];
+            const createNode = (x, y) => {
+                if (nodeCount >= MAX_NODES) return;
+                nodeCount++;
+                const node = document.createElement('div');
+                node.className = `node ${colors[Math.floor(Math.random() * colors.length)]}`;
+                const dx = (Math.random() - 0.5) * 150;
+                const dy = (Math.random() - 0.5) * 150;
+                node.style.left = `${x}px`;
+                node.style.top = `${y}px`;
+                node.style.setProperty('--dx', `${dx}px`);
+                node.style.setProperty('--dy', `${dy}px`);
+                nodesContainer.appendChild(node);
+                setTimeout(() => {
+                    node.remove();
+                    nodeCount--;
+                }, 3000);
+            };
+
+            // Initialize nodes
+            for (let i = 0; i < 15; i++) {
+                createNode(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
             }
-        });
 
-        const nodesContainer = document.getElementById('nodes');
-        const createNode = (x, y) => {
-            const node = document.createElement('div');
-            node.className = 'node';
-            const dx = (Math.random() - 0.5) * 100;
-            const dy = (Math.random() - 0.5) * 100;
-            node.style.left = `${x}px`;
-            node.style.top = `${y}px`;
-            node.style.setProperty('--dx', `${dx}px`);
-            node.style.setProperty('--dy', `${dy}px`);
-            nodesContainer.appendChild(node);
-            setTimeout(() => node.remove(), 5000);
-        };
-        for (let i = 0; i < 10; i++) {
-            createNode(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
-        }
-        document.body.addEventListener('touchmove', (e) => {
-            Array.from(e.touches).forEach(touch => createNode(touch.pageX, touch.pageY));
-        });
-        document.body.addEventListener('mousemove', (e) => {
-            if (Math.random() < 0.1) createNode(e.pageX, e.pageY);
-        });
+            // Handle touch and mouse interactions
+            document.body.addEventListener('touchmove', (e) => {
+                Array.from(e.touches).forEach(touch => createNode(touch.pageX, touch.pageY));
+            }, { passive: true });
+            document.body.addEventListener('mousemove', (e) => {
+                if (Math.random() < 0.2) createNode(e.pageX, e.pageY);
+            }, { passive: true });
+
+            // Handle connection state changes
+            tonConnectUI.onStatusChange((wallet) => {
+                if (!wallet) {
+                    walletInfo = null;
+                    feedback.textContent = t.disconnected;
+                    feedback.classList.remove('error');
+                    connectButton.textContent = t.connect;
+                    signButton.style.display = 'none';
+                    statusOrb.classList.remove('connected');
+                }
+            });
+        })();
     </script>
 </body>
 </html>
