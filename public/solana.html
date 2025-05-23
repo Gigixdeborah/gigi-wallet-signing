@@ -1,121 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solana Signing | GigiP2Bot</title>
-  <script src="https://unpkg.com/@solana/web3.js@1.66.0"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <link rel="stylesheet" href="/static/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solana Wallet Connector</title>
+    <script src="https://unpkg.com/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@web3modal/ethereum@2.7.1/dist/index.js"></script>
+    <style>
+        /* Identical CSS to sign.html for consistency */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            background: linear-gradient(135deg, #1e1e2f, #3b3b98);
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+        header { padding: 30px 20px; }
+        h1 {
+            font-size: 28px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+        main {
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 15px auto;
+            display: block;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #00ddeb, #ff4081);
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 221, 235, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 80%;
+            max-width: 300px;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 221, 235, 0.7);
+        }
+        button:active { transform: scale(0.95); }
+        #feedback {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #00ffcc;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+        footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            font-size: 14px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        #nodes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .node {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, rgba(0, 255, 204, 0.8), rgba(0, 255, 204, 0));
+            border-radius: 50%;
+            animation: glow 3s infinite ease-in-out, move 5s infinite linear;
+        }
+        @keyframes glow {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        @keyframes move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(var(--dx), var(--dy)); }
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 24px; }
+            button { font-size: 16px; padding: 12px 25px; }
+        }
+    </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
-  <div class="cosmic-container">
-    <div class="holo-card">
-      <h1 class="neon-text">Solana Signing</h1>
-      <div id="greeting" class="pulse-text"></div>
-      <div class="info">
-        Sending <span id="amt" class="glow-text"></span> SOL to:<br>
-        <code id="toAddr" class="code-glow"></code>
-      </div>
-      <select id="langSwitcher" class="holo-select">
-        <option value="en">English</option>
-        <option value="fr">Français</option>
-        <option value="es">Español</option>
-        <option value="zh">中文</option>
-      </select>
-      <button id="connect-wallet" class="holo-button">🔮 Connect Solana Wallet</button>
-      <button id="signBtn" class="holo-button" style="display:none">🌠 Sign Transaction</button>
-      <div class="spinner" id="spinner"></div>
-      <div id="successMsg" class="success-glow"></div>
-      <div id="errorMsg" class="error-glow"></div>
-      <div class="footer">Powered by <span class="brand-glow">Gigi Labs</span></div>
-    </div>
-  </div>
-  <audio id="successSound" src="/static/sounds/success.mp3"></audio>
-  <audio id="touchSound" src="/static/sounds/touch.mp3"></audio>
-  <audio id="ambient" src="/static/sounds/ambient.mp3" loop autoplay></audio>
-  <script src="/static/particles.js"></script>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const userId = params.get("user_id") || Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    const amount = parseFloat(params.get("amount")) || 0.01;
-    const to = params.get("to") || "SolanaAddress...";
-    document.getElementById("amt").textContent = amount.toFixed(6);
-    document.getElementById("toAddr").textContent = to.slice(0, 6) + "..." + to.slice(-6);
-    document.getElementById("greeting").textContent = `Welcome, ${Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "Traveler"}!`;
+    <div id="nodes"></div>
+    <header>
+        <h1 id="greeting">Welcome to the Magical Solana Wallet Connector!</h1>
+    </header>
+    <main>
+        <button id="connect-wallet">Connect Solana Wallet</button>
+        <button id="sign-transaction" style="display: none;">Sign Transaction</button>
+        <div id="feedback"></div>
+    </main>
+    <footer>
+        <p>Powered by Gigi Labs</p>
+    </footer>
+    <audio id="success-audio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+    <script>
+        // Constants and initialization
+        const WEBHOOK_BASE = 'https://your-bot-server.com'; // Replace with actual server URL
+        const isTwa = window.Telegram && window.Telegram.WebApp;
+        let userId, lang, provider;
 
-    const connectBtn = document.getElementById("connect-wallet");
-    const signBtn = document.getElementById("signBtn");
-    const successMsg = document.getElementById("successMsg");
-    const errorMsg = document.getElementById("errorMsg");
-    const spinner = document.getElementById("spinner");
+        // TWA or browser detection
+        if (isTwa) {
+            window.Telegram.WebApp.expand();
+            const initData = window.Telegram.WebApp.initDataUnsafe || {};
+            userId = initData.user ? initData.user.id : 'unknown_twa_user';
+            lang = initData.user ? initData.user.language_code : 'en';
+            const theme = window.Telegram.WebApp.themeParams || {};
+            document.body.style.background = theme.bg_color || document.body.style.background;
+            document.body.style.color = theme.text_color || '#ffffff';
+        } else {
+            userId = 'default_user';
+            lang = (navigator.language || 'en').split('-')[0];
+        }
 
-    connectBtn.addEventListener("click", async () => {
-      playTouchSound();
-      spinner.style.display = "block";
-      try {
-        if (!window.solana || !window.solana.isPhantom) throw new Error("Phantom not detected");
-        await window.solana.connect();
-        const address = window.solana.publicKey.toString();
-        await fetch("/connect-webhook", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({user_id: userId, wallet_type: "SOL", wallet_address: address})
-        });
-        connectBtn.style.display = "none";
-        signBtn.style.display = "block";
-        successMsg.textContent = "🔮 Wallet Connected!";
-        successMsg.style.display = "block";
-        playSuccessSound();
-        confetti({
-          particleCount: 200, spread: 80, origin: { y: 0.8 },
-          colors: ['#00d4ff', '#ff4081', '#00ffcc']
-        });
-      } catch (e) {
-        errorMsg.textContent = "💥 Connection Failed!";
-        errorMsg.style.display = "block";
-      } finally {
-        spinner.style.display = "none";
-      }
-    });
+        // Language translations (same as sign.html)
+        const translations = {
+            en: {
+                greeting: 'Welcome to the Magical Solana Wallet Connector!',
+                connect: 'Connect Solana Wallet',
+                disconnect: 'Disconnect',
+                sign: 'Sign Transaction',
+                connected: 'Wallet connected successfully!',
+                disconnected: 'Wallet disconnected.',
+                signed: 'Transaction signed successfully!',
+                connectFail: 'Failed to connect wallet.',
+                signFail: 'Failed to sign transaction.'
+            },
+            fr: {
+                greeting: 'Bienvenue au Connecteur de Portefeuille Solana Magique !',
+                connect: 'Connecter le Portefeuille Solana',
+                disconnect: 'Déconnecter',
+                sign: 'Signer la Transaction',
+                connected: 'Portefeuille connecté avec succès !',
+                disconnected: 'Portefeuille déconnecté.',
+                signed: 'Transaction signée avec succès !',
+                connectFail: 'Échec de la connexion au portefeuille.',
+                signFail: 'Échec de la signature de la transaction.'
+            },
+            es: {
+                greeting: '¡Bienvenido al Conector de Cartera Solana Mágico!',
+                connect: 'Conectar Cartera Solana',
+                disconnect: 'Desconectar',
+                sign: 'Firmar Transacción',
+                connected: '¡Cartera conectada con éxito!',
+                disconnected: 'Cartera desconectada.',
+                signed: '¡Transacción firmada con éxito!',
+                connectFail: 'Fallo al conectar la cartera.',
+                signFail: 'Fallo al firmar la transacción.'
+            },
+            zh: {
+                greeting: '欢迎来到神奇的Solana钱包连接器！',
+                connect: '连接Solana钱包',
+                disconnect: '断开连接',
+                sign: '签署交易',
+                connected: '钱包连接成功！',
+                disconnected: '钱包已断开连接。',
+                signed: '交易签名成功！',
+                connectFail: '连接钱包失败。',
+                signFail: '签署交易失败。'
+            }
+        };
+        const t = translations[lang] || translations.en;
+        document.getElementById('greeting').textContent = t.greeting;
+        const connectButton = document.getElementById('connect-wallet');
+        const signButton = document.getElementById('sign-transaction');
+        const feedback = document.getElementById('feedback');
+        connectButton.textContent = t.connect;
+        signButton.textContent = t.sign;
 
-    signBtn.addEventListener("click", async () => {
-      playTouchSound();
-      spinner.style.display = "block";
-      try {
-        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
-        const tx = new solanaWeb3.Transaction().add(
-          solanaWeb3.SystemProgram.transfer({
-            fromPubkey: window.solana.publicKey,
-            toPubkey: new solanaWeb3.PublicKey(to),
-            lamports: amount * solanaWeb3.LAMPORTS_PER_SOL
-          })
-        );
-        const { signature } = await window.solana.signAndSendTransaction(tx);
-        await fetch("/solana-webhook", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({user_id: userId, amount, token: "SOL", txHash: signature, to})
-        });
-        successMsg.textContent = "🌠 Transaction Signed!";
-        successMsg.style.display = "block";
-        playSuccessSound();
-        confetti({
-          particleCount: 300, spread: 100, origin: { y: 0.7 },
-          colors: ['#00d4ff', '#ff4081', '#00ffcc']
-        });
-      } catch (e) {
-        errorMsg.textContent = "💥 Signing Failed!";
-        errorMsg.style.display = "block";
-      } finally {
-        spinner.style.display = "none";
-      }
-    });
+        // Initialize Phantom provider
+        const getProvider = () => {
+            if ('solana' in window) {
+                const provider = window.solana;
+                if (provider.isPhantom) return provider;
+            }
+            return null;
+        };
+        provider = getProvider();
 
-    function playTouchSound() { document.getElementById("touchSound").play(); }
-    function playSuccessSound() { document.getElementById("successSound").play(); }
-  </script>
+        // Check initial connection state
+        if (provider && provider.isConnected) {
+            connectButton.textContent = t.disconnect;
+            signButton.style.display = 'block';
+        }
+
+        // Wallet connection/disconnection
+        connectButton.addEventListener('click', async () => {
+            try {
+                if (provider && provider.isConnected) {
+                    await provider.disconnect();
+                    provider = getProvider();
+                    feedback.textContent = t.disconnected;
+                    connectButton.textContent = t.connect;
+                    signButton.style.display = 'none';
+                } else {
+                    provider = getProvider();
+                    if (!provider) throw new Error('Phantom not detected');
+                    await provider.connect();
+                    const address = provider.publicKey.toString();
+                    const response = await fetch(`${WEBHOOK_BASE}/solana-webhook`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            wallet_type: 'SOLANA',
+                            wallet_address: address
+                        })
+                    });
+                    if (!response.ok) throw new Error('Webhook failed');
+                    feedback.textContent = t.connected;
+                    connectButton.textContent = t.disconnect;
+                    signButton.style.display = 'block';
+                    document.getElementById('success-audio').play();
+                }
+            } catch (error) {
+                feedback.textContent = provider && provider.isConnected ? t.signFail : t.connectFail;
+                console.error(error);
+            }
+        });
+
+        // Transaction signing
+        signButton.addEventListener('click', async () => {
+            try {
+                if (!provider || !provider.isConnected) throw new Error('Wallet not connected');
+                const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'), 'confirmed');
+                const transaction = new solanaWeb3.Transaction().add(
+                    solanaWeb3.SystemProgram.transfer({
+                        fromPubkey: provider.publicKey,
+                        toPubkey: new solanaWeb3.PublicKey('11111111111111111111111111111111'),
+                        lamports: solanaWeb3.LAMPORTS_PER_SOL * 0.01
+                    })
+                );
+                const { blockhash } = await connection.getLatestBlockhash();
+                transaction.recentBlockhash = blockhash;
+                transaction.feePayer = provider.publicKey;
+                const signedTx = await provider.signTransaction(transaction);
+                const txHash = await connection.sendRawTransaction(signedTx.serialize());
+                await connection.confirmTransaction(txHash);
+                const response = await fetch(`${WEBHOOK_BASE}/solana-webhook`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        txHash: txHash,
+                        amount: '0.01',
+                        token: 'SOL',
+                        to: '11111111111111111111111111111111'
+                    })
+                });
+                if (!response.ok) throw new Error('Webhook failed');
+                feedback.textContent = t.signed;
+                document.getElementById('success-audio').play();
+            } catch (error) {
+                feedback.textContent = t.signFail;
+                console.error(error);
+            }
+        });
+
+        // Animated nodes (same as sign.html)
+        const nodesContainer = document.getElementById('nodes');
+        const createNode = (x, y) => {
+            const node = document.createElement('div');
+            node.className = 'node';
+            const dx = (Math.random() - 0.5) * 100;
+            const dy = (Math.random() - 0.5) * 100;
+            node.style.left = `${x}px`;
+            node.style.top = `${y}px`;
+            node.style.setProperty('--dx', `${dx}px`);
+            node.style.setProperty('--dy', `${dy}px`);
+            nodesContainer.appendChild(node);
+            setTimeout(() => node.remove(), 5000);
+        };
+        for (let i = 0; i < 10; i++) {
+            createNode(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
+        }
+        document.body.addEventListener('touchmove', (e) => {
+            Array.from(e.touches).forEach(touch => {
+                createNode(touch.pageX, touch.pageY);
+            });
+        });
+        document.body.addEventListener('mousemove', (e) => {
+            if (Math.random() < 0.1) {
+                createNode(e.pageX, e.pageY);
+            }
+        });
+    </script>
 </body>
 </html>
