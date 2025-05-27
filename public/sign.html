@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TON Transaction | Enchanted Interface</title>
+  <title>TON Transaction | Cosmic Interface</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <script src="https://cdn.skypack.dev/canvas-confetti"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -18,27 +19,19 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(45deg, var(--bg-dark), #2a0a3a, var(--bg-dark));
-      background-size: 200% 200%;
-      animation: auroraShift 20s ease infinite;
+      background: #000;
       overflow: hidden;
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Orbitron', sans-serif;
       color: var(--text-color);
       touch-action: manipulation;
     }
 
-    @keyframes auroraShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    canvas {
+    #threeCanvas {
       position: fixed;
       top: 0;
       left: 0;
       z-index: 0;
-      opacity: 0.9;
+      opacity: 0.8;
     }
 
     .container {
@@ -55,101 +48,91 @@
 
     .holo-card {
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      border-radius: 12px;
-      padding: 1.5em;
-      max-width: 350px;
+      border: 2px solid var(--primary-glow);
+      border-radius: 15px;
+      padding: 2em;
+      max-width: 400px;
       width: 100%;
-      box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
-      backdrop-filter: blur(12px);
-      animation: prismaticGlow 6s ease-in-out infinite;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .holo-card.touch-feedback {
-      animation: holoTilt 0.5s ease-out, magicPulse 0.8s ease-out;
-    }
-
-    @keyframes prismaticGlow {
-      0%, 100% { border-color: var(--primary-glow); box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
-      50% { border-color: var(--secondary-glow); box-shadow: 0 0 60px rgba(255, 64, 129, 0.4); }
-    }
-
-    @keyframes holoTilt {
-      0% { transform: rotateX(0deg) rotateY(0deg); }
-      50% { transform: rotateX(5deg) rotateY(-5deg); }
-      100% { transform: rotateX(0deg) rotateY(0deg); }
-    }
-
-    @keyframes magicPulse {
-      0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.5); }
-      100% { box-shadow: 0 0 0 30px rgba(0, 212, 255, 0); }
+      box-shadow: 0 0 50px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(255, 64, 129, 0.2);
+      backdrop-filter: blur(15px);
+      animation: prismaticGlow 5s ease-in-out infinite;
+      transform-style: preserve-3d;
+      transition: transform 0.3s ease;
     }
 
     .holo-card:hover {
-      transform: scale(1.02);
+      transform: perspective(1000px) rotateX(5deg) rotateY(5deg);
+    }
+
+    @keyframes prismaticGlow {
+      0%, 100% { border-color: var(--primary-glow); box-shadow: 0 0 50px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(255, 64, 129, 0.2); }
+      50% { border-color: var(--secondary-glow); box-shadow: 0 0 70px rgba(255, 64, 129, 0.5), inset 0 0 30px rgba(0, 212, 255, 0.3); }
     }
 
     h1 {
-      font-size: 1.5em;
-      margin-bottom: 0.3em;
+      font-size: 2em;
+      margin-bottom: 0.5em;
       color: var(--primary-glow);
-      text-shadow: 0 0 10px var(--primary-glow);
-      font-weight: 300;
-      letter-spacing: 1px;
+      text-shadow: 0 0 15px var(--primary-glow), 0 0 30px var(--secondary-glow);
+      font-weight: 700;
+      letter-spacing: 2px;
     }
 
     #greeting {
-      font-size: 0.8em;
+      font-size: 1em;
       color: var(--text-color);
-      opacity: 0.7;
-      margin-bottom: 1em;
+      opacity: 0.8;
+      margin-bottom: 1.5em;
+      text-shadow: 0 0 5px var(--primary-glow);
     }
 
     .info {
-      font-size: 0.9em;
-      margin-bottom: 1em;
+      font-size: 1em;
+      margin-bottom: 1.5em;
       color: var(--text-color);
       opacity: 0.9;
+      text-shadow: 0 0 5px var(--secondary-glow);
     }
 
     .info code {
-      font-size: 0.85em;
+      font-size: 0.9em;
       background: rgba(255, 255, 255, 0.1);
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
     }
 
     #ton-connect button, #signBtn {
       background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
       border: none;
-      border-radius: 8px;
-      padding: 0.7em 1.2em;
+      border-radius: 10px;
+      padding: 0.8em 1.5em;
       color: white;
-      font-size: 0.9em;
+      font-size: 1em;
+      font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 0 15px var(--primary-glow);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 0 20px var(--primary-glow), 0 0 40px var(--secondary-glow);
+      transform-style: preserve-3d;
+      transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      margin: 10px 0;
     }
 
     #ton-connect button:hover, #signBtn:hover, #ton-connect button:focus, #signBtn:focus {
-      transform: scale(1.05);
-      box-shadow: 0 0 25px var(--primary-glow);
+      transform: perspective(1000px) rotateX(10deg) rotateY(10deg) translateY(-2px);
+      box-shadow: 0 0 30px var(--primary-glow), 0 0 60px var(--secondary-glow);
       outline: none;
+    }
+
+    #ton-connect button:active, #signBtn:active {
+      transform: perspective(1000px) rotateX(5deg) rotateY(5deg) translateY(1px);
     }
 
     #signBtn {
       display: none;
       background: linear-gradient(45deg, #00c853, #00e676);
-      box-shadow: 0 0 15px rgba(0, 200, 83, 0.5);
+      box-shadow: 0 0 20px rgba(0, 200, 83, 0.7);
     }
-
-    #signBtn.loading::after {
-      content: " ⏳";
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     #signBtn:disabled {
       background: #555;
@@ -158,60 +141,92 @@
     }
 
     #successMsg, #errorMsg, #easterEgg {
-      margin-top: 1em;
-      font-size: 0.9em;
-      font-weight: 500;
+      margin-top: 1.5em;
+      font-size: 1em;
+      font-weight: 600;
     }
 
     #successMsg {
       color: #00e676;
       display: none;
       animation: sparkleFade 1s ease-out;
+      text-shadow: 0 0 10px #00e676;
+    }
+
+    #successMsg a {
+      color: var(--primary-glow);
+      text-decoration: none;
+      font-weight: 700;
+      transition: color 0.3s ease;
+    }
+
+    #successMsg a:hover {
+      color: var(--secondary-glow);
+      text-shadow: 0 0 10px var(--secondary-glow);
     }
 
     #errorMsg {
       color: #ff5252;
       display: none;
       animation: sparkleFade 1s ease-out;
+      text-shadow: 0 0 10px #ff5252;
     }
 
     #easterEgg {
       color: var(--secondary-glow);
       display: none;
       animation: sparkleFade 1s ease-out;
-      text-shadow: 0 0 10px var(--secondary-glow);
+      text-shadow: 0 0 15px var(--secondary-glow);
     }
 
     @keyframes sparkleFade {
-      0% { opacity: 0; transform: translateY(10px); filter: brightness(1); }
+      0% { opacity: 0; transform: translateY(20px); filter: brightness(1); }
       50% { filter: brightness(2); }
       100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
     }
 
     .footer {
-      margin-top: 1em;
-      font-size: 0.8em;
+      margin-top: 1.5em;
+      font-size: 0.9em;
       color: var(--primary-glow);
       opacity: 0.7;
+      text-shadow: 0 0 5px var(--primary-glow);
     }
 
-    .data-stream {
+    #loading {
       display: none;
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
-      animation: stream 1.5s linear infinite;
+      width: 40px;
+      height: 40px;
+      border: 8px solid rgba(255, 255, 255, 0.1);
+      border-top: 8px solid var(--primary-glow);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
     }
 
-    @keyframes stream {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #walletInfo {
+      margin-top: 1em;
+      font-size: 0.9em;
+      color: var(--text-color);
+      opacity: 0.9;
+      cursor: pointer;
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+    }
+
+    #walletInfo:hover {
+      color: var(--primary-glow);
+      text-shadow: 0 0 10px var(--primary-glow);
     }
   </style>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <canvas id="bg"></canvas>
+  <canvas id="threeCanvas"></canvas>
 
   <div class="container">
     <div class="holo-card">
@@ -223,55 +238,51 @@
       </div>
       <div id="ton-connect" role="region" aria-label="TON wallet connection"></div>
       <button id="signBtn" aria-label="Sign TON transaction">Sign Transaction</button>
-      <div class="data-stream" id="dataStream"></div>
-      <div id="successMsg">Transaction Signed!</div>
+      <div id="walletInfo" style="display: none;">Wallet: <span id="walletAddress"></span></div>
+      <div id="loading"></div>
+      <div id="successMsg">Transaction Signed! <a id="txLink" href="#" target="_blank">View on Explorer</a></div>
       <div id="errorMsg">Failed to Sign. Try Again.</div>
-      <div id="easterEgg">✨ You Found the Magic! ✨</div>
+      <div id="easterEgg">✨ Cosmic Power Unlocked! ✨</div>
       <div class="footer">Powered by Gigi Labs</div>
     </div>
   </div>
 
+  <audio id="clickSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto"></audio>
   <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
-  <audio id="touchSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto"></audio>
   <audio id="cometSound" src="https://assets.mixkit.co/sfx/download/mixkit-magic-sweep-234.wav" preload="auto"></audio>
   <audio id="ambientSound" src="https://assets.mixkit.co/sfx/download/mixkit-ambient-mystical-forest-121.wav" preload="auto" loop></audio>
 
   <script>
+    // URL Parameters and Validation
     const params = new URLSearchParams(window.location.search);
     const tid = params.get("tid") || "";
     const to = params.get("to") || "";
 
-    // Updated amount validation with number check
     const amount = params.get("amount");
     if (!amount) {
       alert("❌ Missing amount. Please return to the bot.");
-      window.location.href = "https://t.me/GigiP2Bot";
-      return;
-    }
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      alert("❌ Invalid amount. Please return to the bot.");
-      window.location.href = "https://t.me/GigiP2Bot";
-      return;
+      throw new Error("Amount parameter is missing");
     }
 
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
-    amtElement.textContent = parsedAmount;
+    amtElement.textContent = amount;
     toAddrElement.textContent = to.slice(0, 6) + "..." + to.slice(-6);
 
-    // Personalized greeting based on time of day
+    // Greeting
     const hour = new Date().getHours();
     const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
-    document.getElementById("greeting").textContent = `${greeting}, Traveler!`;
+    document.getElementById("greeting").textContent = `${greeting}, Cosmic Traveler!`;
 
-    // Ambient sound with toggle
+    // Ambient Sound
     const ambientSound = document.getElementById("ambientSound");
+    const clickSound = document.getElementById("clickSound");
     let soundEnabled = localStorage.getItem("soundEnabled") !== "false";
     if (soundEnabled) {
-      ambientSound.play();
+      ambientSound.play().catch(err => console.log("Ambient sound play failed:", err));
     }
 
+    // TonConnectUI Setup
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: window.location.origin + "/tonconnect-manifest.json",
       buttonRootId: "ton-connect",
@@ -280,46 +291,89 @@
     tonConnectUI.onStatusChange(walletInfo => {
       if (walletInfo?.account) {
         document.getElementById("signBtn").style.display = "inline-block";
+        const walletAddress = walletInfo.account.address;
+        const walletInfoDiv = document.getElementById("walletInfo");
+        document.getElementById("walletAddress").textContent = walletAddress.slice(0, 6) + "..." + walletAddress.slice(-6);
+        walletInfoDiv.style.display = "block";
       }
     });
 
+    // Wallet Address Copy Functionality
+    const walletInfoDiv = document.getElementById("walletInfo");
+    walletInfoDiv.addEventListener("click", () => {
+      const walletAddress = tonConnectUI.account?.address || "";
+      navigator.clipboard.writeText(walletAddress).then(() => {
+        alert("Wallet address copied to clipboard!");
+        if (soundEnabled) clickSound.play().catch(err => console.log("Click sound play failed:", err));
+      });
+    });
+
+    // Transaction Signing
     const signBtn = document.getElementById("signBtn");
-    const dataStream = document.getElementById("dataStream");
-    const holoCard = document.querySelector(".holo-card");
-    const touchSound = document.getElementById("touchSound");
+    const loading = document.getElementById("loading");
+    const successSound = document.getElementById("successSound");
     const cometSound = document.getElementById("cometSound");
 
     signBtn.onclick = async () => {
-      signBtn.classList.add("loading");
+      if (soundEnabled) clickSound.play().catch(err => console.log("Click sound play failed:", err));
       signBtn.disabled = true;
-      dataStream.style.display = "block";
+      loading.style.display = "block";
+      const nano = (BigInt(parseFloat(amount) * 1e9)).toString();
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{ address: to, amount: nano }],
+      };
+
       try {
-        const nano = (BigInt(parsedAmount * 1e9)).toString();
-        const transaction = { validUntil: Math.floor(Date.now() / 1000) + 600, messages: [{ address: to, amount: nano }] };
         const result = await tonConnectUI.sendTransaction(transaction);
         const walletAddress = tonConnectUI.account?.address || "unknown";
 
-        const payload = { user_id: tid, txHash: result.boc.slice(0, 20), amount: parsedAmount, token: "TON", to, boc: result.boc, wallet: walletAddress };
-        let sigRes = await fetch("/generate-signature", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (!sigRes.ok) throw new Error("Signature generation failed");
+        const payload = {
+          user_id: tid,
+          txHash: result.boc.slice(0, 20),
+          amount,
+          token: "TON",
+          to,
+          boc: result.boc,
+          wallet: walletAddress
+        };
+
+        const sigRes = await fetch("/generate-signature", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
         const { signature } = await sigRes.json();
 
-        let webhookRes = await fetch("/webhook/ton", { method: "POST", headers: { "Content-Type": "application/json", "X-Webhook-Signature": signature }, body: JSON.stringify(payload) });
-        if (!webhookRes.ok) throw new Error("Webhook submission failed");
+        await fetch("/webhook/ton", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Webhook-Signature": signature
+          },
+          body: JSON.stringify(payload)
+        });
 
         document.getElementById("successMsg").style.display = "block";
-        successSound.play();
-        cometSound.play();
-        setTimeout(() => window.location.href = "https://t.me/GigiP2Bot", 3000);
+        const txLink = document.getElementById("txLink");
+        // Note: TonViewer URL format may need adjustment based on actual transaction ID format
+        txLink.href = `https://tonviewer.com/transaction/${result.boc.slice(0, 20)}`;
+        if (soundEnabled) {
+          successSound.play().catch(err => console.log("Success sound play failed:", err));
+          cometSound.play().catch(err => console.log("Comet sound play failed:", err));
+        }
+
+        setTimeout(() => {
+          window.location.href = "https://t.me/GigiP2Bot";
+        }, 3000);
       } catch (err) {
         const errorMsg = document.getElementById("errorMsg");
-        errorMsg.textContent = `Failed to Sign: ${err.message}. Retrying in 5s...`;
+        errorMsg.textContent = `Failed to Sign: ${err.message || "Try Again."}`;
         errorMsg.style.display = "block";
-        setTimeout(() => (errorMsg.style.display = "none"), 5000);
       } finally {
-        signBtn.classList.remove("loading");
         signBtn.disabled = false;
-        dataStream.style.display = "none";
+        loading.style.display = "none";
       }
     };
 
@@ -329,7 +383,8 @@
       }
     });
 
-    // Easter egg: Triple-tap to reveal
+    // Easter Egg: Triple-tap to reveal
+    const holoCard = document.querySelector(".holo-card");
     let tapCount = 0;
     holoCard.addEventListener("click", () => {
       tapCount++;
@@ -337,264 +392,93 @@
         document.getElementById("easterEgg").style.display = "block";
         setTimeout(() => document.getElementById("easterEgg").style.display = "none", 3000);
         tapCount = 0;
+        if (soundEnabled) cometSound.play().catch(err => console.log("Comet sound play failed:", err));
       }
     });
 
-    // Canvas effects
-    const canvas = document.getElementById("bg");
-    const ctx = canvas.getContext("2d");
-    let w = canvas.width = window.innerWidth;
-    let h = canvas.height = window.innerHeight;
+    // Three.js 3D Starfield
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("threeCanvas"), alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.position.z = 5;
 
-    // Stars with twinkling
-    const stars = Array.from({ length: 200 }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: Math.random() * 1.5,
-      opacity: Math.random() * 0.5 + 0.5,
-      twinkleSpeed: Math.random() * 0.05 + 0.02,
-      twinklePhase: Math.random() * 2 * Math.PI,
-    }));
+    const starsGeometry = new THREE.BufferGeometry();
+    const starCount = 10000;
+    const positions = new Float32Array(starCount * 3);
+    const sizes = new Float32Array(starCount);
+    const opacities = new Float32Array(starCount);
+    const velocities = new Float32Array(starCount * 2);
 
-    // Orbiting particles forming constellations
-    const particles = Array.from({ length: 10 }, () => ({
-      x: w / 2,
-      y: h / 2,
-      radius: Math.random() * 50 + 50,
-      angle: Math.random() * 2 * Math.PI,
-      speed: Math.random() * 0.02 + 0.01,
-      r: Math.random() * 3 + 1,
-      color: Math.random() > 0.5 ? "var(--primary-glow)" : "var(--secondary-glow)",
-      constellationTarget: { x: w / 2, y: h / 2 },
-    }));
-
-    // Glowing orbs
-    const orbs = Array.from({ length: 5 }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: Math.random() * 5 + 5,
-      alpha: Math.random() * 0.5 + 0.5,
-    }));
-
-    // Touch points
-    const touches = new Map();
-    let trail = [];
-    const comets = [];
-    const ripples = [];
-
-    canvas.addEventListener("mousemove", e => {
-      const touch = { id: 0, x: e.clientX, y: e.clientY };
-      handleTouch(touch);
-      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
-    });
-
-    canvas.addEventListener("touchmove", e => {
-      e.preventDefault();
-      touches.clear();
-      for (let touch of e.touches) {
-        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
-      }
-    }, { passive: false });
-
-    canvas.addEventListener("click", e => {
-      handleTouch({ id: 0, x: e.clientX, y: e.clientY });
-      trail.push({ x: e.clientX, y: e.clientY, life: 1 });
-    });
-
-    canvas.addEventListener("touchstart", e => {
-      e.preventDefault();
-      for (let touch of e.touches) {
-        touches.set(touch.identifier, { id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        handleTouch({ id: touch.identifier, x: touch.clientX, y: touch.clientY });
-        trail.push({ x: touch.clientX, y: touch.clientY, life: 1 });
-      }
-    }, { passive: false });
-
-    function handleTouch(touch) {
-      ripples.push({ id: touch.id, x: touch.x, y: touch.y, radius: 0, opacity: 1, secondaryRadius: 0 });
-      holoCard.classList.add("touch-feedback");
-      if (soundEnabled) {
-        touchSound.currentTime = 0;
-        touchSound.play();
-      }
-      setTimeout(() => holoCard.classList.remove("touch-feedback"), 500);
+    for (let i = 0; i < starCount; i++) {
+      const i3 = i * 3;
+      const layer = Math.random();
+      const distance = layer < 0.3 ? 5 : layer < 0.6 ? 10 : 15; // Foreground, midground, background
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * distance;
+      positions[i3] = Math.cos(angle) * radius;
+      positions[i3 + 1] = Math.sin(angle) * radius;
+      positions[i3 + 2] = (Math.random() - 0.5) * distance;
+      sizes[i] = layer < 0.3 ? 0.05 : layer < 0.6 ? 0.03 : 0.01;
+      opacities[i] = layer < 0.3 ? 1 : layer < 0.6 ? 0.7 : 0.4;
+      velocities[i * 2] = (Math.random() - 0.5) * (layer < 0.3 ? 0.002 : layer < 0.6 ? 0.001 : 0.0005);
+      velocities[i * 2 + 1] = (Math.random() - 0.5) * (layer < 0.3 ? 0.002 : layer < 0.6 ? 0.001 : 0.0005);
     }
 
-    function draw() {
-      ctx.clearRect(0, 0, w, h);
+    starsGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    starsGeometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+    starsGeometry.setAttribute("opacity", new THREE.BufferAttribute(opacities, 1));
 
-      // Draw stars with twinkling
-      for (const star of stars) {
-        star.opacity = 0.5 + 0.5 * Math.sin(star.twinklePhase);
-        star.twinklePhase += star.twinkleSpeed;
-        ctx.globalAlpha = star.opacity;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      // Draw glowing orbs
-      for (const orb of orbs) {
-        const grad = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, orb.r);
-        grad.addColorStop(0, `rgba(0, 212, 255, ${orb.alpha})`);
-        grad.addColorStop(1, `rgba(255, 64, 129, 0)`);
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(orb.x, orb.y, orb.r, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-
-      // Draw orbiting particles with constellation behavior
-      const hasTouch = touches.size > 0;
-      for (const p of particles) {
-        let nearestTouch = null;
-        let minDist = Infinity;
-        for (const [_, touch] of touches) {
-          const dist = Math.sqrt((p.x - touch.x) ** 2 + (p.y - touch.y) ** 2);
-          if (dist < minDist) {
-            minDist = dist;
-            nearestTouch = touch;
-          }
+    const starsMaterial = new THREE.ShaderMaterial({
+      uniforms: {},
+      vertexShader: `
+        attribute float size;
+        attribute float opacity;
+        varying float vOpacity;
+        void main() {
+          vOpacity = opacity;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (300.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
         }
-
-        if (nearestTouch && minDist < 150) {
-          const dx = nearestTouch.x - p.x;
-          const dy = nearestTouch.y - p.y;
-          p.angle += p.speed * (150 - minDist) / 150;
-          p.x += dx * 0.01;
-          p.y += dy * 0.01;
-        } else {
-          const dx = p.constellationTarget.x - p.x;
-          const dy = p.constellationTarget.y - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 5) {
-            p.x += dx * 0.02;
-            p.y += dy * 0.02;
-          } else if (!hasTouch) {
-            p.constellationTarget = {
-              x: w / 2 + (Math.random() - 0.5) * 200,
-              y: h / 2 + (Math.random() - 0.5) * 200,
-            };
-          }
+      `,
+      fragmentShader: `
+        varying float vOpacity;
+        void main() {
+          gl_FragColor = vec4(1.0, 1.0, 1.0, vOpacity);
         }
+      `,
+      transparent: true
+    });
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
-        ctx.fillStyle = p.color;
-        ctx.fill();
+    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(stars);
 
-        // Draw constellation lines
-        for (const q of particles) {
-          if (p !== q) {
-            const dist = Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
-            if (dist < 100) {
-              ctx.beginPath();
-              ctx.moveTo(p.x, p.y);
-              ctx.lineTo(q.x, q.y);
-              ctx.strokeStyle = `rgba(0, 212, 255, ${1 - dist / 100})`;
-              ctx.stroke();
-            }
-          }
+    function animateStars() {
+      stars.rotation.y += 0.0005;
+      const positions = starsGeometry.attributes.position.array;
+      for (let i = 0; i < starCount; i++) {
+        const i3 = i * 3;
+        positions[i3] += velocities[i * 2];
+        positions[i3 + 1] += velocities[i * 2 + 1];
+        const distance = Math.sqrt(positions[i3] ** 2 + positions[i3 + 1] ** 2);
+        const maxDistance = (i < starCount * 0.3) ? 5 : (i < starCount * 0.6) ? 10 : 15;
+        if (distance > maxDistance) {
+          const angle = Math.random() * Math.PI * 2;
+          positions[i3] = Math.cos(angle) * maxDistance * 0.1;
+          positions[i3 + 1] = Math.sin(angle) * maxDistance * 0.1;
         }
       }
-
-      // Draw trail with comet effect
-      for (let i = trail.length - 1; i >= 0; i--) {
-        const t = trail[i];
-        t.life -= 0.05;
-        if (t.life <= 0) {
-          trail.splice(i, 1);
-          continue;
-        }
-        const gradient = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 15);
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${t.life})`);
-        gradient.addColorStop(1, `rgba(255, 64, 129, ${t.life * 0.3})`);
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 5 * t.life, 0, 2 * Math.PI);
-        ctx.fillStyle = gradient;
-        ctx.fill();
-
-        // Add sparkles to trail
-        if (Math.random() < 0.1) {
-          ctx.beginPath();
-          ctx.arc(t.x + (Math.random() - 0.5) * 10, t.y + (Math.random() - 0.5) * 10, 1, 0, 2 * Math.PI);
-          ctx.fillStyle = `rgba(255, 255, 255, ${t.life})`;
-          ctx.fill();
-        }
-      }
-
-      // Draw ripples
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.radius += 3;
-        r.opacity -= 0.02;
-        r.secondaryRadius += 4;
-        if (r.opacity <= 0) {
-          ripples.splice(i, 1);
-          continue;
-        }
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(0, 212, 255, ${r.opacity})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.secondaryRadius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(255, 64, 129, ${r.opacity * 0.7})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        if (r.radius < 20) {
-          ctx.fillStyle = `rgba(0, 212, 255, ${r.opacity})`;
-          for (let j = 0; j < 5; j++) {
-            const angle = (j / 5) * 2 * Math.PI;
-            const px = r.x + Math.cos(angle) * r.radius * 0.5;
-            const py = r.y + Math.sin(angle) * r.radius * 0.5;
-            ctx.beginPath();
-            ctx.arc(px, py, 2, 0, 2 * Math.PI);
-            ctx.fill();
-          }
-        }
-      }
-
-      // Draw comets on success
-      for (let i = comets.length - 1; i >= 0; i--) {
-        const c = comets[i];
-        c.x += Math.cos(c.angle) * c.speed;
-        c.y += Math.sin(c.angle) * c.speed;
-        c.life -= 0.01;
-        if (c.life <= 0 || c.x > w || c.y > h) {
-          comets.splice(i, 1);
-          continue;
-        }
-        const gradient = ctx.createLinearGradient(c.x, c.y, c.x - 20, c.y - 20);
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${c.life})`);
-        gradient.addColorStop(1, `rgba(255, 64, 129, 0)`);
-        ctx.beginPath();
-        ctx.moveTo(c.x, c.y);
-        ctx.lineTo(c.x - 20, c.y - 20);
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
-      if (document.getElementById("successMsg").style.display === "block") {
-        comets.push({ x: w / 2, y: h / 2, angle: Math.random() * 2 * Math.PI, speed: 5, life: 1 });
-      }
-
-      requestAnimationFrame(draw);
+      starsGeometry.attributes.position.needsUpdate = true;
+      renderer.render(scene, camera);
+      requestAnimationFrame(animateStars);
     }
-
-    draw();
+    animateStars();
 
     window.addEventListener("resize", () => {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
     });
   </script>
 </body>
