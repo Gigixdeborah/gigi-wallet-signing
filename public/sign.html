@@ -231,9 +231,15 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const amount = params.get("amount") || "1";
-    const to = params.get("to") || "";
     const tid = params.get("tid") || "";
+    const to = params.get("to") || "";
+
+    // Updated amount validation
+    const amount = params.get("amount");
+    if (!amount) {
+      alert("❌ Missing amount. Please return to the bot.");
+      throw new Error("Amount parameter is missing");
+    }
 
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
@@ -277,39 +283,45 @@
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [{ address: to, amount: nano }],
       };
+
       try {
         const result = await tonConnectUI.sendTransaction(transaction);
-        const walletAddress =
-          tonConnectUI.account?.address ||
-          tonConnectUI.wallet?.account?.address ||
-          "unknown";
+        const walletAddress = tonConnectUI.account?.address || "unknown";
 
-        fetch("/webhook/ton", {
+        const payload = {
+          user_id: tid,
+          txHash: result.boc.slice(0, 20),
+          amount,
+          token: "TON",
+          to,
+          boc: result.boc,
+          wallet: walletAddress
+        };
+
+        // 🔒 Ask the backend to generate the HMAC signature
+        const sigRes = await fetch("/generate-signature", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tid: tid,
-            boc: result.boc,
-            wallet: walletAddress
-          }),
+          body: JSON.stringify(payload)
+        });
+
+        const { signature } = await sigRes.json();
+
+        // ✅ Now send to actual webhook with signature
+        await fetch("/webhook/ton", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Webhook-Signature": signature
+          },
+          body: JSON.stringify(payload)
         });
 
         document.getElementById("successMsg").style.display = "block";
-        if (soundEnabled) {
-          document.getElementById("successSound").play();
-          cometSound.play();
-        }
+        successSound.play();
+        cometSound.play();
 
-        navigator.vibrate?.(50);
-        comets.push({
-          x: 0,
-          y: Math.random() * h,
-          angle: Math.random() * Math.PI / 4,
-          speed: 5,
-          life: 1,
-        });
-
-        // Redirect user back to Telegram after 3 seconds
+        // success animation + redirect
         setTimeout(() => {
           window.location.href = "https://t.me/GigiP2Bot";
         }, 3000);
