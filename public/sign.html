@@ -234,11 +234,13 @@
     const tid = params.get("tid") || "";
     const to = params.get("to") || "";
 
-    // Updated amount validation
+    // Updated amount validation with redirect instead of throw
     const amount = params.get("amount");
     if (!amount) {
       alert("❌ Missing amount. Please return to the bot.");
-      throw new Error("Amount parameter is missing");
+      window.location.href = "https://t.me/GigiP2Bot";
+      // Exit early to prevent further execution
+      return;
     }
 
     const amtElement = document.getElementById("amt");
