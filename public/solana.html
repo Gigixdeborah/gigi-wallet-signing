@@ -1,16 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solana Transaction | Enchanted Interface</title>
-  <!-- Load Solana libraries -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solana Wallet Signing | Enchanted Interface</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-base@latest/dist/umd/index.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-phantom@latest/dist/umd/index.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-solflare@latest/dist/umd/index.min.js"></script>
-  <!-- Load canvas-confetti using UMD version -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Correct UMD bundle for confetti (for browser script tags) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -19,7 +15,6 @@
       --bg-dark: #0a0a2a;
       --bg-light: #1a1a3a;
     }
-
     html, body {
       margin: 0;
       padding: 0;
@@ -31,13 +26,11 @@
       color: var(--text-color);
       touch-action: manipulation;
     }
-
     @keyframes auroraShift {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-
     canvas {
       position: fixed;
       top: 0;
@@ -45,7 +38,6 @@
       z-index: 0;
       opacity: 0.9;
     }
-
     .container {
       z-index: 10;
       position: relative;
@@ -57,7 +49,6 @@
       text-align: center;
       padding: 20px;
     }
-
     .holo-card {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(0, 212, 255, 0.3);
@@ -70,31 +61,25 @@
       animation: prismaticGlow 6s ease-in-out infinite;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-
     .holo-card.touch-feedback {
       animation: holoTilt 0.5s ease-out, magicPulse 0.8s ease-out;
     }
-
     @keyframes prismaticGlow {
       0%, 100% { border-color: var(--primary-glow); box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
       50% { border-color: var(--secondary-glow); box-shadow: 0 0 60px rgba(255, 64, 129, 0.4); }
     }
-
     @keyframes holoTilt {
       0% { transform: rotateX(0deg) rotateY(0deg); }
       50% { transform: rotateX(5deg) rotateY(-5deg); }
       100% { transform: rotateX(0deg) rotateY(0deg); }
     }
-
     @keyframes magicPulse {
       0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.5); }
       100% { box-shadow: 0 0 0 30px rgba(0, 212, 255, 0); }
     }
-
     .holo-card:hover {
       transform: scale(1.02);
     }
-
     h1 {
       font-size: 1.5em;
       margin-bottom: 0.3em;
@@ -103,29 +88,25 @@
       font-weight: 300;
       letter-spacing: 1px;
     }
-
     #greeting {
       font-size: 0.8em;
       color: var(--text-color);
       opacity: 0.7;
       margin-bottom: 1em;
     }
-
     .info {
       font-size: 0.9em;
       margin-bottom: 1em;
       color: var(--text-color);
       opacity: 0.9;
     }
-
     .info code {
       font-size: 0.85em;
       background: rgba(255, 255, 255, 0.1);
       padding: 2px 6px;
       border-radius: 4px;
     }
-
-    #solana-connect button, #signBtn, #disconnectBtn {
+    #solana-connect button, #signBtn {
       background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
       border: none;
       border-radius: 8px;
@@ -136,70 +117,53 @@
       box-shadow: 0 0 15px var(--primary-glow);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-
-    #solana-connect button:hover, #signBtn:hover, #disconnectBtn:hover,
-    #solana-connect button:focus, #signBtn:focus, #disconnectBtn:focus {
+    #solana-connect button:hover, #signBtn:hover, #solana-connect button:focus, #signBtn:focus {
       transform: scale(1.05);
       box-shadow: 0 0 25px var(--primary-glow);
       outline: none;
     }
-
     #signBtn {
       display: none;
       background: linear-gradient(45deg, #00c853, #00e676);
       box-shadow: 0 0 15px rgba(0, 200, 83, 0.5);
     }
-
-    #disconnectBtn {
-      display: none;
-      background: linear-gradient(45deg, #ff5252, #ff6f61);
-      box-shadow: 0 0 15px rgba(255, 82, 82, 0.5);
-    }
-
     #signBtn:disabled {
       background: #555;
       cursor: not-allowed;
       box-shadow: none;
     }
-
     #successMsg, #errorMsg, #easterEgg {
       margin-top: 1em;
       font-size: 0.9em;
       font-weight: 500;
     }
-
     #successMsg {
       color: #00e676;
       display: none;
       animation: sparkleFade 1s ease-out;
     }
-
     #errorMsg {
       color: #ff5252;
       display: none;
       animation: sparkleFade 1s ease-out;
     }
-
     #easterEgg {
       color: var(--secondary-glow);
       display: none;
       animation: sparkleFade 1s ease-out;
       text-shadow: 0 0 10px var(--secondary-glow);
     }
-
     @keyframes sparkleFade {
       0% { opacity: 0; transform: translateY(10px); filter: brightness(1); }
       50% { filter: brightness(2); }
       100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
     }
-
     .footer {
       margin-top: 1em;
       font-size: 0.8em;
       color: var(--primary-glow);
       opacity: 0.7;
     }
-
     .data-stream {
       display: none;
       position: absolute;
@@ -208,7 +172,6 @@
       background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
       animation: stream 1.5s linear infinite;
     }
-
     @keyframes stream {
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
@@ -230,7 +193,6 @@
         <button id="connectBtn">Connect Solana Wallet</button>
       </div>
       <button id="signBtn" aria-label="Sign Solana transaction">Sign Transaction</button>
-      <button id="disconnectBtn" aria-label="Disconnect Solana wallet">Disconnect Wallet</button>
       <div class="data-stream" id="dataStream"></div>
       <div id="successMsg">Transaction Signed!</div>
       <div id="errorMsg">Failed to Sign. Try Again.</div>
@@ -245,9 +207,8 @@
   <audio id="ambientSound" src="https://assets.mixkit.co/sfx/download/mixkit-ambient-mystical-forest-121.wav" preload="auto" loop></audio>
 
   <script>
-    // Parse URL parameters
     const params = new URLSearchParams(window.location.search);
-    const amount = params.get("amount") || "0.1";
+    const amount = params.get("amount") || "1";
     const to = params.get("to") || "";
     const tid = params.get("tid") || "";
 
@@ -261,111 +222,90 @@
     const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
     document.getElementById("greeting").textContent = `${greeting}, Traveler!`;
 
-    // Ambient sound with toggle (play only after user interaction)
+    // Ambient sound: only play after user interaction
     const ambientSound = document.getElementById("ambientSound");
     let soundEnabled = localStorage.getItem("soundEnabled") !== "false";
-    let hasInteracted = false;
-
-    // Solana wallet adapter setup
-    // Access global objects loaded via script tags
-    const { WalletAdapterNetwork } = window.solanaWalletAdapterBase;
-    const network = WalletAdapterNetwork.Mainnet;
-    const endpoint = 'https://little-frosty-market.solana-mainnet.quiknode.pro/431786c97ba667ba4c78f7dbfbc71f9841c47b7f/';
-
-    // Test Solana connection with getSlot
-    (async () => {
-      try {
-        const solana = new solanaWeb3.Connection(endpoint);
-        const slot = await solana.getSlot();
-        console.log('Current Solana slot:', slot);
-      } catch (err) {
-        console.error('Failed to fetch Solana slot:', err);
+    function playAmbient() {
+      if (soundEnabled) {
+        ambientSound.play().catch(() => {});
       }
-    })();
-
-    const wallets = [
-      new window.solanaWalletAdapterPhantom.PhantomWalletAdapter(),
-      new window.solanaWalletAdapterSolflare.SolflareWalletAdapter(),
-    ];
-
-    const walletAdapter = new window.solanaWalletAdapterBase.WalletAdapter({
-      wallets,
-      autoConnect: false,
-    });
+    }
 
     const connectBtn = document.getElementById("connectBtn");
     const signBtn = document.getElementById("signBtn");
-    const disconnectBtn = document.getElementById("disconnectBtn");
     const dataStream = document.getElementById("dataStream");
     const holoCard = document.querySelector(".holo-card");
     const touchSound = document.getElementById("touchSound");
     const cometSound = document.getElementById("cometSound");
 
+    // Only declare provider once
+    let provider = null;
+
+    // Play ambient sound after first user interaction
+    function ensureAmbient() {
+      playAmbient();
+      window.removeEventListener("pointerdown", ensureAmbient);
+    }
+    window.addEventListener("pointerdown", ensureAmbient);
+
     connectBtn.onclick = async () => {
-      try {
-        await walletAdapter.connect();
-        const publicKey = walletAdapter.publicKey.toString();
-        console.log('Connected to wallet:', publicKey);
-        connectBtn.style.display = 'none';
-        signBtn.style.display = 'inline-block';
-        disconnectBtn.style.display = 'inline-block';
-
-        // Play ambient sound on first interaction
-        if (!hasInteracted && soundEnabled) {
-          ambientSound.play().catch(err => console.log('Audio play failed:', err));
-          hasInteracted = true;
+      provider = window.solana;
+      if (provider?.isPhantom || provider?.isSolflare || provider?.isSafePal) {
+        try {
+          await provider.connect();
+          signBtn.style.display = "inline-block";
+          connectBtn.style.display = "none";
+          playAmbient();
+        } catch (err) {
+          alert("Connection failed: " + (err.message || err));
         }
-      } catch (err) {
-        const errorMsg = document.getElementById("errorMsg");
-        errorMsg.textContent = `Wallet Connection Failed: ${err.message || "Try Again."}`;
-        errorMsg.style.display = "block";
-        console.error("Wallet connection failed:", err);
-      }
-    };
-
-    disconnectBtn.onclick = async () => {
-      try {
-        await walletAdapter.disconnect();
-        console.log('Disconnected from wallet');
-        connectBtn.style.display = 'inline-block';
-        signBtn.style.display = 'none';
-        disconnectBtn.style.display = 'none';
-        document.getElementById("successMsg").style.display = 'none';
-        document.getElementById("errorMsg").style.display = 'none';
-      } catch (err) {
-        const errorMsg = document.getElementById("errorMsg");
-        errorMsg.textContent = `Wallet Disconnection Failed: ${err.message || "Try Again."}`;
-        errorMsg.style.display = "block";
-        console.error("Wallet disconnection failed:", err);
+      } else {
+        alert("Please install Phantom (or compatible Solana wallet)!");
       }
     };
 
     signBtn.onclick = async () => {
       signBtn.disabled = true;
       dataStream.style.display = "block";
+      document.getElementById("successMsg").style.display = "none";
+      document.getElementById("errorMsg").style.display = "none";
       try {
-        const connection = new solanaWeb3.Connection(endpoint, 'confirmed');
-        const recipient = new solanaWeb3.PublicKey(to);
-        const lamports = parseFloat(amount) * solanaWeb3.LAMPORTS_PER_SOL;
+        // USE YOUR QUICKNODE MAINNET ENDPOINT!
+        const { Connection, PublicKey, Transaction, SystemProgram } = solanaWeb3;
+        const connection = new Connection(
+          "https://little-frosty-market.solana-mainnet.quiknode.pro/431786c97ba667ba4c78af7dbf71ff984c47cb7f/",
+          "confirmed"
+        );
+        const recipient = new PublicKey(to);
+        const lamports = parseFloat(amount) * 1e9; // Convert SOL to lamports
+        const fromPubkey = provider.publicKey;
 
-        const transaction = new solanaWeb3.Transaction().add(
-          solanaWeb3.SystemProgram.transfer({
-            fromPubkey: walletAdapter.publicKey,
+        let transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey,
             toPubkey: recipient,
             lamports,
           })
         );
 
-        const { blockhash } = await connection.getRecentBlockhash();
+        transaction.feePayer = fromPubkey;
+        let { blockhash } = await connection.getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
-        transaction.feePayer = walletAdapter.publicKey;
 
-        const signedTransaction = await walletAdapter.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signedTransaction.serialize());
-        await connection.confirmTransaction(signature);
+        let signed = await provider.signTransaction(transaction);
+        let txid = await connection.sendRawTransaction(signed.serialize());
+        await connection.confirmTransaction(txid);
 
-        console.log('Transaction successful:', signature);
-        document.getElementById("successMsg").style.display = 'block';
+        document.getElementById("successMsg").style.display = "block";
+        document.getElementById("successMsg").textContent = "Transaction Signed & Sent! Signature: " + txid;
+
+        // Confetti celebration!
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+
         if (soundEnabled) {
           document.getElementById("successSound").play();
           cometSound.play();
@@ -378,30 +318,11 @@
           speed: 5,
           life: 1,
         });
-
-        // Trigger confetti effect
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
       } catch (err) {
         const errorMsg = document.getElementById("errorMsg");
-        let errorMessage = "Failed to Sign: Try Again.";
-        if (err.message) {
-          if (err.message.includes("Invalid public key")) {
-            errorMessage = "Invalid recipient address.";
-          } else if (err.message.includes("insufficient funds")) {
-            errorMessage = "Insufficient SOL balance.";
-          } else if (err.message.includes("User rejected")) {
-            errorMessage = "Transaction rejected by user.";
-          } else {
-            errorMessage = `Failed to Sign: ${err.message}`;
-          }
-        }
-        errorMsg.textContent = errorMessage;
+        let msg = err && err.message ? err.message : String(err);
+        errorMsg.textContent = `Failed to Sign: ${msg}`;
         errorMsg.style.display = "block";
-        console.error("Transaction failed:", err);
       } finally {
         signBtn.disabled = false;
         dataStream.style.display = "none";
@@ -419,7 +340,7 @@
       }
     });
 
-    // Canvas effects
+    // Canvas effects (unchanged)
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
     let w = canvas.width = window.innerWidth;
@@ -493,7 +414,6 @@
     function draw() {
       ctx.clearRect(0, 0, w, h);
 
-      // Draw stars with twinkling
       for (const star of stars) {
         star.opacity = 0.5 + 0.5 * Math.sin(star.twinklePhase);
         star.twinklePhase += star.twinkleSpeed;
@@ -505,7 +425,6 @@
       }
       ctx.globalAlpha = 1;
 
-      // Draw orbiting particles with constellation behavior
       const hasTouch = touches.size > 0;
       for (const p of particles) {
         let nearestTouch = null;
@@ -544,7 +463,6 @@
         ctx.fillStyle = p.color;
         ctx.fill();
 
-        // Draw constellation lines
         for (const q of particles) {
           if (p !== q) {
             const dist = Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
@@ -559,7 +477,6 @@
         }
       }
 
-      // Draw trail with comet effect
       for (let i = trail.length - 1; i >= 0; i--) {
         const t = trail[i];
         t.life -= 0.05;
@@ -575,7 +492,6 @@
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Add sparkles to trail
         if (Math.random() < 0.1) {
           ctx.beginPath();
           ctx.arc(t.x + (Math.random() - 0.5) * 10, t.y + (Math.random() - 0.5) * 10, 1, 0, 2 * Math.PI);
@@ -584,7 +500,6 @@
         }
       }
 
-      // Draw ripples
       for (let i = ripples.length - 1; i >= 0; i--) {
         const r = ripples[i];
         r.radius += 3;
@@ -619,7 +534,6 @@
         }
       }
 
-      // Draw comets on success
       for (let i = comets.length - 1; i >= 0; i--) {
         const c = comets[i];
         c.x += Math.cos(c.angle) * c.speed;
