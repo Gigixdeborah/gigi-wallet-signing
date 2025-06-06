@@ -5,7 +5,8 @@
   <title>Solana Phantom Wallet Signing | Cosmic Interface</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.21.12/dist/umd/index.min.js"></script>
+  <!-- Use Phantom wallet adapter direct UMD -->
+  <script src="https://unpkg.com/@solana/wallet-adapter-phantom@0.21.13/dist/umd/index.min.js"></script>
   <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -341,7 +342,7 @@
     })();
   </script>
   <script>
-    // Wallet UI logic - Phantom only, with query param support
+    // Wallet UI logic - Phantom only, with query param support and UMD global fix
     window.addEventListener('DOMContentLoaded', function () {
       const { useState, useEffect } = React;
 
@@ -378,10 +379,10 @@
         const [error, setError] = useState("");
         const [copied, setCopied] = useState({address: false, signature: false});
 
-        // On mount, set up Phantom adapter
+        // On mount, set up Phantom adapter from correct UMD
         useEffect(() => {
-          if (window.solanaWalletAdapterWallets?.PhantomWalletAdapter) {
-            setAdapter(new solanaWalletAdapterWallets.PhantomWalletAdapter());
+          if (window.walletAdapterPhantom?.PhantomWalletAdapter) {
+            setAdapter(new window.walletAdapterPhantom.PhantomWalletAdapter());
           } else {
             setError("Phantom Wallet Adapter not found. Please check your script includes.");
           }
