@@ -15,7 +15,6 @@
       --bg-dark: #0a0a2a;
       --bg-light: #1a1a3a;
     }
-
     html, body {
       margin: 0;
       padding: 0;
@@ -25,7 +24,6 @@
       color: var(--text-color);
       touch-action: manipulation;
     }
-
     #threeCanvas {
       position: fixed;
       top: 0;
@@ -33,7 +31,6 @@
       z-index: 0;
       opacity: 0.8;
     }
-
     .container {
       z-index: 10;
       position: relative;
@@ -45,7 +42,6 @@
       text-align: center;
       padding: 20px;
     }
-
     .holo-card {
       background: rgba(255, 255, 255, 0.05);
       border: 2px solid var(--primary-glow);
@@ -59,16 +55,13 @@
       transform-style: preserve-3d;
       transition: transform 0.3s ease;
     }
-
     .holo-card:hover {
       transform: perspective(1000px) rotateX(5deg) rotateY(5deg);
     }
-
     @keyframes prismaticGlow {
       0%, 100% { border-color: var(--primary-glow); box-shadow: 0 0 50px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(255, 64, 129, 0.2); }
       50% { border-color: var(--secondary-glow); box-shadow: 0 0 70px rgba(255, 64, 129, 0.5), inset 0 0 30px rgba(0, 212, 255, 0.3); }
     }
-
     h1 {
       font-size: 2em;
       margin-bottom: 0.5em;
@@ -77,7 +70,6 @@
       font-weight: 700;
       letter-spacing: 2px;
     }
-
     #greeting {
       font-size: 1em;
       color: var(--text-color);
@@ -85,7 +77,6 @@
       margin-bottom: 1.5em;
       text-shadow: 0 0 5px var(--primary-glow);
     }
-
     .info {
       font-size: 1em;
       margin-bottom: 1.5em;
@@ -93,7 +84,6 @@
       opacity: 0.9;
       text-shadow: 0 0 5px var(--secondary-glow);
     }
-
     .info code {
       font-size: 0.9em;
       background: rgba(255, 255, 255, 0.1);
@@ -101,7 +91,6 @@
       border-radius: 5px;
       box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
     }
-
     #ton-connect button, #signBtn {
       background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
       border: none;
@@ -117,74 +106,62 @@
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       margin: 10px 0;
     }
-
     #ton-connect button:hover, #signBtn:hover, #ton-connect button:focus, #signBtn:focus {
       transform: perspective(1000px) rotateX(10deg) rotateY(10deg) translateY(-2px);
       box-shadow: 0 0 30px var(--primary-glow), 0 0 60px var(--secondary-glow);
       outline: none;
     }
-
     #ton-connect button:active, #signBtn:active {
       transform: perspective(1000px) rotateX(5deg) rotateY(5deg) translateY(1px);
     }
-
     #signBtn {
       display: none;
       background: linear-gradient(45deg, #00c853, #00e676);
       box-shadow: 0 0 20px rgba(0, 200, 83, 0.7);
     }
-
     #signBtn:disabled {
       background: #555;
       cursor: not-allowed;
       box-shadow: none;
     }
-
     #successMsg, #errorMsg, #easterEgg {
       margin-top: 1.5em;
       font-size: 1em;
       font-weight: 600;
     }
-
     #successMsg {
       color: #00e676;
       display: none;
       animation: sparkleFade 1s ease-out;
       text-shadow: 0 0 10px #00e676;
     }
-
     #successMsg a {
       color: var(--primary-glow);
       text-decoration: none;
       font-weight: 700;
       transition: color 0.3s ease;
     }
-
     #successMsg a:hover {
       color: var(--secondary-glow);
       text-shadow: 0 0 10px var(--secondary-glow);
     }
-
     #errorMsg {
       color: #ff5252;
       display: none;
       animation: sparkleFade 1s ease-out;
       text-shadow: 0 0 10px #ff5252;
     }
-
     #easterEgg {
       color: var(--secondary-glow);
       display: none;
       animation: sparkleFade 1s ease-out;
       text-shadow: 0 0 15px var(--secondary-glow);
     }
-
     @keyframes sparkleFade {
       0% { opacity: 0; transform: translateY(20px); filter: brightness(1); }
       50% { filter: brightness(2); }
       100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
     }
-
     .footer {
       margin-top: 1.5em;
       font-size: 0.9em;
@@ -192,7 +169,6 @@
       opacity: 0.7;
       text-shadow: 0 0 5px var(--primary-glow);
     }
-
     #loading {
       display: none;
       width: 40px;
@@ -203,12 +179,10 @@
       animation: spin 1s linear infinite;
       margin: 20px auto;
     }
-
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-
     #walletInfo {
       margin-top: 1em;
       font-size: 0.9em;
@@ -217,17 +191,23 @@
       cursor: pointer;
       transition: color 0.3s ease, text-shadow 0.3s ease;
     }
-
     #walletInfo:hover {
       color: var(--primary-glow);
       text-shadow: 0 0 10px var(--primary-glow);
+    }
+    #liveStatus {
+      min-height: 1.5em;
+      margin: 1em 0;
+      color: #fffbe0;
+      font-size: 1em;
+      font-weight: 600;
+      text-shadow: 0 0 7px var(--primary-glow);
     }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <canvas id="threeCanvas"></canvas>
-
   <div class="container">
     <div class="holo-card">
       <h1>TON Transaction</h1>
@@ -240,30 +220,27 @@
       <button id="signBtn" aria-label="Sign TON transaction">Sign Transaction</button>
       <div id="walletInfo" style="display: none;">Wallet: <span id="walletAddress"></span></div>
       <div id="loading"></div>
+      <div id="liveStatus" role="status" aria-live="polite"></div>
       <div id="successMsg">Transaction Signed! <a id="txLink" href="#" target="_blank">View on Explorer</a></div>
       <div id="errorMsg">Failed to Sign. Try Again.</div>
       <div id="easterEgg">✨ Cosmic Power Unlocked! ✨</div>
       <div class="footer">Powered by Gigi Labs</div>
     </div>
   </div>
-
   <audio id="clickSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto"></audio>
   <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
   <audio id="cometSound" src="https://assets.mixkit.co/sfx/download/mixkit-magic-sweep-234.wav" preload="auto"></audio>
   <audio id="ambientSound" src="https://assets.mixkit.co/sfx/download/mixkit-ambient-mystical-forest-121.wav" preload="auto" loop></audio>
-
   <script>
     // URL Parameters and Validation
     const params = new URLSearchParams(window.location.search);
     const tid = params.get("tid") || "";
     const to = params.get("to") || "";
-
     const amount = params.get("amount");
     if (!amount) {
       alert("❌ Missing amount. Please return to the bot.");
       throw new Error("Amount parameter is missing");
     }
-
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
     amtElement.textContent = amount;
@@ -308,9 +285,10 @@
       });
     });
 
-    // Transaction Signing
+    // Transaction Signing with Live Status
     const signBtn = document.getElementById("signBtn");
     const loading = document.getElementById("loading");
+    const liveStatus = document.getElementById("liveStatus");
     const successSound = document.getElementById("successSound");
     const cometSound = document.getElementById("cometSound");
 
@@ -318,6 +296,8 @@
       if (soundEnabled) clickSound.play().catch(err => console.log("Click sound play failed:", err));
       signBtn.disabled = true;
       loading.style.display = "block";
+      liveStatus.textContent = "Waiting for wallet signature...";
+
       const nano = (BigInt(parseFloat(amount) * 1e9)).toString();
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
@@ -325,9 +305,11 @@
       };
 
       try {
+        // Step 1: Prompt user to sign
         const result = await tonConnectUI.sendTransaction(transaction);
-        const walletAddress = tonConnectUI.account?.address || "unknown";
+        liveStatus.textContent = "Signature received. Broadcasting transaction...";
 
+        const walletAddress = tonConnectUI.account?.address || "unknown";
         const payload = {
           user_id: tid,
           txHash: result.boc.slice(0, 20),
@@ -338,6 +320,8 @@
           wallet: walletAddress
         };
 
+        // Step 2: Call backend for signature
+        liveStatus.textContent = "Finalizing signature on server...";
         const sigRes = await fetch("/generate-signature", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -346,6 +330,8 @@
 
         const { signature } = await sigRes.json();
 
+        // Step 3: Broadcast to webhook
+        liveStatus.textContent = "Sending transaction to the network...";
         await fetch("/webhook/ton", {
           method: "POST",
           headers: {
@@ -355,9 +341,9 @@
           body: JSON.stringify(payload)
         });
 
+        liveStatus.textContent = "Transaction sent! Awaiting confirmation...";
         document.getElementById("successMsg").style.display = "block";
         const txLink = document.getElementById("txLink");
-        // Note: TonViewer URL format may need adjustment based on actual transaction ID format
         txLink.href = `https://tonviewer.com/transaction/${result.boc.slice(0, 20)}`;
         if (soundEnabled) {
           successSound.play().catch(err => console.log("Success sound play failed:", err));
@@ -368,12 +354,14 @@
           window.location.href = "https://t.me/GigiP2Bot";
         }, 3000);
       } catch (err) {
+        liveStatus.textContent = "Error: " + (err.message || "Failed to sign.");
         const errorMsg = document.getElementById("errorMsg");
         errorMsg.textContent = `Failed to Sign: ${err.message || "Try Again."}`;
         errorMsg.style.display = "block";
       } finally {
         signBtn.disabled = false;
         loading.style.display = "none";
+        setTimeout(() => { liveStatus.textContent = ""; }, 5000);
       }
     };
 
@@ -424,11 +412,9 @@
       velocities[i * 2] = (Math.random() - 0.5) * (layer < 0.3 ? 0.002 : layer < 0.6 ? 0.001 : 0.0005);
       velocities[i * 2 + 1] = (Math.random() - 0.5) * (layer < 0.3 ? 0.002 : layer < 0.6 ? 0.001 : 0.0005);
     }
-
     starsGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     starsGeometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
     starsGeometry.setAttribute("opacity", new THREE.BufferAttribute(opacities, 1));
-
     const starsMaterial = new THREE.ShaderMaterial({
       uniforms: {},
       vertexShader: `
@@ -450,7 +436,6 @@
       `,
       transparent: true
     });
-
     const stars = new THREE.Points(starsGeometry, starsMaterial);
     scene.add(stars);
 
