@@ -1,311 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solana Wallet Connector</title>
-    <script src="https://unpkg.com/@solana/web3.js@1.91.1/dist/index.iife.min.js"></script>
-    <script src="https://unpkg.com/@web3modal/ethereum@2.7.1/dist/index.js"></script>
-    <style>
-        /* Identical CSS to sign.html for consistency */
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-            background: linear-gradient(135deg, #1e1e2f, #3b3b98);
-            color: #ffffff;
-            overflow-x: hidden;
-            min-height: 100vh;
-            position: relative;
-        }
-        header { padding: 30px 20px; }
-        h1 {
-            font-size: 28px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-        }
-        main {
-            padding: 20px;
-            position: relative;
-            z-index: 1;
-        }
-        button {
-            padding: 15px 30px;
-            font-size: 18px;
-            margin: 15px auto;
-            display: block;
-            border: none;
-            border-radius: 25px;
-            background: linear-gradient(45deg, #00ddeb, #ff4081);
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0, 221, 235, 0.5);
-            transition: transform 0.2s, box-shadow 0.2s;
-            width: 80%;
-            max-width: 300px;
-        }
-        button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 20px rgba(0, 221, 235, 0.7);
-        }
-        button:active { transform: scale(0.95); }
-        #feedback {
-            margin-top: 20px;
-            font-size: 16px;
-            color: #00ffcc;
-            text-shadow: 0 0 5px #00ffcc;
-        }
-        footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            font-size: 14px;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        #nodes {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .node {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background: radial-gradient(circle, rgba(0, 255, 204, 0.8), rgba(0, 255, 204, 0));
-            border-radius: 50%;
-            animation: glow 3s infinite ease-in-out, move 5s infinite linear;
-        }
-        @keyframes glow {
-            0%, 100% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-        @keyframes move {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(var(--dx), var(--dy)); }
-        }
-        @media (max-width: 600px) {
-            h1 { font-size: 24px; }
-            button { font-size: 16px; padding: 12px 25px; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Solana Wallet Multi-Wallet Live Signing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Solana Wallet Adapter UMD bundle (core, wallets, UI) -->
+  <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.21.12/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-base@0.16.14/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-react-ui@0.20.12/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-react@0.21.13/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 40px; }
+    .container { max-width: 540px; margin: auto; background: #fff; padding: 32px; border-radius: 12px; box-shadow: 0 2px 10px #0001; }
+    input, button { padding: 10px; margin: 8px 0; width: 100%; }
+    #signature { word-break: break-all; background: #f0f0f0; padding: 8px; border-radius: 4px; }
+    .wallet-select { margin-bottom: 16px; }
+  </style>
 </head>
 <body>
-    <div id="nodes"></div>
-    <header>
-        <h1 id="greeting">Welcome to the Magical Solana Wallet Connector!</h1>
-    </header>
-    <main>
-        <button id="connect-wallet">Connect Solana Wallet</button>
-        <button id="sign-transaction" style="display: none;">Sign Transaction</button>
-        <div id="feedback"></div>
-    </main>
-    <footer>
-        <p>Powered by Gigi Labs</p>
-    </footer>
-    <audio id="success-audio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
-    <script>
-        // Constants and initialization
-        const WEBHOOK_BASE = 'https://your-bot-server.com'; // Replace with actual server URL
-        const isTwa = window.Telegram && window.Telegram.WebApp;
-        let userId, lang, provider;
+  <div id="root"></div>
+  <script type="text/javascript">
+    const { useState, useEffect } = React;
+    const {
+      PhantomWalletAdapter,
+      SolflareWalletAdapter,
+      TorusWalletAdapter,
+      BackpackWalletAdapter,
+      LedgerWalletAdapter,
+      CoinbaseWalletAdapter,
+      MathWalletAdapter,
+      SolletExtensionWalletAdapter,
+      SolletWalletAdapter,
+      // Add more as needed
+    } = solanaWalletAdapterWallets;
 
-        // TWA or browser detection
-        if (isTwa) {
-            window.Telegram.WebApp.expand();
-            const initData = window.Telegram.WebApp.initDataUnsafe || {};
-            userId = initData.user ? initData.user.id : 'unknown_twa_user';
-            lang = initData.user ? initData.user.language_code : 'en';
-            const theme = window.Telegram.WebApp.themeParams || {};
-            document.body.style.background = theme.bg_color || document.body.style.background;
-            document.body.style.color = theme.text_color || '#ffffff';
-        } else {
-            userId = 'default_user';
-            lang = (navigator.language || 'en').split('-')[0];
+    function App() {
+      const [wallets, setWallets] = useState([]);
+      const [selectedWalletIndex, setSelectedWalletIndex] = useState(null);
+      const [adapter, setAdapter] = useState(null);
+      const [publicKey, setPublicKey] = useState(null);
+      const [connecting, setConnecting] = useState(false);
+      const [message, setMessage] = useState("Hello Solana!");
+      const [signature, setSignature] = useState("");
+      const [error, setError] = useState("");
+
+      useEffect(() => {
+        // List of supported wallet adapters
+        setWallets([
+          new PhantomWalletAdapter(),
+          new SolflareWalletAdapter(),
+          new TorusWalletAdapter(),
+          new BackpackWalletAdapter(),
+          new LedgerWalletAdapter(),
+          new CoinbaseWalletAdapter(),
+          new MathWalletAdapter(),
+          new SolletExtensionWalletAdapter(),
+          new SolletWalletAdapter(),
+        ]);
+      }, []);
+
+      useEffect(() => {
+        if (selectedWalletIndex !== null) {
+          const wallet = wallets[selectedWalletIndex];
+          setAdapter(wallet);
         }
+      }, [selectedWalletIndex, wallets]);
 
-        // Language translations (same as sign.html)
-        const translations = {
-            en: {
-                greeting: 'Welcome to the Magical Solana Wallet Connector!',
-                connect: 'Connect Solana Wallet',
-                disconnect: 'Disconnect',
-                sign: 'Sign Transaction',
-                connected: 'Wallet connected successfully!',
-                disconnected: 'Wallet disconnected.',
-                signed: 'Transaction signed successfully!',
-                connectFail: 'Failed to connect wallet.',
-                signFail: 'Failed to sign transaction.'
-            },
-            fr: {
-                greeting: 'Bienvenue au Connecteur de Portefeuille Solana Magique !',
-                connect: 'Connecter le Portefeuille Solana',
-                disconnect: 'Déconnecter',
-                sign: 'Signer la Transaction',
-                connected: 'Portefeuille connecté avec succès !',
-                disconnected: 'Portefeuille déconnecté.',
-                signed: 'Transaction signée avec succès !',
-                connectFail: 'Échec de la connexion au portefeuille.',
-                signFail: 'Échec de la signature de la transaction.'
-            },
-            es: {
-                greeting: '¡Bienvenido al Conector de Cartera Solana Mágico!',
-                connect: 'Conectar Cartera Solana',
-                disconnect: 'Desconectar',
-                sign: 'Firmar Transacción',
-                connected: '¡Cartera conectada con éxito!',
-                disconnected: 'Cartera desconectada.',
-                signed: '¡Transacción firmada con éxito!',
-                connectFail: 'Fallo al conectar la cartera.',
-                signFail: 'Fallo al firmar la transacción.'
-            },
-            zh: {
-                greeting: '欢迎来到神奇的Solana钱包连接器！',
-                connect: '连接Solana钱包',
-                disconnect: '断开连接',
-                sign: '签署交易',
-                connected: '钱包连接成功！',
-                disconnected: '钱包已断开连接。',
-                signed: '交易签名成功！',
-                connectFail: '连接钱包失败。',
-                signFail: '签署交易失败。'
-            }
-        };
-        const t = translations[lang] || translations.en;
-        document.getElementById('greeting').textContent = t.greeting;
-        const connectButton = document.getElementById('connect-wallet');
-        const signButton = document.getElementById('sign-transaction');
-        const feedback = document.getElementById('feedback');
-        connectButton.textContent = t.connect;
-        signButton.textContent = t.sign;
-
-        // Initialize Phantom provider
-        const getProvider = () => {
-            if ('solana' in window) {
-                const provider = window.solana;
-                if (provider.isPhantom) return provider;
-            }
-            return null;
-        };
-        provider = getProvider();
-
-        // Check initial connection state
-        if (provider && provider.isConnected) {
-            connectButton.textContent = t.disconnect;
-            signButton.style.display = 'block';
+      // Connect wallet
+      const connectWallet = async () => {
+        setError("");
+        setSignature("");
+        if (!adapter) return setError("Select a wallet first.");
+        if (adapter.connected) {
+          setPublicKey(adapter.publicKey?.toString());
+          return;
         }
-
-        // Wallet connection/disconnection
-        connectButton.addEventListener('click', async () => {
-            try {
-                if (provider && provider.isConnected) {
-                    await provider.disconnect();
-                    provider = getProvider();
-                    feedback.textContent = t.disconnected;
-                    connectButton.textContent = t.connect;
-                    signButton.style.display = 'none';
-                } else {
-                    provider = getProvider();
-                    if (!provider) throw new Error('Phantom not detected');
-                    await provider.connect();
-                    const address = provider.publicKey.toString();
-                    const response = await fetch(`${WEBHOOK_BASE}/solana-webhook`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: userId,
-                            wallet_type: 'SOLANA',
-                            wallet_address: address
-                        })
-                    });
-                    if (!response.ok) throw new Error('Webhook failed');
-                    feedback.textContent = t.connected;
-                    connectButton.textContent = t.disconnect;
-                    signButton.style.display = 'block';
-                    document.getElementById('success-audio').play();
-                }
-            } catch (error) {
-                feedback.textContent = provider && provider.isConnected ? t.signFail : t.connectFail;
-                console.error(error);
-            }
-        });
-
-        // Transaction signing
-        signButton.addEventListener('click', async () => {
-            try {
-                if (!provider || !provider.isConnected) throw new Error('Wallet not connected');
-                const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'), 'confirmed');
-                const transaction = new solanaWeb3.Transaction().add(
-                    solanaWeb3.SystemProgram.transfer({
-                        fromPubkey: provider.publicKey,
-                        toPubkey: new solanaWeb3.PublicKey('11111111111111111111111111111111'),
-                        lamports: solanaWeb3.LAMPORTS_PER_SOL * 0.01
-                    })
-                );
-                const { blockhash } = await connection.getLatestBlockhash();
-                transaction.recentBlockhash = blockhash;
-                transaction.feePayer = provider.publicKey;
-                const signedTx = await provider.signTransaction(transaction);
-                const txHash = await connection.sendRawTransaction(signedTx.serialize());
-                await connection.confirmTransaction(txHash);
-                const response = await fetch(`${WEBHOOK_BASE}/solana-webhook`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        txHash: txHash,
-                        amount: '0.01',
-                        token: 'SOL',
-                        to: '11111111111111111111111111111111'
-                    })
-                });
-                if (!response.ok) throw new Error('Webhook failed');
-                feedback.textContent = t.signed;
-                document.getElementById('success-audio').play();
-            } catch (error) {
-                feedback.textContent = t.signFail;
-                console.error(error);
-            }
-        });
-
-        // Animated nodes (same as sign.html)
-        const nodesContainer = document.getElementById('nodes');
-        const createNode = (x, y) => {
-            const node = document.createElement('div');
-            node.className = 'node';
-            const dx = (Math.random() - 0.5) * 100;
-            const dy = (Math.random() - 0.5) * 100;
-            node.style.left = `${x}px`;
-            node.style.top = `${y}px`;
-            node.style.setProperty('--dx', `${dx}px`);
-            node.style.setProperty('--dy', `${dy}px`);
-            nodesContainer.appendChild(node);
-            setTimeout(() => node.remove(), 5000);
-        };
-        for (let i = 0; i < 10; i++) {
-            createNode(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
+        setConnecting(true);
+        try {
+          await adapter.connect();
+          setPublicKey(adapter.publicKey?.toString());
+        } catch (e) {
+          setError("Connection error: " + (e.message || e));
         }
-        document.body.addEventListener('touchmove', (e) => {
-            Array.from(e.touches).forEach(touch => {
-                createNode(touch.pageX, touch.pageY);
-            });
-        });
-        document.body.addEventListener('mousemove', (e) => {
-            if (Math.random() < 0.1) {
-                createNode(e.pageX, e.pageY);
-            }
-        });
-    </script>
+        setConnecting(false);
+      };
+
+      // Disconnect wallet
+      const disconnectWallet = async () => {
+        if (adapter && adapter.disconnect) {
+          await adapter.disconnect();
+        }
+        setPublicKey(null);
+        setSignature("");
+        setError("");
+      };
+
+      // Sign message
+      const signMessage = async (e) => {
+        e.preventDefault();
+        setError("");
+        setSignature("");
+        if (!adapter || !adapter.connected) {
+          return setError("Connect your wallet first.");
+        }
+        try {
+          const encoder = new TextEncoder();
+          const encoded = encoder.encode(message);
+          const signed = await adapter.signMessage(encoded, 'utf8');
+          const base64 = btoa(String.fromCharCode(...signed));
+          setSignature(base64);
+        } catch (e) {
+          setError("Signing error: " + (e.message || e));
+        }
+      };
+
+      return (
+        React.createElement('div', { className: 'container' },
+          React.createElement('h2', null, 'Solana Multi-Wallet Live Signing'),
+          React.createElement('div', { className: 'wallet-select' },
+            React.createElement('label', null, 'Select Wallet:'),
+            React.createElement('select', {
+              value: selectedWalletIndex !== null ? selectedWalletIndex : "",
+              onChange: e => {
+                setSelectedWalletIndex(e.target.value !== "" ? Number(e.target.value) : null);
+                setPublicKey(null);
+                setSignature("");
+                setError("");
+                if (adapter && adapter.disconnect) adapter.disconnect();
+              }
+            },
+              React.createElement('option', { value: "" }, "-- Choose a Wallet --"),
+              wallets.map((w, i) =>
+                React.createElement('option', { key: i, value: i }, w.name)
+              )
+            ),
+            selectedWalletIndex !== null && React.createElement('button', {
+              style: { marginLeft: 8, padding: "10px 20px" },
+              onClick: connectWallet,
+              disabled: connecting || (adapter && adapter.connected)
+            }, adapter && adapter.connected ? "Connected" : connecting ? "Connecting..." : "Connect"),
+            adapter && adapter.connected && React.createElement('button', {
+              style: { marginLeft: 8, padding: "10px 20px", background: "#e55", color: "#fff", border: "none" },
+              onClick: disconnectWallet
+            }, "Disconnect"),
+          ),
+          publicKey && React.createElement('div', { style: { marginBottom: 12 } },
+            React.createElement('strong', null, "Wallet Address: "),
+            publicKey
+          ),
+          React.createElement('form', { id: 'signForm', onSubmit: signMessage },
+            React.createElement('label', { htmlFor: "message" }, "Message to Sign:"),
+            React.createElement('input', {
+              id: "message",
+              type: "text",
+              value: message,
+              required: true,
+              onChange: e => setMessage(e.target.value)
+            }),
+            React.createElement('button', { type: "submit", disabled: !publicKey }, "Sign Message")
+          ),
+          signature && React.createElement('div', { id: "signatureSection", style: { marginTop: 18 } },
+            React.createElement('h4', null, "Signature (base64):"),
+            React.createElement('div', { id: "signature" }, signature)
+          ),
+          error && React.createElement('div', { id: "error", style: { color: "red", marginTop: 10 } }, error)
+        )
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
 </body>
 </html>
