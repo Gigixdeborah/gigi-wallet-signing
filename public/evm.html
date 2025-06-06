@@ -10,7 +10,6 @@
     <!-- Ethers.js for transaction handling -->
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
-        /* Mobile-first, enchanted, simple UI */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -102,6 +101,15 @@
             color: #ff4444;
             text-shadow: 0 0 5px #ff4444;
         }
+        #liveStatus {
+            margin-top: 18px;
+            min-height: 1.5em;
+            font-size: 17px;
+            color: #fffbe0;
+            font-weight: 600;
+            text-shadow: 0 0 7px #00ddeb;
+            transition: color 0.2s;
+        }
         footer {
             position: fixed;
             bottom: 0;
@@ -160,11 +168,12 @@
         <button id="connect-wallet">Connect EVM Wallet</button>
         <button id="sign-transaction" style="display: none;">Sign Transaction</button>
         <div id="feedback"></div>
+        <div id="liveStatus"></div>
     </main>
     <footer><p>Powered by Gigi Labs</p></footer>
     <audio id="success-audio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
     <script>
-        // Production-ready simple EVM wallet connector
+        // Production-ready simple EVM wallet connector with live signing status
         (function () {
             // Constants
             const WEBHOOK_BASE = 'http://34.203.188.151'; // Replace with HTTPS in production
@@ -207,7 +216,11 @@
                     signFail: 'Failed to sign transaction. Check wallet and network.',
                     webhookFail: 'Server communication failed. Please try again later.',
                     noWallet: 'No EVM wallet detected. Please install MetaMask or a compatible wallet.',
-                    wrongNetwork: 'Please switch to the Sepolia testnet.'
+                    wrongNetwork: 'Please switch to the Sepolia testnet.',
+                    waitingWallet: 'Waiting for wallet signature...',
+                    broadcast: 'Broadcasting transaction to the network...',
+                    confirming: 'Awaiting transaction confirmation...',
+                    confirmed: 'Transaction confirmed!',
                 },
                 fr: {
                     greeting: 'Bienvenue au Connecteur de Portefeuille EVM Magique !',
@@ -223,7 +236,11 @@
                     signFail: 'Échec de la signature. Vérifiez le portefeuille et le réseau.',
                     webhookFail: 'Échec de la communication avec le serveur. Réessayez plus tard.',
                     noWallet: 'Aucun portefeuille EVM détecté. Installez MetaMask ou un portefeuille compatible.',
-                    wrongNetwork: 'Veuillez passer au réseau de test Sepolia.'
+                    wrongNetwork: 'Veuillez passer au réseau de test Sepolia.',
+                    waitingWallet: 'En attente de la signature dans le portefeuille...',
+                    broadcast: 'Diffusion de la transaction sur le réseau...',
+                    confirming: 'En attente de confirmation de la transaction...',
+                    confirmed: 'Transaction confirmée !',
                 },
                 es: {
                     greeting: '¡Bienvenido al Conector de Cartera EVM Mágico!',
@@ -239,7 +256,11 @@
                     signFail: 'Fallo al firmar. Verifica la cartera y la red.',
                     webhookFail: 'Fallo en la comunicación con el servidor. Inténtalo de nuevo más tarde.',
                     noWallet: 'No se detectó ninguna cartera EVM. Instala MetaMask o una cartera compatible.',
-                    wrongNetwork: 'Por favor, cambia a la red de prueba Sepolia.'
+                    wrongNetwork: 'Por favor, cambia a la red de prueba Sepolia.',
+                    waitingWallet: 'Esperando la firma en la cartera...',
+                    broadcast: 'Transmitiendo transacción a la red...',
+                    confirming: 'Esperando la confirmación de la transacción...',
+                    confirmed: '¡Transacción confirmada!',
                 },
                 zh: {
                     greeting: '欢迎来到神奇的EVM钱包连接器！',
@@ -255,7 +276,11 @@
                     signFail: '签署交易失败，请检查钱包和网络。',
                     webhookFail: '与服务器通信失败，请稍后重试。',
                     noWallet: '未检测到EVM钱包，请安装MetaMask或兼容钱包。',
-                    wrongNetwork: '请切换到Sepolia测试网络。'
+                    wrongNetwork: '请切换到Sepolia测试网络。',
+                    waitingWallet: '等待钱包签名中...',
+                    broadcast: '正在向网络广播交易...',
+                    confirming: '等待交易确认中...',
+                    confirmed: '交易已确认！',
                 }
             };
             const t = translations[lang] || translations.en;
@@ -266,6 +291,7 @@
             const feedback = document.getElementById('feedback');
             const greeting = document.getElementById('greeting');
             const successAudio = document.getElementById('success-audio');
+            const liveStatus = document.getElementById('liveStatus');
 
             // Initialize UI
             greeting.textContent = t.greeting;
@@ -327,6 +353,7 @@
                 connectButton.disabled = true;
                 connectButton.classList.add('loading');
                 connectButton.textContent = t.connecting;
+                liveStatus.textContent = '';
                 try {
                     const accounts = await provider.send('eth_requestAccounts', []);
                     if (accounts.length === 0) throw new Error('No accounts selected');
@@ -354,21 +381,33 @@
                 }
             });
 
-            // Transaction signing handler
+            // Transaction signing handler with live status
             signButton.addEventListener('click', async () => {
                 if (isSigning || !signer) return;
                 isSigning = true;
                 signButton.disabled = true;
                 signButton.classList.add('loading');
                 signButton.textContent = t.signing;
+                liveStatus.textContent = t.waitingWallet;
+                feedback.textContent = "";
+                feedback.classList.remove('error');
                 try {
+                    // Step 1: Prompt wallet signature
                     const tx = {
                         to: '0x000000000000000000000000000000000000dead',
                         value: ethers.utils.parseEther('0.01'),
                         chainId: CHAIN_ID
                     };
-                    const signedTx = await signer.sendTransaction(tx);
-                    await signedTx.wait(1); // Wait for 1 confirmation
+                    let signedTx;
+                    try {
+                        signedTx = await signer.sendTransaction(tx);
+                    } catch (err) {
+                        liveStatus.textContent = "";
+                        throw err;
+                    }
+                    liveStatus.textContent = t.broadcast;
+
+                    // Step 2: Send webhook after transaction sent
                     await sendWebhook({
                         user_id: userId,
                         txHash: signedTx.hash,
@@ -376,18 +415,27 @@
                         token: 'ETH',
                         to: tx.to
                     });
+
+                    liveStatus.textContent = t.confirming;
+
+                    // Step 3: Wait for confirmation
+                    await signedTx.wait(1); // Wait for 1 confirmation
+
+                    liveStatus.textContent = t.confirmed;
                     feedback.textContent = t.signed;
                     feedback.classList.remove('error');
                     successAudio.play().catch(() => !IS_PRODUCTION && console.warn('Audio playback failed'));
                 } catch (error) {
                     feedback.textContent = t.signFail;
                     feedback.classList.add('error');
+                    liveStatus.textContent = '';
                     !IS_PRODUCTION && console.error('Sign error:', error);
                 } finally {
                     isSigning = false;
                     signButton.disabled = false;
                     signButton.classList.remove('loading');
                     signButton.textContent = t.sign;
+                    setTimeout(() => { liveStatus.textContent = ''; }, 5000);
                 }
             });
 
