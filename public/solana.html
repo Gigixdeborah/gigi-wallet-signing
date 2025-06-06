@@ -25,6 +25,8 @@
       overflow: hidden;
       font-family: 'Orbitron', 'Inter', Arial, sans-serif;
       color: var(--magic-text);
+      height: 100%;
+      min-height: 100vh;
     }
     #threeCanvas {
       position: fixed;
@@ -32,13 +34,13 @@
       pointer-events: none;
     }
     .main-card {
-      background: rgba(15,20,60,0.84);
+      background: rgba(15,20,60,0.90);
       border: 2px solid var(--primary-glow);
       border-radius: 18px;
       padding: 36px 32px 32px 32px;
       width: 100%;
       max-width: 440px;
-      margin: 44px auto;
+      margin: 64px auto 0 auto;
       box-shadow: 0 0 48px 8px #00d4ff33, 0 0 0 2px #ff408155, 0 10px 32px 0 #2b587640;
       backdrop-filter: blur(20px);
       animation: prismaticGlow 5s ease-in-out infinite;
@@ -48,7 +50,7 @@
       position: relative;
     }
     .main-card:hover {
-      transform: perspective(900px) rotateX(5deg) rotateY(7deg) scale(1.025);
+      transform: perspective(800px) rotateX(7deg) rotateY(7deg) scale(1.03);
       box-shadow: 0 0 64px 18px #ff4081cc, 0 0 0 2px #00d4ff77;
       border-color: var(--secondary-glow);
     }
@@ -61,10 +63,11 @@
       margin-bottom: 12px;
     }
     .logo-row img {
-      height: 48px;
+      height: 54px;
       margin-bottom: 7px;
       filter: drop-shadow(0 0 10px #00d4ff99) drop-shadow(0 0 8px #ff4081aa);
       animation: logoSpin 3s infinite linear;
+      transition: filter 0.3s;
     }
     @keyframes logoSpin {
       0% { transform: rotate(-6deg);}
@@ -77,12 +80,12 @@
       font-size: 2em;
       text-align: center;
       letter-spacing: 2px;
-      margin: 0 0 20px 0;
+      margin: 0 0 22px 0;
       text-shadow: 0 0 16px var(--primary-glow), 0 0 24px var(--secondary-glow);
     }
     .field-label {
       font-weight: 700;
-      font-size: 1.03em;
+      font-size: 1.05em;
       margin-bottom: 4px;
       color: var(--magic-text);
       display: block;
@@ -224,13 +227,13 @@
   <canvas id="threeCanvas"></canvas>
   <div class="main-card">
     <div class="logo-row">
-      <img src="https://cryptologos.cc/logos/solana-sol-logo.png?v=026" alt="Solana" />
+      <img src="solana-logo.png" alt="Solana" />
     </div>
     <h2>Solana Multi-Wallet Signing</h2>
     <div id="root"></div>
   </div>
-  <script type="text/javascript">
-    // 3D Cosmic Starfield (from sign.html)
+  <script>
+    // 3D Cosmic Starfield
     (() => {
       const canvas = document.getElementById("threeCanvas");
       if (!window.THREE || !canvas) return;
@@ -239,14 +242,12 @@
       const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       camera.position.z = 5;
-
       const starsGeometry = new THREE.BufferGeometry();
-      const starCount = 6000;
+      const starCount = 7000;
       const positions = new Float32Array(starCount * 3);
       const sizes = new Float32Array(starCount);
       const opacities = new Float32Array(starCount);
       const velocities = new Float32Array(starCount * 2);
-
       for (let i = 0; i < starCount; i++) {
         const i3 = i * 3;
         const layer = Math.random();
@@ -256,10 +257,10 @@
         positions[i3] = Math.cos(angle) * radius;
         positions[i3 + 1] = Math.sin(angle) * radius;
         positions[i3 + 2] = (Math.random() - 0.5) * distance;
-        sizes[i] = layer < 0.3 ? 0.05 : layer < 0.6 ? 0.03 : 0.01;
+        sizes[i] = layer < 0.3 ? 0.08 : layer < 0.6 ? 0.045 : 0.018;
         opacities[i] = layer < 0.3 ? 1 : layer < 0.6 ? 0.7 : 0.4;
-        velocities[i * 2] = (Math.random() - 0.5) * (layer < 0.3 ? 0.002 : layer < 0.6 ? 0.001 : 0.0005);
-        velocities[i * 2 + 1] = (Math.random() - 0.5) * (layer < 0.3 ? 0.002 : layer < 0.6 ? 0.001 : 0.0005);
+        velocities[i * 2] = (Math.random() - 0.5) * (layer < 0.3 ? 0.0022 : layer < 0.6 ? 0.0011 : 0.0007);
+        velocities[i * 2 + 1] = (Math.random() - 0.5) * (layer < 0.3 ? 0.0022 : layer < 0.6 ? 0.0011 : 0.0007);
       }
       starsGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
       starsGeometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
@@ -273,7 +274,7 @@
           void main() {
             vOpacity = opacity;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * (300.0 / -mvPosition.z);
+            gl_PointSize = size * (330.0 / -mvPosition.z);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
@@ -287,9 +288,8 @@
       });
       const stars = new THREE.Points(starsGeometry, starsMaterial);
       scene.add(stars);
-
       function animateStars() {
-        stars.rotation.y += 0.0005;
+        stars.rotation.y += 0.0006;
         const positions = starsGeometry.attributes.position.array;
         for (let i = 0; i < starCount; i++) {
           const i3 = i * 3;
@@ -308,7 +308,6 @@
         requestAnimationFrame(animateStars);
       }
       animateStars();
-
       window.addEventListener("resize", () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -316,7 +315,7 @@
       });
     })();
 
-    // Your React UI logic (unchanged)
+    // Solana Wallet React App
     const { useState, useEffect } = React;
     const {
       PhantomWalletAdapter,
