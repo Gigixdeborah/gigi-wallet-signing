@@ -1,15 +1,22 @@
+<!--
+  Cosmic Solana Multi-Wallet Signing UI
+  Fixes:
+  - Ensures all wallet adapter scripts load BEFORE your app script to avoid "solanaWalletAdapterWallets is not defined"
+  - Logo should be in /public/solana-logo.png
+  - Dated: 2025-06-06
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Solana Multi-Wallet Signing | Cosmic Interface</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.21.12/dist/umd/index.min.js"></script>
   <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -233,7 +240,7 @@
     <div id="root"></div>
   </div>
   <script>
-    // 3D Cosmic Starfield
+    // 3D Cosmic Starfield (unchanged)
     (() => {
       const canvas = document.getElementById("threeCanvas");
       if (!window.THREE || !canvas) return;
@@ -314,180 +321,184 @@
         camera.updateProjectionMatrix();
       });
     })();
+  </script>
+  <script>
+    // Wallet UI logic - must come AFTER wallet adapter scripts load!
+    // Fix 2025-06-06: Don't run before wallet adapter scripts are available.
+    window.addEventListener('DOMContentLoaded', function () {
+      const { useState, useEffect } = React;
+      const {
+        PhantomWalletAdapter,
+        SolflareWalletAdapter,
+        TorusWalletAdapter,
+        BackpackWalletAdapter,
+        LedgerWalletAdapter,
+        CoinbaseWalletAdapter,
+        MathWalletAdapter,
+        SolletExtensionWalletAdapter,
+        SolletWalletAdapter,
+      } = solanaWalletAdapterWallets;
 
-    // Solana Wallet React App
-    const { useState, useEffect } = React;
-    const {
-      PhantomWalletAdapter,
-      SolflareWalletAdapter,
-      TorusWalletAdapter,
-      BackpackWalletAdapter,
-      LedgerWalletAdapter,
-      CoinbaseWalletAdapter,
-      MathWalletAdapter,
-      SolletExtensionWalletAdapter,
-      SolletWalletAdapter,
-    } = solanaWalletAdapterWallets;
+      function App() {
+        const [wallets, setWallets] = useState([]);
+        const [selectedWalletIndex, setSelectedWalletIndex] = useState(null);
+        const [adapter, setAdapter] = useState(null);
+        const [publicKey, setPublicKey] = useState(null);
+        const [connecting, setConnecting] = useState(false);
+        const [message, setMessage] = useState("Hello Solana!");
+        const [signature, setSignature] = useState("");
+        const [error, setError] = useState("");
+        const [copied, setCopied] = useState({address: false, signature: false});
 
-    function App() {
-      const [wallets, setWallets] = useState([]);
-      const [selectedWalletIndex, setSelectedWalletIndex] = useState(null);
-      const [adapter, setAdapter] = useState(null);
-      const [publicKey, setPublicKey] = useState(null);
-      const [connecting, setConnecting] = useState(false);
-      const [message, setMessage] = useState("Hello Solana!");
-      const [signature, setSignature] = useState("");
-      const [error, setError] = useState("");
-      const [copied, setCopied] = useState({address: false, signature: false});
+        useEffect(() => {
+          setWallets([
+            new PhantomWalletAdapter(),
+            new SolflareWalletAdapter(),
+            new TorusWalletAdapter(),
+            new BackpackWalletAdapter(),
+            new LedgerWalletAdapter(),
+            new CoinbaseWalletAdapter(),
+            new MathWalletAdapter(),
+            new SolletExtensionWalletAdapter(),
+            new SolletWalletAdapter(),
+          ]);
+        }, []);
 
-      useEffect(() => {
-        setWallets([
-          new PhantomWalletAdapter(),
-          new SolflareWalletAdapter(),
-          new TorusWalletAdapter(),
-          new BackpackWalletAdapter(),
-          new LedgerWalletAdapter(),
-          new CoinbaseWalletAdapter(),
-          new MathWalletAdapter(),
-          new SolletExtensionWalletAdapter(),
-          new SolletWalletAdapter(),
-        ]);
-      }, []);
+        useEffect(() => {
+          if (selectedWalletIndex !== null) {
+            const wallet = wallets[selectedWalletIndex];
+            setAdapter(wallet);
+          }
+        }, [selectedWalletIndex, wallets]);
 
-      useEffect(() => {
-        if (selectedWalletIndex !== null) {
-          const wallet = wallets[selectedWalletIndex];
-          setAdapter(wallet);
-        }
-      }, [selectedWalletIndex, wallets]);
+        // Connect wallet
+        const connectWallet = async () => {
+          setError("");
+          setSignature("");
+          if (!adapter) return setError("Select a wallet first.");
+          if (adapter.connected) {
+            setPublicKey(adapter.publicKey?.toString());
+            return;
+          }
+          setConnecting(true);
+          try {
+            await adapter.connect();
+            setPublicKey(adapter.publicKey?.toString());
+          } catch (e) {
+            setError("Connection error: " + (e.message || e));
+          }
+          setConnecting(false);
+        };
 
-      // Connect wallet
-      const connectWallet = async () => {
-        setError("");
-        setSignature("");
-        if (!adapter) return setError("Select a wallet first.");
-        if (adapter.connected) {
-          setPublicKey(adapter.publicKey?.toString());
-          return;
-        }
-        setConnecting(true);
-        try {
-          await adapter.connect();
-          setPublicKey(adapter.publicKey?.toString());
-        } catch (e) {
-          setError("Connection error: " + (e.message || e));
-        }
-        setConnecting(false);
-      };
+        // Disconnect wallet
+        const disconnectWallet = async () => {
+          if (adapter && adapter.disconnect) {
+            await adapter.disconnect();
+          }
+          setPublicKey(null);
+          setSignature("");
+          setError("");
+        };
 
-      // Disconnect wallet
-      const disconnectWallet = async () => {
-        if (adapter && adapter.disconnect) {
-          await adapter.disconnect();
-        }
-        setPublicKey(null);
-        setSignature("");
-        setError("");
-      };
+        // Sign message
+        const signMessage = async (e) => {
+          e.preventDefault();
+          setError("");
+          setSignature("");
+          if (!adapter || !adapter.connected) {
+            return setError("Connect your wallet first.");
+          }
+          try {
+            const encoder = new TextEncoder();
+            const encoded = encoder.encode(message);
+            const signed = await adapter.signMessage(encoded, 'utf8');
+            const base64 = btoa(String.fromCharCode(...signed));
+            setSignature(base64);
+          } catch (e) {
+            setError("Signing error: " + (e.message || e));
+          }
+        };
 
-      // Sign message
-      const signMessage = async (e) => {
-        e.preventDefault();
-        setError("");
-        setSignature("");
-        if (!adapter || !adapter.connected) {
-          return setError("Connect your wallet first.");
-        }
-        try {
-          const encoder = new TextEncoder();
-          const encoded = encoder.encode(message);
-          const signed = await adapter.signMessage(encoded, 'utf8');
-          const base64 = btoa(String.fromCharCode(...signed));
-          setSignature(base64);
-        } catch (e) {
-          setError("Signing error: " + (e.message || e));
-        }
-      };
+        // Copy to clipboard helpers
+        const handleCopy = (type, value) => {
+          navigator.clipboard.writeText(value);
+          setCopied(prev => ({...prev, [type]: true}));
+          setTimeout(() => setCopied(prev => ({...prev, [type]: false})), 1200);
+        };
 
-      // Copy to clipboard helpers
-      const handleCopy = (type, value) => {
-        navigator.clipboard.writeText(value);
-        setCopied(prev => ({...prev, [type]: true}));
-        setTimeout(() => setCopied(prev => ({...prev, [type]: false})), 1200);
-      };
-
-      return (
-        React.createElement('div', null,
-          React.createElement('div', { className: 'select-wallet-row' },
-            React.createElement('label', { className: 'field-label', htmlFor: 'wallet-select' }, 'Select Wallet'),
-            React.createElement('select', {
-              id: "wallet-select",
-              ariaLabel: "Select Solana Wallet",
-              value: selectedWalletIndex !== null ? selectedWalletIndex : "",
-              onChange: e => {
-                setSelectedWalletIndex(e.target.value !== "" ? Number(e.target.value) : null);
-                setPublicKey(null);
-                setSignature("");
-                setError("");
-                if (adapter && adapter.disconnect) adapter.disconnect();
-              }
-            },
-              React.createElement('option', { value: "" }, "-- Choose a Wallet --"),
-              wallets.map((w, i) =>
-                React.createElement('option', { key: i, value: i }, w.name)
-              )
+        return (
+          React.createElement('div', null,
+            React.createElement('div', { className: 'select-wallet-row' },
+              React.createElement('label', { className: 'field-label', htmlFor: 'wallet-select' }, 'Select Wallet'),
+              React.createElement('select', {
+                id: "wallet-select",
+                ariaLabel: "Select Solana Wallet",
+                value: selectedWalletIndex !== null ? selectedWalletIndex : "",
+                onChange: e => {
+                  setSelectedWalletIndex(e.target.value !== "" ? Number(e.target.value) : null);
+                  setPublicKey(null);
+                  setSignature("");
+                  setError("");
+                  if (adapter && adapter.disconnect) adapter.disconnect();
+                }
+              },
+                React.createElement('option', { value: "" }, "-- Choose a Wallet --"),
+                wallets.map((w, i) =>
+                  React.createElement('option', { key: i, value: i }, w.name)
+                )
+              ),
+              selectedWalletIndex !== null && React.createElement('button', {
+                onClick: connectWallet,
+                className: adapter && adapter.connected ? "connected" : "",
+                style: {marginTop: 4},
+                disabled: connecting || (adapter && adapter.connected),
+                "aria-label": adapter && adapter.connected ? "Wallet Connected" : "Connect Wallet"
+              }, adapter && adapter.connected ? "Connected" : connecting ? "Connecting..." : "Connect"),
+              adapter && adapter.connected && React.createElement('button', {
+                onClick: disconnectWallet,
+                className: "disconnect",
+                type: "button",
+                "aria-label": "Disconnect Wallet"
+              }, "Disconnect")
             ),
-            selectedWalletIndex !== null && React.createElement('button', {
-              onClick: connectWallet,
-              className: adapter && adapter.connected ? "connected" : "",
-              style: {marginTop: 4},
-              disabled: connecting || (adapter && adapter.connected),
-              "aria-label": adapter && adapter.connected ? "Wallet Connected" : "Connect Wallet"
-            }, adapter && adapter.connected ? "Connected" : connecting ? "Connecting..." : "Connect"),
-            adapter && adapter.connected && React.createElement('button', {
-              onClick: disconnectWallet,
-              className: "disconnect",
-              type: "button",
-              "aria-label": "Disconnect Wallet"
-            }, "Disconnect")
-          ),
-          publicKey && React.createElement('div', { className: "wallet-address" },
-            React.createElement('span', { className: 'shorten', title: publicKey }, publicKey.slice(0, 8) + "..." + publicKey.slice(-6)),
-            React.createElement('button', {
-              type: "button",
-              className: "copy-btn",
-              "aria-label": "Copy Wallet Address",
-              onClick: () => handleCopy('address', publicKey)
-            }, copied.address ? "Copied!" : "Copy")
-          ),
-          React.createElement('form', { id: 'signForm', onSubmit: signMessage, autoComplete: "off" },
-            React.createElement('label', { htmlFor: "message", className: "field-label" }, "Message to Sign"),
-            React.createElement('input', {
-              id: "message",
-              type: "text",
-              ariaLabel: "Message to Sign",
-              value: message,
-              required: true,
-              maxLength: 140,
-              onChange: e => setMessage(e.target.value)
-            }),
-            React.createElement('button', { type: "submit", disabled: !publicKey, "aria-label": "Sign Message" }, "Sign Message")
-          ),
-          signature && React.createElement('div', { className: "signature-block" },
-            React.createElement('span', { className: 'shorten', title: signature }, signature.slice(0, 16) + "..." + signature.slice(-10)),
-            React.createElement('button', {
-              type: "button",
-              className: "copy-btn",
-              "aria-label": "Copy Signature",
-              onClick: () => handleCopy('signature', signature)
-            }, copied.signature ? "Copied!" : "Copy")
-          ),
-          error && React.createElement('div', { className: "error-block", role: "alert" }, error)
-        )
-      );
-    }
+            publicKey && React.createElement('div', { className: "wallet-address" },
+              React.createElement('span', { className: 'shorten', title: publicKey }, publicKey.slice(0, 8) + "..." + publicKey.slice(-6)),
+              React.createElement('button', {
+                type: "button",
+                className: "copy-btn",
+                "aria-label": "Copy Wallet Address",
+                onClick: () => handleCopy('address', publicKey)
+              }, copied.address ? "Copied!" : "Copy")
+            ),
+            React.createElement('form', { id: 'signForm', onSubmit: signMessage, autoComplete: "off" },
+              React.createElement('label', { htmlFor: "message", className: "field-label" }, "Message to Sign"),
+              React.createElement('input', {
+                id: "message",
+                type: "text",
+                ariaLabel: "Message to Sign",
+                value: message,
+                required: true,
+                maxLength: 140,
+                onChange: e => setMessage(e.target.value)
+              }),
+              React.createElement('button', { type: "submit", disabled: !publicKey, "aria-label": "Sign Message" }, "Sign Message")
+            ),
+            signature && React.createElement('div', { className: "signature-block" },
+              React.createElement('span', { className: 'shorten', title: signature }, signature.slice(0, 16) + "..." + signature.slice(-10)),
+              React.createElement('button', {
+                type: "button",
+                className: "copy-btn",
+                "aria-label": "Copy Signature",
+                onClick: () => handleCopy('signature', signature)
+              }, copied.signature ? "Copied!" : "Copy")
+            ),
+            error && React.createElement('div', { className: "error-block", role: "alert" }, error)
+          )
+        );
+      }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+    });
   </script>
 </body>
 </html>
