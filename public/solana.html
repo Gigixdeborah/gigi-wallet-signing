@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
   <script src="https://cdn.skypack.dev/canvas-confetti"></script>
   <style>
+    /* ... [styles unchanged, same as your original file] ... */
     :root {
       --primary-glow: #00d4ff;
       --secondary-glow: #ff4081;
@@ -14,7 +15,6 @@
       --bg-dark: #0a0a2a;
       --bg-light: #1a1a3a;
     }
-
     html, body {
       margin: 0;
       padding: 0;
@@ -26,13 +26,11 @@
       color: var(--text-color);
       touch-action: manipulation;
     }
-
     @keyframes auroraShift {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-
     canvas {
       position: fixed;
       top: 0;
@@ -40,7 +38,6 @@
       z-index: 0;
       opacity: 0.9;
     }
-
     .container {
       z-index: 10;
       position: relative;
@@ -52,7 +49,6 @@
       text-align: center;
       padding: 20px;
     }
-
     .holo-card {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(0, 212, 255, 0.3);
@@ -65,31 +61,25 @@
       animation: prismaticGlow 6s ease-in-out infinite;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-
     .holo-card.touch-feedback {
       animation: holoTilt 0.5s ease-out, magicPulse 0.8s ease-out;
     }
-
     @keyframes prismaticGlow {
       0%, 100% { border-color: var(--primary-glow); box-shadow: 0 0 40px rgba(0, 212, 255, 0.2); }
       50% { border-color: var(--secondary-glow); box-shadow: 0 0 60px rgba(255, 64, 129, 0.4); }
     }
-
     @keyframes holoTilt {
       0% { transform: rotateX(0deg) rotateY(0deg); }
       50% { transform: rotateX(5deg) rotateY(-5deg); }
       100% { transform: rotateX(0deg) rotateY(0deg); }
     }
-
     @keyframes magicPulse {
       0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.5); }
       100% { box-shadow: 0 0 0 30px rgba(0, 212, 255, 0); }
     }
-
     .holo-card:hover {
       transform: scale(1.02);
     }
-
     h1 {
       font-size: 1.5em;
       margin-bottom: 0.3em;
@@ -98,28 +88,24 @@
       font-weight: 300;
       letter-spacing: 1px;
     }
-
     #greeting {
       font-size: 0.8em;
       color: var(--text-color);
       opacity: 0.7;
       margin-bottom: 1em;
     }
-
     .info {
       font-size: 0.9em;
       margin-bottom: 1em;
       color: var(--text-color);
       opacity: 0.9;
     }
-
     .info code {
       font-size: 0.85em;
       background: rgba(255, 255, 255, 0.1);
       padding: 2px 6px;
       border-radius: 4px;
     }
-
     #solana-connect button, #signBtn {
       background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
       border: none;
@@ -131,63 +117,53 @@
       box-shadow: 0 0 15px var(--primary-glow);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-
     #solana-connect button:hover, #signBtn:hover, #solana-connect button:focus, #signBtn:focus {
       transform: scale(1.05);
       box-shadow: 0 0 25px var(--primary-glow);
       outline: none;
     }
-
     #signBtn {
       display: none;
       background: linear-gradient(45deg, #00c853, #00e676);
       box-shadow: 0 0 15px rgba(0, 200, 83, 0.5);
     }
-
     #signBtn:disabled {
       background: #555;
       cursor: not-allowed;
       box-shadow: none;
     }
-
     #successMsg, #errorMsg, #easterEgg {
       margin-top: 1em;
       font-size: 0.9em;
       font-weight: 500;
     }
-
     #successMsg {
       color: #00e676;
       display: none;
       animation: sparkleFade 1s ease-out;
     }
-
     #errorMsg {
       color: #ff5252;
       display: none;
       animation: sparkleFade 1s ease-out;
     }
-
     #easterEgg {
       color: var(--secondary-glow);
       display: none;
       animation: sparkleFade 1s ease-out;
       text-shadow: 0 0 10px var(--secondary-glow);
     }
-
     @keyframes sparkleFade {
       0% { opacity: 0; transform: translateY(10px); filter: brightness(1); }
       50% { filter: brightness(2); }
       100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
     }
-
     .footer {
       margin-top: 1em;
       font-size: 0.8em;
       color: var(--primary-glow);
       opacity: 0.7;
     }
-
     .data-stream {
       display: none;
       position: absolute;
@@ -196,7 +172,6 @@
       background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
       animation: stream 1.5s linear infinite;
     }
-
     @keyframes stream {
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
@@ -262,16 +237,16 @@
     const cometSound = document.getElementById("cometSound");
 
     // Placeholder for Solana wallet connection (e.g., Phantom)
+    let provider = null;
     connectBtn.onclick = async () => {
       try {
-        // Example: Connect to Phantom wallet
-        const provider = window.solana;
-        if (provider?.isPhantom) {
+        provider = window.solana;
+        if (provider?.isPhantom || provider?.isSolflare || provider?.isSafePal) {
           await provider.connect();
           signBtn.style.display = "inline-block";
           connectBtn.style.display = "none";
         } else {
-          alert("Please install Phantom wallet!");
+          alert("Please install Phantom (or compatible Solana wallet)!");
         }
       } catch (err) {
         console.error("Wallet connection failed:", err);
@@ -281,23 +256,36 @@
     signBtn.onclick = async () => {
       signBtn.disabled = true;
       dataStream.style.display = "block";
+      document.getElementById("successMsg").style.display = "none";
+      document.getElementById("errorMsg").style.display = "none";
       try {
-        // Placeholder for Solana transaction signing using @solana/web3.js
-        // const { Connection, PublicKey, Transaction, SystemProgram } = solanaWeb3;
-        // const connection = new Connection("https://api.mainnet-beta.solana.com");
-        // const recipient = new PublicKey(to);
-        // const lamports = parseFloat(amount) * 1e9; // Convert SOL to lamports
-        // const transaction = new Transaction().add(
-        //   SystemProgram.transfer({
-        //     fromPubkey: window.solana.publicKey,
-        //     toPubkey: recipient,
-        //     lamports,
-        //   })
-        // );
-        // const { signature } = await window.solana.signAndSendTransaction(transaction);
-        // await connection.confirmTransaction(signature);
+        const { Connection, PublicKey, Transaction, SystemProgram, clusterApiUrl } = solanaWeb3;
+        const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
+        const recipient = new PublicKey(to);
+        const lamports = parseFloat(amount) * 1e9; // Convert SOL to lamports
+        const fromPubkey = provider.publicKey;
+
+        // Build transaction
+        let transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey,
+            toPubkey: recipient,
+            lamports,
+          })
+        );
+
+        // Recent blockhash is needed
+        transaction.feePayer = fromPubkey;
+        let { blockhash } = await connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+
+        // Request wallet to sign and send
+        let signed = await provider.signTransaction(transaction);
+        let txid = await connection.sendRawTransaction(signed.serialize());
+        await connection.confirmTransaction(txid);
 
         document.getElementById("successMsg").style.display = "block";
+        document.getElementById("successMsg").textContent = "Transaction Signed & Sent! Signature: " + txid;
         if (soundEnabled) {
           document.getElementById("successSound").play();
           cometSound.play();
@@ -331,7 +319,7 @@
       }
     });
 
-    // Canvas effects
+    // Canvas effects (unchanged)
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
     let w = canvas.width = window.innerWidth;
