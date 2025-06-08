@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Solana Wallet Signing | Enchanted Interface</title>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-  <!-- Correct UMD bundle for confetti (for browser script tags) -->
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.89.0/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="config.js"></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -334,7 +334,7 @@
         let signed = await provider.signTransaction(transaction);
         let txid = await connection.sendRawTransaction(signed.serialize());
         await connection.confirmTransaction(txid);
-        fetch('/solana-webhook', {
+        fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/solana-webhook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ wallet: provider.publicKey.toString(), txHash: txid, amount, token, to })

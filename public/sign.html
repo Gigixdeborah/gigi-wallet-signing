@@ -13,6 +13,7 @@
   <script src="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
+  <script src="config.js" defer></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -429,7 +430,7 @@ codex/build-3-mobile-first-signing-pages
 
         // Step 2: Call backend for signature
         liveStatus.textContent = "Finalizing signature on server...";
-        const sigRes = await fetch("/generate-signature", {
+        const sigRes = await fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/generate-signature`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -439,7 +440,7 @@ codex/build-3-mobile-first-signing-pages
 
         // Step 3: Broadcast to webhook
         liveStatus.textContent = "Sending transaction to the network...";
-        await fetch("/ton-webhook", {
+        await fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/ton-webhook`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
