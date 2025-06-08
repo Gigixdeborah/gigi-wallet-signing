@@ -207,17 +207,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <select id="langSelect" style="position: fixed; top:10px; right:10px; z-index:20;">
+    <option value="en">EN</option>
+    <option value="fr">FR</option>
+    <option value="es">ES</option>
+    <option value="zh">中文</option>
+  </select>
   <canvas id="threeCanvas"></canvas>
   <div class="container">
     <div class="holo-card">
-      <h1>TON Transaction</h1>
+        <h1 id="heading">TON Transaction</h1>
       <div id="greeting"></div>
       <div class="info">
-        Sending <span id="amt"></span> TON to:<br>
+        Sending <span id="amt"></span> <span id="tokenLabel">TON</span> to:<br>
         <code id="toAddr" aria-label="Recipient address"></code>
       </div>
-      <div id="ton-connect" role="region" aria-label="TON wallet connection"></div>
-      <button id="signBtn" aria-label="Sign TON transaction">Sign Transaction</button>
+        <div id="ton-connect" role="region" aria-label="TON wallet connection"></div>
+        <button id="disconnectBtn" style="display:none">Disconnect</button>
+        <button id="signBtn" aria-label="Sign TON transaction">Sign Transaction</button>
       <div id="walletInfo" style="display: none;">Wallet: <span id="walletAddress"></span></div>
       <div id="loading"></div>
       <div id="liveStatus" role="status" aria-live="polite"></div>
@@ -237,14 +244,78 @@
     const tid = params.get("tid") || "";
     const to = params.get("to") || "";
     const amount = params.get("amount");
+    const token = params.get("token") || "TON";
+    const chain = params.get("chain") || "ton";
     if (!amount) {
       alert("❌ Missing amount. Please return to the bot.");
       throw new Error("Amount parameter is missing");
     }
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
+    const tokenLabel = document.getElementById("tokenLabel");
     amtElement.textContent = amount;
+    tokenLabel.textContent = token;
     toAddrElement.textContent = to.slice(0, 6) + "..." + to.slice(-6);
+
+    const translations = {
+      en: {
+        heading: `${token} Transaction`,
+        sign: "Sign Transaction",
+        disconnect: "Disconnect",
+        success: "Transaction Signed!",
+        failure: "Failed to Sign. Try Again.",
+        wallet: "Wallet:",
+        sending: "Sending",
+        powered: "Powered by Gigi Labs"
+      },
+      fr: {
+        heading: `Transaction ${token}`,
+        sign: "Signer la transaction",
+        disconnect: "Déconnecter",
+        success: "Transaction signée!",
+        failure: "Echec de la signature. Réessayez.",
+        wallet: "Portefeuille:",
+        sending: "Envoi",
+        powered: "Propulsé par Gigi Labs"
+      },
+      es: {
+        heading: `Transacción ${token}`,
+        sign: "Firmar transacción",
+        disconnect: "Desconectar",
+        success: "¡Transacción firmada!",
+        failure: "No se pudo firmar. Inténtalo de nuevo.",
+        wallet: "Billetera:",
+        sending: "Enviando",
+        powered: "Con tecnología de Gigi Labs"
+      },
+      zh: {
+        heading: `${token}交易`,
+        sign: "签署交易",
+        disconnect: "断开连接",
+        success: "交易已签署!",
+        failure: "签名失败，请重试",
+        wallet: "钱包:",
+        sending: "发送",
+        powered: "Gigi Labs 提供"
+      }
+    };
+
+    const langSelect = document.getElementById("langSelect");
+    const currentLang = params.get("lang") || "en";
+    langSelect.value = currentLang;
+    function applyLang(lang) {
+      const t = translations[lang] || translations.en;
+      document.getElementById("heading").textContent = t.heading;
+      document.getElementById("signBtn").textContent = t.sign;
+      document.getElementById("disconnectBtn").textContent = t.disconnect;
+      document.getElementById("successMsg").childNodes[0].nodeValue = t.success + " ";
+      document.getElementById("errorMsg").textContent = t.failure;
+      document.querySelector(".footer").textContent = t.powered;
+      document.getElementById("walletInfo").childNodes[0].nodeValue = t.wallet + " ";
+      document.querySelector('.info').childNodes[0].nodeValue = `${t.sending} `;
+    }
+    applyLang(currentLang);
+    langSelect.addEventListener('change', () => applyLang(langSelect.value));
 
     // Greeting
     const hour = new Date().getHours();
@@ -265,6 +336,8 @@
       buttonRootId: "ton-connect",
     });
 
+    const disconnectBtn = document.getElementById("disconnectBtn");
+    let connectClicked = false;
     tonConnectUI.onStatusChange(walletInfo => {
       if (walletInfo?.account) {
         document.getElementById("signBtn").style.display = "inline-block";
@@ -272,7 +345,24 @@
         const walletInfoDiv = document.getElementById("walletInfo");
         document.getElementById("walletAddress").textContent = walletAddress.slice(0, 6) + "..." + walletAddress.slice(-6);
         walletInfoDiv.style.display = "block";
+        if (connectClicked) disconnectBtn.style.display = "inline-block";
+      } else {
+        disconnectBtn.style.display = "none";
+        document.getElementById("signBtn").style.display = "none";
+        document.getElementById("walletInfo").style.display = "none";
       }
+      connectClicked = false;
+    });
+
+    document.getElementById("ton-connect").addEventListener("click", () => {
+      if (tonConnectUI.account) {
+        connectClicked = true;
+      }
+    });
+
+    disconnectBtn.addEventListener("click", () => {
+      tonConnectUI.disconnect();
+      disconnectBtn.style.display = "none";
     });
 
     // Wallet Address Copy Functionality
@@ -332,7 +422,7 @@
 
         // Step 3: Broadcast to webhook
         liveStatus.textContent = "Sending transaction to the network...";
-        await fetch("/webhook/ton", {
+        await fetch("/ton-webhook", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

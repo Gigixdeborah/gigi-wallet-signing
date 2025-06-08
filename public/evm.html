@@ -195,16 +195,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <select id="langSelect" style="position: fixed; top:10px; right:10px; z-index:20;">
+    <option value="en">EN</option>
+    <option value="fr">FR</option>
+    <option value="es">ES</option>
+    <option value="zh">中文</option>
+  </select>
   <canvas id="threeCanvas"></canvas>
   <div class="container">
     <div class="holo-card">
-      <h1>EVM Transaction</h1>
+      <h1 id="heading">EVM Transaction</h1>
       <div id="greeting"></div>
       <div class="info">
-        Sending <span id="amt"></span> ETH to:<br>
+        Sending <span id="amt"></span> <span id="tokenLabel">ETH</span> to:<br>
         <code id="toAddr" aria-label="Recipient address"></code>
       </div>
       <button id="connectBtn">Connect Wallet</button>
+      <button id="disconnectBtn" style="display:none">Disconnect</button>
       <button id="signBtn">Sign Transaction</button>
       <div id="walletInfo" style="display: none;">Wallet: <span id="walletAddress"></span></div>
       <div id="loading"></div>
@@ -217,11 +224,18 @@
   <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
   <script>
     // EVM/MetaMask JS logic, adapted for the new UI
-    const CHAIN_ID = 11155111; // Sepolia
-    const WEBHOOK_BASE = 'https://34.203.188.151'; // Use HTTPS
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token") || "ETH";
+    const chainParam = params.get("chain") || "sepolia";
+    const CHAIN_MAP = { mainnet:1, sepolia:11155111, polygon:137, bsc:56, avax:43114 };
+    const CHAIN_ID = CHAIN_MAP[chainParam] || 11155111;
+    const EXPLORERS = { 1:'https://etherscan.io', 11155111:'https://sepolia.etherscan.io', 137:'https://polygonscan.com', 56:'https://bscscan.com', 43114:'https://snowtrace.io' };
+    const WEBHOOK_BASE = '';
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
+    const tokenLabel = document.getElementById("tokenLabel");
     const connectBtn = document.getElementById("connectBtn");
+    const disconnectBtn = document.getElementById("disconnectBtn");
     const signBtn = document.getElementById("signBtn");
     const walletInfo = document.getElementById("walletInfo");
     const walletAddressSpan = document.getElementById("walletAddress");
@@ -232,12 +246,34 @@
     const txLink = document.getElementById("txLink");
     const successSound = document.getElementById("successSound");
 
-    // OPTIONAL: Parse params for recipient and amount (or set default)
-    const params = new URLSearchParams(window.location.search);
     const to = params.get("to") || "0x000000000000000000000000000000000000dead";
     const amount = params.get("amount") || "0.01";
     amtElement.textContent = amount;
+    tokenLabel.textContent = token;
     toAddrElement.textContent = to.slice(0, 6) + "..." + to.slice(-6);
+
+    const translations = {
+      en: { heading:`${token} Transaction`, connect:"Connect Wallet", disconnect:"Disconnect", sign:"Sign Transaction", success:"Transaction Signed!", failure:"Failed to Sign. Try Again.", wallet:"Wallet:", powered:"Powered by Gigi Labs" },
+      fr: { heading:`Transaction ${token}`, connect:"Connecter le portefeuille", disconnect:"Déconnecter", sign:"Signer la transaction", success:"Transaction signée!", failure:"Echec de la signature. Réessayez.", wallet:"Portefeuille:", powered:"Propulsé par Gigi Labs" },
+      es: { heading:`Transacción ${token}`, connect:"Conectar Cartera", disconnect:"Desconectar", sign:"Firmar transacción", success:"¡Transacción firmada!", failure:"No se pudo firmar. Inténtalo de nuevo.", wallet:"Billetera:", powered:"Con tecnología de Gigi Labs" },
+      zh: { heading:`${token}交易`, connect:"连接钱包", disconnect:"断开连接", sign:"签署交易", success:"交易已签署!", failure:"签名失败，请重试", wallet:"钱包:", powered:"Gigi Labs 提供" }
+    };
+    const langSelect = document.getElementById('langSelect');
+    const currentLang = params.get('lang') || 'en';
+    langSelect.value = currentLang;
+    function applyLang(lang){
+      const t = translations[lang] || translations.en;
+      document.getElementById('heading').textContent = t.heading;
+      connectBtn.textContent = t.connect;
+      disconnectBtn.textContent = t.disconnect;
+      signBtn.textContent = t.sign;
+      successMsg.childNodes[0].nodeValue = t.success + ' ';
+      errorMsg.textContent = t.failure;
+      document.querySelector('.footer').textContent = t.powered;
+      walletInfo.childNodes[0].nodeValue = t.wallet + ' ';
+    }
+    applyLang(currentLang);
+    langSelect.addEventListener('change',()=>applyLang(langSelect.value));
 
     // Greeting
     const hour = new Date().getHours();
@@ -258,12 +294,16 @@
 
     function showSuccess(hash) {
       successMsg.style.display = "block";
-      txLink.href = `https://sepolia.etherscan.io/tx/${hash}`;
+      txLink.href = `${EXPLORERS[CHAIN_ID]}/tx/${hash}`;
       setTimeout(() => { successMsg.style.display = "none"; }, 7000);
       successSound.play().catch(() => {});
     }
 
     connectBtn.onclick = async () => {
+      if (signer) {
+        disconnectBtn.style.display = "inline-block";
+        return;
+      }
       if (!window.ethereum) {
         showError("No EVM wallet detected. Please install MetaMask or a compatible wallet.");
         return;
@@ -290,6 +330,15 @@
       }
     };
 
+    disconnectBtn.addEventListener('click', () => {
+      provider = null;
+      signer = null;
+      walletInfo.style.display = 'none';
+      signBtn.style.display = 'none';
+      disconnectBtn.style.display = 'none';
+      connectBtn.textContent = translations[langSelect.value].connect;
+    });
+
     signBtn.onclick = async () => {
       if (!signer) return;
       signBtn.disabled = true;
@@ -308,14 +357,14 @@
         liveStatus.textContent = "Transaction confirmed!";
         showSuccess(txResp.hash);
         // Send webhook if needed
-        fetch(`${WEBHOOK_BASE}/evm-webhook`, {
+        fetch(`/evm-webhook`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             wallet_address: await signer.getAddress(),
             txHash: txResp.hash,
             amount: amount,
-            token: "ETH",
+            token: token,
             to: to
           })
         }).catch(() => {});
@@ -335,8 +384,81 @@
     const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("threeCanvas"), alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.position.z = 5;
-    // ... (starfield code, copy from sign.html's script)
-    // (for brevity: copy the starfield initialization and animation block from sign.html)
+
+    const starsGeometry = new THREE.BufferGeometry();
+    const starCount = 10000;
+    const positions = new Float32Array(starCount * 3);
+    const sizes = new Float32Array(starCount);
+    const opacities = new Float32Array(starCount);
+    const velocities = new Float32Array(starCount * 2);
+
+    for (let i = 0; i < starCount; i++) {
+      const i3 = i * 3;
+      const layer = Math.random();
+      const distance = layer < 0.3 ? 5 : layer < 0.6 ? 10 : 15;
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * distance;
+      positions[i3] = Math.cos(angle) * radius;
+      positions[i3 + 1] = Math.sin(angle) * radius;
+      positions[i3 + 2] = (Math.random() - 0.5) * distance;
+      sizes[i] = layer < 0.3 ? 0.05 : layer < 0.6 ? 0.03 : 0.01;
+      opacities[i] = layer < 0.3 ? 1 : layer < 0.6 ? 0.7 : 0.4;
+      velocities[i * 2] = (Math.random() - 0.5) * (layer < 0.3 ? 0.002 : layer < 0.6 ? 0.001 : 0.0005);
+      velocities[i * 2 + 1] = (Math.random() - 0.5) * (layer < 0.3 ? 0.002 : layer < 0.6 ? 0.001 : 0.0005);
+    }
+    starsGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    starsGeometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+    starsGeometry.setAttribute("opacity", new THREE.BufferAttribute(opacities, 1));
+    const starsMaterial = new THREE.ShaderMaterial({
+      uniforms: {},
+      vertexShader: `
+        attribute float size;
+        attribute float opacity;
+        varying float vOpacity;
+        void main() {
+          vOpacity = opacity;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (300.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying float vOpacity;
+        void main() {
+          gl_FragColor = vec4(1.0, 1.0, 1.0, vOpacity);
+        }
+      `,
+      transparent: true
+    });
+    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(stars);
+
+    function animateStars() {
+      stars.rotation.y += 0.0005;
+      const positions = starsGeometry.attributes.position.array;
+      for (let i = 0; i < starCount; i++) {
+        const i3 = i * 3;
+        positions[i3] += velocities[i * 2];
+        positions[i3 + 1] += velocities[i * 2 + 1];
+        const distance = Math.sqrt(positions[i3] ** 2 + positions[i3 + 1] ** 2);
+        const maxDistance = (i < starCount * 0.3) ? 5 : (i < starCount * 0.6) ? 10 : 15;
+        if (distance > maxDistance) {
+          const angle = Math.random() * Math.PI * 2;
+          positions[i3] = Math.cos(angle) * maxDistance * 0.1;
+          positions[i3 + 1] = Math.sin(angle) * maxDistance * 0.1;
+        }
+      }
+      starsGeometry.attributes.position.needsUpdate = true;
+      renderer.render(scene, camera);
+      requestAnimationFrame(animateStars);
+    }
+    animateStars();
+
+    window.addEventListener("resize", () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
   </script>
 </body>
 </html>
