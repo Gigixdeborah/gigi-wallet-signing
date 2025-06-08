@@ -1,3 +1,5 @@
 window.GIGI_CONFIG = {
-  WEBHOOK_BASE: ''
+amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
+  WEBHOOK_BASE: '',
+  WEBHOOK_SECRET: ''
 };

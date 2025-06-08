@@ -266,6 +266,7 @@
       }
     });
 
+ amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
     // Request server-side signature
     async function generateSignature(payload) {
       const res = await fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/generate-signature`, {
@@ -275,6 +276,23 @@
       });
       const data = await res.json();
       return data.signature;
+
+    // Generate HMAC signature using secret from config
+    async function generateSignature(payload) {
+      const secret = window.GIGI_CONFIG.WEBHOOK_SECRET;
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(secret),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+      const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+      return Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+ main
     }
 
     // Sign transaction and send webhook

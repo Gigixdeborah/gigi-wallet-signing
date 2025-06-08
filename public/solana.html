@@ -4,12 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="favicon.ico" />
+amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.89.0/lib/index.iife.min.js" as="script" />
   <link rel="preload" href="config.js" as="script" />
   <title>Solana Wallet Signing | Enchanted Interface</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.89.0/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="config.js" onerror="window.GIGI_CONFIG={WEBHOOK_BASE:''}"></script>
+  <meta property="og:title" content="Solana Wallet Signing | Enchanted Interface" />
+  <meta property="og:description" content="Sign Solana transactions securely with Enchanted Interface." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/favicon.ico" />
+  <meta name="twitter:card" content="summary" />
+  <title>Solana Wallet Signing | Enchanted Interface</title>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.89.0/lib/index.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="config.js"></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -225,6 +235,10 @@
   <audio id="ambientSound" src="https://assets.mixkit.co/sfx/download/mixkit-ambient-mystical-forest-121.wav" preload="auto" loop></audio>
 
   <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
     const params = new URLSearchParams(window.location.search);
     const amount = params.get("amount") || "1";
     const to = params.get("to") || "";
@@ -355,8 +369,10 @@
         let signed = await provider.signTransaction(transaction);
         let txid = await connection.sendRawTransaction(signed.serialize());
         await connection.confirmTransaction(txid);
+    amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
         const payload = { wallet: provider.publicKey.toString(), txHash: txid, amount, token, to };
         const sig = await generateSignature(payload);
+
         fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/solana-webhook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': sig },

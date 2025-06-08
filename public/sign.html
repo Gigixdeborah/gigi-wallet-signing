@@ -16,7 +16,10 @@
   <script src="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
+ amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
   <script src="config.js" defer onerror="window.GIGI_CONFIG={WEBHOOK_BASE:''}" ></script>
+  
+  <script src="config.js" defer></script> 
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -269,6 +272,7 @@
       alert("❌ Missing amount. Please return to the bot.");
       throw new Error("Amount parameter is missing");
     }
+amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
 
     if (!tid || !to || !amount) {
       alert("❌ Missing transaction details. Please return to the bot.");
