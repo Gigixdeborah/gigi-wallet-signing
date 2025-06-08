@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EVM Transaction | Cosmic Interface</title>
   <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.skypack.dev/canvas-confetti"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="config.js"></script>
   <style>
     /* Copy style section from sign.html above */
     :root {
@@ -357,7 +358,7 @@
         liveStatus.textContent = "Transaction confirmed!";
         showSuccess(txResp.hash);
         // Send webhook if needed
-        fetch(`/evm-webhook`, {
+        fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/evm-webhook`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

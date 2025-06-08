@@ -1,0 +1,11 @@
+[Unit]
+Description=Gigi Wallet Signing static site
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/nginx -g 'daemon off;'
+WorkingDirectory=/usr/share/nginx/html
+
+[Install]
+WantedBy=multi-user.target
