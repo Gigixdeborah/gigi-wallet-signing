@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="favicon.ico" />
+amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.89.0/lib/index.iife.min.js" as="script" />
+  <link rel="preload" href="config.js" as="script" />
+  <title>Solana Wallet Signing | Enchanted Interface</title>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.89.0/lib/index.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="config.js" onerror="window.GIGI_CONFIG={WEBHOOK_BASE:''}"></script>
   <meta property="og:title" content="Solana Wallet Signing | Enchanted Interface" />
   <meta property="og:description" content="Sign Solana transactions securely with Enchanted Interface." />
   <meta property="og:type" content="website" />
@@ -182,6 +189,11 @@
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
     }
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:50;align-items:center;justify-content:center;}
+    .modal.show{display:flex;animation:fadeScale 0.3s ease;}
+    @keyframes fadeScale{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+    .modal-content{background:#111;padding:1.5em;border-radius:8px;box-shadow:0 0 20px var(--primary-glow);color:#fff;text-align:center;}
+    @media (max-width:480px){.holo-card{max-width:95%;padding:1em;}h1{font-size:1.2em;}}
   </style>
 </head>
 <body>
@@ -212,6 +224,9 @@
       <div id="easterEgg">✨ You Found the Magic! ✨</div>
       <div class="footer">Powered by Gigi Labs</div>
     </div>
+  </div>
+  <div id="successModal" class="modal" aria-live="polite">
+    <div class="modal-content" id="successText"></div>
   </div>
 
   <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
@@ -244,7 +259,8 @@
       zh: { heading:`${token}交易`, connect:"连接钱包", disconnect:"断开连接", sign:"签署交易", success:"交易已签署!", failure:"签名失败，请重试", powered:"Gigi Labs 提供", wallet:"钱包:" }
     };
     const langSelect = document.getElementById('langSelect');
-    const currentLang = params.get('lang') || 'en';
+    const browserLang = navigator.language.slice(0,2).toLowerCase();
+    const currentLang = params.get('lang') || (translations[browserLang] ? browserLang : 'en');
     langSelect.value = currentLang;
     function applyLang(lang){
       const t = translations[lang] || translations.en;
@@ -253,6 +269,7 @@
       disconnectBtn.textContent = t.disconnect;
       signBtn.textContent = t.sign;
       document.getElementById('successMsg').textContent = t.success;
+      document.getElementById('successText').textContent = t.success;
       document.getElementById('errorMsg').textContent = t.failure;
       document.querySelector('.footer').textContent = t.powered;
     }
@@ -279,6 +296,14 @@
     const holoCard = document.querySelector(".holo-card");
     const touchSound = document.getElementById("touchSound");
     const cometSound = document.getElementById("cometSound");
+
+    async function generateSignature(payload){
+      const res = await fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/generate-signature`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      return (await res.json()).signature;
+    }
 
     // Only declare provider once
     let provider = null;
@@ -344,14 +369,20 @@
         let signed = await provider.signTransaction(transaction);
         let txid = await connection.sendRawTransaction(signed.serialize());
         await connection.confirmTransaction(txid);
+    amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
+        const payload = { wallet: provider.publicKey.toString(), txHash: txid, amount, token, to };
+        const sig = await generateSignature(payload);
+
         fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/solana-webhook`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wallet: provider.publicKey.toString(), txHash: txid, amount, token, to })
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': sig },
+          body: JSON.stringify(payload)
         }).catch(() => {});
 
-        document.getElementById("successMsg").style.display = "block";
-        document.getElementById("successMsg").textContent = "Transaction Signed & Sent! Signature: " + txid;
+        const successModal = document.getElementById("successModal");
+        const successText = document.getElementById("successText");
+        successText.textContent = translations[langSelect.value].success;
+        successModal.classList.add("show");
 
         // Confetti celebration!
         confetti({
@@ -364,6 +395,7 @@
           document.getElementById("successSound").play();
           cometSound.play();
         }
+        setTimeout(() => successModal.classList.remove("show"), 2500);
         navigator.vibrate?.(50);
         comets.push({
           x: 0,

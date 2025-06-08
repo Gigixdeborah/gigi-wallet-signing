@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="preload" href="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js" as="script" />
+  <link rel="preload" href="config.js" as="script" />
   <meta name="description" content="Sign TON transactions securely with Cosmic Interface." />
   <meta property="og:title" content="TON Transaction | Cosmic Interface" />
   <meta property="og:description" content="Sign TON transactions securely with Cosmic Interface." />
@@ -13,7 +16,10 @@
   <script src="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
-  <script src="config.js" defer></script>
+ amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
+  <script src="config.js" defer onerror="window.GIGI_CONFIG={WEBHOOK_BASE:''}" ></script>
+  
+  <script src="config.js" defer></script> 
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -211,6 +217,11 @@
       font-weight: 600;
       text-shadow: 0 0 7px var(--primary-glow);
     }
+    .modal {display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:50;align-items:center;justify-content:center;}
+    .modal.show{display:flex;animation:fadeScale 0.3s ease;}
+    @keyframes fadeScale{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+    .modal-content{background:#111;padding:1.5em;border-radius:8px;box-shadow:0 0 20px var(--primary-glow);color:#fff;text-align:center;}
+    @media (max-width:480px){.holo-card{max-width:95%;padding:1em;}h1{font-size:1.2em;}}
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -242,6 +253,9 @@
       <div class="footer">Powered by Gigi Labs</div>
     </div>
   </div>
+  <div id="successModal" class="modal" aria-live="polite">
+    <div class="modal-content" id="successText"></div>
+  </div>
   <audio id="clickSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto" aria-hidden="true"></audio>
   <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto" aria-hidden="true"></audio>
   <audio id="cometSound" src="https://assets.mixkit.co/sfx/download/mixkit-magic-sweep-234.wav" preload="auto" aria-hidden="true"></audio>
@@ -258,6 +272,8 @@
       alert("❌ Missing amount. Please return to the bot.");
       throw new Error("Amount parameter is missing");
     }
+amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
+
     if (!tid || !to || !amount) {
       alert("❌ Missing transaction details. Please return to the bot.");
       throw new Error("Missing transaction parameters");
@@ -313,7 +329,8 @@
     };
 
     const langSelect = document.getElementById("langSelect");
-    const currentLang = params.get("lang") || "en";
+    const browserLang = navigator.language.slice(0,2).toLowerCase();
+    const currentLang = params.get("lang") || (translations[browserLang] ? browserLang : "en");
     langSelect.value = currentLang;
     function applyLang(lang) {
       const t = translations[lang] || translations.en;
@@ -321,6 +338,7 @@
       document.getElementById("signBtn").textContent = t.sign;
       document.getElementById("disconnectBtn").textContent = t.disconnect;
       document.getElementById("successMsg").childNodes[0].nodeValue = t.success + " ";
+      document.getElementById("successText").textContent = t.success;
       document.getElementById("errorMsg").textContent = t.failure;
       document.querySelector(".footer").textContent = t.powered;
       document.getElementById("walletInfo").childNodes[0].nodeValue = t.wallet + " ";
@@ -444,14 +462,17 @@
         });
 
         liveStatus.textContent = "Transaction sent! Awaiting confirmation...";
-        document.getElementById("successMsg").style.display = "block";
         const txLink = document.getElementById("txLink");
         txLink.href = `https://tonviewer.com/transaction/${result.boc.slice(0, 20)}`;
+        const successModal = document.getElementById("successModal");
+        const successText = document.getElementById("successText");
+        successText.textContent = translations[currentLang].success;
+        successModal.classList.add("show");
         if (soundEnabled) {
           successSound.play().catch(err => console.log("Success sound play failed:", err));
           cometSound.play().catch(err => console.log("Comet sound play failed:", err));
         }
-
+        setTimeout(() => successModal.classList.remove("show"), 2500);
         setTimeout(() => {
           window.location.href = "https://t.me/GigiP2Bot";
         }, 3000);

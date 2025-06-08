@@ -20,8 +20,12 @@ Multi-chain wallet connection pages for TON, EVM, Solana.
 
 ## Setup
 1. Clone repo  
+ amvojd-codex/refactor-and-enhance-multi-repository-project-for-production
+2. Update `WEBHOOK_BASE` in `config.js` or via `.env` when building Docker image
+
 2. Update `WEBHOOK_BASE` and `WEBHOOK_SECRET` in `config.js` or via `.env`
    when building Docker image
+ 
 3. Push to GitHub → deploy to Render
 
 ## Backend (example)
