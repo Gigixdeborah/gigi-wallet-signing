@@ -215,17 +215,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-codex/build-3-mobile-first-signing-pages
   <select id="langSelect" style="position: fixed; top:10px; right:10px; z-index:20;">
     <option value="en">EN</option>
     <option value="fr">FR</option>
     <option value="es">ES</option>
     <option value="zh">中文</option>
   </select>
-  <canvas id="threeCanvas"></canvas>
-  
   <canvas id="threeCanvas" aria-label="Animated starfield background"></canvas>
-  main
   <div class="container">
     <div class="holo-card">
         <h1 id="heading">TON Transaction</h1>
@@ -256,17 +252,15 @@ codex/build-3-mobile-first-signing-pages
     const tid = params.get("tid");
     const to = params.get("to");
     const amount = params.get("amount");
-codex/build-3-mobile-first-signing-pages
     const token = params.get("token") || "TON";
     const chain = params.get("chain") || "ton";
     if (!amount) {
       alert("❌ Missing amount. Please return to the bot.");
       throw new Error("Amount parameter is missing");
-
+    }
     if (!tid || !to || !amount) {
       alert("❌ Missing transaction details. Please return to the bot.");
       throw new Error("Missing transaction parameters");
-      main
     }
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
