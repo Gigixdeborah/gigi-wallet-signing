@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="preload" href="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js" as="script" />
+  <link rel="preload" href="config.js" as="script" />
   <title>EVM Transaction | Cosmic Interface</title>
   <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.skypack.dev/canvas-confetti"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="config.js" onerror="window.GIGI_CONFIG={WEBHOOK_BASE:''}"></script>
   <style>
     /* Copy style section from sign.html above */
     :root {
@@ -191,6 +195,11 @@
       font-weight: 600;
       text-shadow: 0 0 7px var(--primary-glow);
     }
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:50;align-items:center;justify-content:center;}
+    .modal.show{display:flex;animation:fadeScale 0.3s ease;}
+    @keyframes fadeScale{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+    .modal-content{background:#111;padding:1.5em;border-radius:8px;box-shadow:0 0 20px var(--primary-glow);color:#fff;text-align:center;}
+    @media (max-width:480px){.holo-card{max-width:95%;padding:1em;}h1{font-size:1.2em;}}
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -221,6 +230,9 @@
       <div class="footer">Powered by Gigi Labs</div>
     </div>
   </div>
+  <div id="successModal" class="modal" aria-live="polite">
+    <div class="modal-content" id="successText"></div>
+  </div>
   <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
   <script>
     // EVM/MetaMask JS logic, adapted for the new UI
@@ -230,7 +242,7 @@
     const CHAIN_MAP = { mainnet:1, sepolia:11155111, polygon:137, bsc:56, avax:43114 };
     const CHAIN_ID = CHAIN_MAP[chainParam] || 11155111;
     const EXPLORERS = { 1:'https://etherscan.io', 11155111:'https://sepolia.etherscan.io', 137:'https://polygonscan.com', 56:'https://bscscan.com', 43114:'https://snowtrace.io' };
-    const WEBHOOK_BASE = '';
+    const WEBHOOK_BASE = window.GIGI_CONFIG.WEBHOOK_BASE || '';
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
     const tokenLabel = document.getElementById("tokenLabel");
@@ -243,6 +255,13 @@
     const liveStatus = document.getElementById("liveStatus");
     const successMsg = document.getElementById("successMsg");
     const errorMsg = document.getElementById("errorMsg");
+    async function generateSignature(payload){
+      const res = await fetch(`${WEBHOOK_BASE}/generate-signature`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      return (await res.json()).signature;
+    }
     const txLink = document.getElementById("txLink");
     const successSound = document.getElementById("successSound");
 
@@ -259,7 +278,8 @@
       zh: { heading:`${token}交易`, connect:"连接钱包", disconnect:"断开连接", sign:"签署交易", success:"交易已签署!", failure:"签名失败，请重试", wallet:"钱包:", powered:"Gigi Labs 提供" }
     };
     const langSelect = document.getElementById('langSelect');
-    const currentLang = params.get('lang') || 'en';
+    const browserLang = navigator.language.slice(0,2).toLowerCase();
+    const currentLang = params.get('lang') || (translations[browserLang] ? browserLang : 'en');
     langSelect.value = currentLang;
     function applyLang(lang){
       const t = translations[lang] || translations.en;
@@ -268,6 +288,7 @@
       disconnectBtn.textContent = t.disconnect;
       signBtn.textContent = t.sign;
       successMsg.childNodes[0].nodeValue = t.success + ' ';
+      document.getElementById('successText').textContent = t.success;
       errorMsg.textContent = t.failure;
       document.querySelector('.footer').textContent = t.powered;
       walletInfo.childNodes[0].nodeValue = t.wallet + ' ';
@@ -293,10 +314,11 @@
     }
 
     function showSuccess(hash) {
-      successMsg.style.display = "block";
       txLink.href = `${EXPLORERS[CHAIN_ID]}/tx/${hash}`;
-      setTimeout(() => { successMsg.style.display = "none"; }, 7000);
+      document.getElementById('successText').textContent = translations[langSelect.value].success;
+      document.getElementById('successModal').classList.add('show');
       successSound.play().catch(() => {});
+      setTimeout(() => document.getElementById('successModal').classList.remove('show'), 2500);
     }
 
     connectBtn.onclick = async () => {
@@ -357,16 +379,21 @@
         liveStatus.textContent = "Transaction confirmed!";
         showSuccess(txResp.hash);
         // Send webhook if needed
-        fetch(`/evm-webhook`, {
+        const payload = {
+          wallet_address: await signer.getAddress(),
+          txHash: txResp.hash,
+          amount: amount,
+          token: token,
+          to: to
+        };
+        const sig = await generateSignature(payload);
+        fetch(`${WEBHOOK_BASE}/evm-webhook`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            wallet_address: await signer.getAddress(),
-            txHash: txResp.hash,
-            amount: amount,
-            token: token,
-            to: to
-          })
+          headers: {
+            "Content-Type": "application/json",
+            "X-Webhook-Signature": sig
+          },
+          body: JSON.stringify(payload)
         }).catch(() => {});
       } catch (err) {
         showError("Failed to sign transaction: " + (err.message || ""));

@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TON Transaction | Enchanted Interface</title>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <script src="https://cdn.skypack.dev/canvas-confetti"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="config.js"></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -265,21 +266,15 @@
       }
     });
 
-    // Generate HMAC signature for webhook
+    // Request server-side signature
     async function generateSignature(payload) {
-      const secret = "your_webhook_secret"; // Replace with your actual secret
-      const encoder = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(secret),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-      const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
-      return Array.from(new Uint8Array(signature))
-        .map(b => b.toString(16).padStart(2, "0"))
-        .join("");
+      const res = await fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/generate-signature`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+      const data = await res.json();
+      return data.signature;
     }
 
     // Sign transaction and send webhook
@@ -312,7 +307,7 @@
 
         const signature = await generateSignature(JSON.stringify(payload));
 
-        await fetch("/ton-webhook", {
+        await fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/ton-webhook`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
