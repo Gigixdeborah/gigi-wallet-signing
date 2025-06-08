@@ -179,18 +179,25 @@
   </style>
 </head>
 <body>
+  <select id="langSelect" style="position: fixed; top:10px; right:10px; z-index:20;">
+    <option value="en">EN</option>
+    <option value="fr">FR</option>
+    <option value="es">ES</option>
+    <option value="zh">中文</option>
+  </select>
   <canvas id="bg"></canvas>
 
   <div class="container">
     <div class="holo-card">
-      <h1>Solana Transaction</h1>
+      <h1 id="heading">Solana Transaction</h1>
       <div id="greeting"></div>
       <div class="info">
-        Sending <span id="amt"></span> SOL to:<br>
+        Sending <span id="amt"></span> <span id="tokenLabel">SOL</span> to:<br>
         <code id="toAddr" aria-label="Recipient address"></code>
       </div>
       <div id="solana-connect" role="region" aria-label="Solana wallet connection">
         <button id="connectBtn">Connect Solana Wallet</button>
+        <button id="disconnectBtn" style="display:none">Disconnect</button>
       </div>
       <button id="signBtn" aria-label="Sign Solana transaction">Sign Transaction</button>
       <div class="data-stream" id="dataStream"></div>
@@ -211,11 +218,36 @@
     const amount = params.get("amount") || "1";
     const to = params.get("to") || "";
     const tid = params.get("tid") || "";
+    const token = params.get("token") || "SOL";
 
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
+    const tokenLabel = document.getElementById("tokenLabel");
     amtElement.textContent = amount;
+    tokenLabel.textContent = token;
     toAddrElement.textContent = to.slice(0, 6) + "..." + to.slice(-6);
+
+    const translations = {
+      en: { heading:`${token} Transaction`, connect:"Connect Solana Wallet", disconnect:"Disconnect", sign:"Sign Transaction", success:"Transaction Signed!", failure:"Failed to Sign. Try Again.", powered:"Powered by Gigi Labs", wallet:"Wallet:" },
+      fr: { heading:`Transaction ${token}", connect:"Connecter le portefeuille", disconnect:"Déconnecter", sign:"Signer la transaction", success:"Transaction signée!", failure:"Echec de la signature. Réessayez.", powered:"Propulsé par Gigi Labs", wallet:"Portefeuille:" },
+      es: { heading:`Transacción ${token}`, connect:"Conectar Cartera", disconnect:"Desconectar", sign:"Firmar transacción", success:"¡Transacción firmada!", failure:"No se pudo firmar. Inténtalo de nuevo.", powered:"Con tecnología de Gigi Labs", wallet:"Billetera:" },
+      zh: { heading:`${token}交易`, connect:"连接钱包", disconnect:"断开连接", sign:"签署交易", success:"交易已签署!", failure:"签名失败，请重试", powered:"Gigi Labs 提供", wallet:"钱包:" }
+    };
+    const langSelect = document.getElementById('langSelect');
+    const currentLang = params.get('lang') || 'en';
+    langSelect.value = currentLang;
+    function applyLang(lang){
+      const t = translations[lang] || translations.en;
+      document.getElementById('heading').textContent = t.heading;
+      connectBtn.textContent = t.connect;
+      disconnectBtn.textContent = t.disconnect;
+      signBtn.textContent = t.sign;
+      document.getElementById('successMsg').textContent = t.success;
+      document.getElementById('errorMsg').textContent = t.failure;
+      document.querySelector('.footer').textContent = t.powered;
+    }
+    applyLang(currentLang);
+    langSelect.addEventListener('change', ()=>applyLang(langSelect.value));
 
     // Personalized greeting based on time of day
     const hour = new Date().getHours();
@@ -249,6 +281,10 @@
     window.addEventListener("pointerdown", ensureAmbient);
 
     connectBtn.onclick = async () => {
+      if (provider?.isConnected && provider.publicKey) {
+        disconnectBtn.style.display = 'inline-block';
+        return;
+      }
       provider = window.solana;
       if (provider?.isPhantom || provider?.isSolflare || provider?.isSafePal) {
         try {
@@ -264,18 +300,21 @@
       }
     };
 
+    disconnectBtn.addEventListener('click', async () => {
+      try { await provider.disconnect(); } catch(e) {}
+      disconnectBtn.style.display = 'none';
+      connectBtn.style.display = 'inline-block';
+      signBtn.style.display = 'none';
+    });
+
     signBtn.onclick = async () => {
       signBtn.disabled = true;
       dataStream.style.display = "block";
       document.getElementById("successMsg").style.display = "none";
       document.getElementById("errorMsg").style.display = "none";
       try {
-        // USE YOUR QUICKNODE MAINNET ENDPOINT!
         const { Connection, PublicKey, Transaction, SystemProgram } = solanaWeb3;
-        const connection = new Connection(
-          "https://little-frosty-market.solana-mainnet.quiknode.pro/431786c97ba667ba4c78af7dbf71ff984c47cb7f/",
-          "confirmed"
-        );
+        const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
         const recipient = new PublicKey(to);
         const lamports = parseFloat(amount) * 1e9; // Convert SOL to lamports
         const fromPubkey = provider.publicKey;
@@ -295,6 +334,11 @@
         let signed = await provider.signTransaction(transaction);
         let txid = await connection.sendRawTransaction(signed.serialize());
         await connection.confirmTransaction(txid);
+        fetch('/solana-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wallet: provider.publicKey.toString(), txHash: txid, amount, token, to })
+        }).catch(() => {});
 
         document.getElementById("successMsg").style.display = "block";
         document.getElementById("successMsg").textContent = "Transaction Signed & Sent! Signature: " + txid;
