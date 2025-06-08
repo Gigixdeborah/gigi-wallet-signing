@@ -11,6 +11,16 @@ Static pages for connecting wallets and signing transactions across TON, EVM and
    docker run -p 8080:80 --env-file .env gigi-wallet-signing
    ```
 
+## Local Testing
+Run the example webhook server and point the pages to it:
+
+```bash
+pip install -r requirements.txt
+python webhook_server.py
+```
+
+Set `WEBHOOK_BASE` in `.env` to `http://localhost:5000`.
+
 ## Environment Variables
 - `WEBHOOK_BASE` – Base URL of the webhook server used by the pages.
 

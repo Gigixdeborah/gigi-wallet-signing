@@ -24,4 +24,13 @@ Multi-chain wallet connection pages for TON, EVM, Solana.
 3. Push to GitHub → deploy to Render
 
 ## Backend (example)
-Run `webhook_server.py` to receive events.
+An example receiver is provided in `webhook_server.py`.
+
+Run it locally with:
+
+```bash
+pip install -r ../requirements.txt
+python ../webhook_server.py
+```
+
+Then set `WEBHOOK_BASE` to `http://localhost:5000`.
