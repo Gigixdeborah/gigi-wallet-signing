@@ -1,6 +1,7 @@
 # Gigi Wallet Signing
 
 Static pages for connecting wallets and signing transactions across TON, EVM and Solana.
+Pages automatically initialise the Telegram Web App when embedded in the bot so MetaMask and Phantom can run inside Telegram.
 
 ## Setup
 1. Clone the repo
