@@ -4,7 +4,8 @@ Static pages for connecting wallets and signing transactions across TON, EVM and
 
 ## Setup
 1. Clone the repo
-2. Copy `.env.example` to `.env` and set `WEBHOOK_BASE` to your backend URL
+2. Copy `.env.example` to `.env` and set `WEBHOOK_BASE` and `WEBHOOK_SECRET`
+   to your backend URL and shared secret
 3. Build and run with Docker:
    ```bash
    docker build -t gigi-wallet-signing .
@@ -13,6 +14,7 @@ Static pages for connecting wallets and signing transactions across TON, EVM and
 
 ## Environment Variables
 - `WEBHOOK_BASE` – Base URL of the webhook server used by the pages.
+- `WEBHOOK_SECRET` – Secret used for HMAC signing.
 
 ## Tests
 Install requirements then run `pytest`.
