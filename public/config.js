@@ -1,3 +1,4 @@
 window.GIGI_CONFIG = {
-  WEBHOOK_BASE: ''
+  WEBHOOK_BASE: '',
+  WEBHOOK_SECRET: ''
 };
