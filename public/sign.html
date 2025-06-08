@@ -3,10 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Sign TON transactions securely with Cosmic Interface." />
+  <meta property="og:title" content="TON Transaction | Cosmic Interface" />
+  <meta property="og:description" content="Sign TON transactions securely with Cosmic Interface." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/favicon.ico" />
+  <meta name="twitter:card" content="summary" />
   <title>TON Transaction | Cosmic Interface</title>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <script src="https://cdn.skypack.dev/canvas-confetti"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -150,6 +156,7 @@
       display: none;
       animation: sparkleFade 1s ease-out;
       text-shadow: 0 0 10px #ff5252;
+      font-weight: bold;
     }
     #easterEgg {
       color: var(--secondary-glow);
@@ -207,6 +214,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+codex/build-3-mobile-first-signing-pages
   <select id="langSelect" style="position: fixed; top:10px; right:10px; z-index:20;">
     <option value="en">EN</option>
     <option value="fr">FR</option>
@@ -214,6 +222,9 @@
     <option value="zh">中文</option>
   </select>
   <canvas id="threeCanvas"></canvas>
+  
+  <canvas id="threeCanvas" aria-label="Animated starfield background"></canvas>
+  main
   <div class="container">
     <div class="holo-card">
         <h1 id="heading">TON Transaction</h1>
@@ -229,26 +240,32 @@
       <div id="loading"></div>
       <div id="liveStatus" role="status" aria-live="polite"></div>
       <div id="successMsg">Transaction Signed! <a id="txLink" href="#" target="_blank">View on Explorer</a></div>
-      <div id="errorMsg">Failed to Sign. Try Again.</div>
+      <div id="errorMsg" role="alert" aria-live="assertive">Failed to Sign. Try Again.</div>
       <div id="easterEgg">✨ Cosmic Power Unlocked! ✨</div>
       <div class="footer">Powered by Gigi Labs</div>
     </div>
   </div>
-  <audio id="clickSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto"></audio>
-  <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto"></audio>
-  <audio id="cometSound" src="https://assets.mixkit.co/sfx/download/mixkit-magic-sweep-234.wav" preload="auto"></audio>
-  <audio id="ambientSound" src="https://assets.mixkit.co/sfx/download/mixkit-ambient-mystical-forest-121.wav" preload="auto" loop></audio>
+  <audio id="clickSound" src="https://assets.mixkit.co/sfx/download/mixkit-game-click-1116.wav" preload="auto" aria-hidden="true"></audio>
+  <audio id="successSound" src="https://assets.mixkit.co/sfx/download/mixkit-sci-fi-confirmation-914.wav" preload="auto" aria-hidden="true"></audio>
+  <audio id="cometSound" src="https://assets.mixkit.co/sfx/download/mixkit-magic-sweep-234.wav" preload="auto" aria-hidden="true"></audio>
+  <audio id="ambientSound" src="https://assets.mixkit.co/sfx/download/mixkit-ambient-mystical-forest-121.wav" preload="auto" loop aria-hidden="true"></audio>
   <script>
     // URL Parameters and Validation
     const params = new URLSearchParams(window.location.search);
-    const tid = params.get("tid") || "";
-    const to = params.get("to") || "";
+    const tid = params.get("tid");
+    const to = params.get("to");
     const amount = params.get("amount");
+codex/build-3-mobile-first-signing-pages
     const token = params.get("token") || "TON";
     const chain = params.get("chain") || "ton";
     if (!amount) {
       alert("❌ Missing amount. Please return to the bot.");
       throw new Error("Amount parameter is missing");
+
+    if (!tid || !to || !amount) {
+      alert("❌ Missing transaction details. Please return to the bot.");
+      throw new Error("Missing transaction parameters");
+      main
     }
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
