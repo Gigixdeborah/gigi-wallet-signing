@@ -63,6 +63,9 @@
       transform-style: preserve-3d;
       transition: transform 0.3s ease;
     }
+    .holo-card.touch-feedback {
+      transform: perspective(1000px) rotateX(3deg) rotateY(3deg);
+    }
     .holo-card:hover {
       transform: perspective(1000px) rotateX(5deg) rotateY(5deg);
     }
@@ -177,6 +180,15 @@
       color: var(--primary-glow);
       opacity: 0.7;
       text-shadow: 0 0 5px var(--primary-glow);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+    @media (max-width: 600px) {
+      .holo-card { padding: 1em; }
+      h1 { font-size: 1.5em; }
     }
     #loading {
       display: none;
@@ -445,7 +457,7 @@
         // Step 2: Broadcast to webhook with signed payload
         liveStatus.textContent = "Sending transaction to the network...";
         const signature = generateSignature(JSON.stringify(payload));
-        await fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/ton-webhook`, {
+        await fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/${chain}-webhook`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -486,8 +498,8 @@
 
     // Easter Egg: Triple-tap to reveal
     const holoCard = document.querySelector(".holo-card");
-    let tapCount = 0;
-    holoCard.addEventListener("click", () => {
+  let tapCount = 0;
+  holoCard.addEventListener("click", () => {
       tapCount++;
       if (tapCount >= 3) {
         document.getElementById("easterEgg").style.display = "block";
@@ -495,7 +507,10 @@
         tapCount = 0;
         if (soundEnabled) cometSound.play().catch(err => console.log("Comet sound play failed:", err));
       }
-    });
+  });
+  holoCard.addEventListener('pointerdown', () => holoCard.classList.add('touch-feedback'));
+  holoCard.addEventListener('pointerup', () => holoCard.classList.remove('touch-feedback'));
+  holoCard.addEventListener('pointerleave', () => holoCard.classList.remove('touch-feedback'));
 
     // Three.js 3D Starfield
     const scene = new THREE.Scene();

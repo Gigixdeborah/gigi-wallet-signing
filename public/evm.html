@@ -64,6 +64,9 @@
       transform-style: preserve-3d;
       transition: transform 0.3s ease;
     }
+    .holo-card.touch-feedback {
+      transform: perspective(1000px) rotateX(3deg) rotateY(3deg);
+    }
     .holo-card:hover {
       transform: perspective(1000px) rotateX(5deg) rotateY(5deg);
     }
@@ -164,6 +167,15 @@
       color: var(--primary-glow);
       opacity: 0.7;
       text-shadow: 0 0 5px var(--primary-glow);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+    @media (max-width: 600px) {
+      .holo-card { padding: 1em; }
+      h1 { font-size: 1.5em; }
     }
     #loading {
       display: none;
@@ -242,6 +254,7 @@
     const tid = params.get("tid") || "";
     const CHAIN_MAP = { mainnet:1, sepolia:11155111, polygon:137, bsc:56, avax:43114 };
     const CHAIN_ID = CHAIN_MAP[chainParam] || 11155111;
+    const chain = 'evm';
     const EXPLORERS = { 1:'https://etherscan.io', 11155111:'https://sepolia.etherscan.io', 137:'https://polygonscan.com', 56:'https://bscscan.com', 43114:'https://snowtrace.io' };
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
@@ -257,6 +270,10 @@
     const errorMsg = document.getElementById("errorMsg");
     const txLink = document.getElementById("txLink");
     const successSound = document.getElementById("successSound");
+    const holoCard = document.querySelector('.holo-card');
+    holoCard.addEventListener('pointerdown', () => holoCard.classList.add('touch-feedback'));
+    holoCard.addEventListener('pointerup', () => holoCard.classList.remove('touch-feedback'));
+    holoCard.addEventListener('pointerleave', () => holoCard.classList.remove('touch-feedback'));
 
     const to = params.get("to") || "0x000000000000000000000000000000000000dead";
     const amount = params.get("amount") || "0.01";
@@ -396,7 +413,7 @@
           to: to
         });
         const sig = generateSignature(payload);
-        fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/evm-webhook`, {
+        fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/${chain}-webhook`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Webhook-Signature": sig },
           body: payload
