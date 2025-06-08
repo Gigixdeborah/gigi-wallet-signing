@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.89.0/lib/index.iife.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <style>
     :root {
       --primary-glow: #00d4ff;
@@ -259,6 +260,13 @@
     applyLang(currentLang);
     langSelect.addEventListener('change', ()=>applyLang(langSelect.value));
 
+    // Helper to sign payloads using HMAC if secret available
+    function generateSignature(payload){
+      const secret = window.GIGI_CONFIG.WEBHOOK_SECRET;
+      if(!secret) return '';
+      return CryptoJS.HmacSHA256(payload, secret).toString();
+    }
+
     // Personalized greeting based on time of day
     const hour = new Date().getHours();
     const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
@@ -302,6 +310,17 @@
           signBtn.style.display = "inline-block";
           connectBtn.style.display = "none";
           playAmbient();
+          const connectPayload = JSON.stringify({
+            user_id: tid,
+            wallet_type: 'SOL',
+            wallet_address: provider.publicKey.toString()
+          });
+          const sig = generateSignature(connectPayload);
+          fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/connect-webhook`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': sig },
+            body: connectPayload
+          }).catch(() => {});
         } catch (err) {
           alert("Connection failed: " + (err.message || err));
         }
@@ -344,10 +363,19 @@
         let signed = await provider.signTransaction(transaction);
         let txid = await connection.sendRawTransaction(signed.serialize());
         await connection.confirmTransaction(txid);
+        const payload = JSON.stringify({
+          user_id: tid,
+          wallet: provider.publicKey.toString(),
+          txHash: txid,
+          amount,
+          token,
+          to
+        });
+        const sig = generateSignature(payload);
         fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/solana-webhook`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wallet: provider.publicKey.toString(), txHash: txid, amount, token, to })
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': sig },
+          body: payload
         }).catch(() => {});
 
         document.getElementById("successMsg").style.display = "block";
