@@ -1,4 +1,6 @@
 window.GIGI_CONFIG = {
-  WEBHOOK_BASE: '',
+  // Base URL for your deployed webhook backend
+  WEBHOOK_BASE: 'https://your-webhook-base-url',
+  // Optional secret for client-side HMAC signing
   WEBHOOK_SECRET: ''
 };

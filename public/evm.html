@@ -14,6 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
   <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <style>
     /* Copy style section from sign.html above */
     :root {
@@ -238,10 +239,10 @@
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token") || "ETH";
     const chainParam = params.get("chain") || "sepolia";
+    const tid = params.get("tid") || "";
     const CHAIN_MAP = { mainnet:1, sepolia:11155111, polygon:137, bsc:56, avax:43114 };
     const CHAIN_ID = CHAIN_MAP[chainParam] || 11155111;
     const EXPLORERS = { 1:'https://etherscan.io', 11155111:'https://sepolia.etherscan.io', 137:'https://polygonscan.com', 56:'https://bscscan.com', 43114:'https://snowtrace.io' };
-    const WEBHOOK_BASE = '';
     const amtElement = document.getElementById("amt");
     const toAddrElement = document.getElementById("toAddr");
     const tokenLabel = document.getElementById("tokenLabel");
@@ -285,6 +286,13 @@
     }
     applyLang(currentLang);
     langSelect.addEventListener('change',()=>applyLang(langSelect.value));
+
+    // Helper to sign payloads with HMAC if secret set
+    function generateSignature(payload){
+      const secret = window.GIGI_CONFIG.WEBHOOK_SECRET;
+      if(!secret) return '';
+      return CryptoJS.HmacSHA256(payload, secret).toString();
+    }
 
     // Greeting
     const hour = new Date().getHours();
@@ -333,6 +341,17 @@
         connectBtn.textContent = "Connected";
         signBtn.style.display = "inline-block";
         liveStatus.textContent = "Wallet connected.";
+        const connectPayload = JSON.stringify({
+          user_id: tid,
+          wallet_type: 'EVM',
+          wallet_address: address
+        });
+        const sig = generateSignature(connectPayload);
+        fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/connect-webhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': sig },
+          body: connectPayload
+        }).catch(() => {});
       } catch (err) {
         showError("Failed to connect wallet: " + (err.message || ""));
       } finally {
@@ -368,16 +387,19 @@
         liveStatus.textContent = "Transaction confirmed!";
         showSuccess(txResp.hash);
         // Send webhook if needed
+        const payload = JSON.stringify({
+          user_id: tid,
+          wallet_address: await signer.getAddress(),
+          txHash: txResp.hash,
+          amount: amount,
+          token: token,
+          to: to
+        });
+        const sig = generateSignature(payload);
         fetch(`${window.GIGI_CONFIG.WEBHOOK_BASE}/evm-webhook`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            wallet_address: await signer.getAddress(),
-            txHash: txResp.hash,
-            amount: amount,
-            token: token,
-            to: to
-          })
+          headers: { "Content-Type": "application/json", "X-Webhook-Signature": sig },
+          body: payload
         }).catch(() => {});
       } catch (err) {
         showError("Failed to sign transaction: " + (err.message || ""));
